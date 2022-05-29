@@ -1,0 +1,13 @@
+type Circle {
+    id: ID!
+    name: String!
+    votes: [Vote]!
+    voters: [CircleVoter]!
+    private: Boolean!
+    createdFrom: String!
+    validUntil: Time
+}
+
+extend type Query {
+    circle(id: ID!): Circle!
+}

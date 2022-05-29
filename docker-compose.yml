@@ -1,0 +1,20 @@
+version: "3.9"
+services:
+
+  vyf-vote_circlesvc:
+    container_name: ${DOCKER_SERVICE_NAME?Variable not set}
+    hostname: ${DOCKER_SERVICE_NAME?Variable not set}
+    networks:
+      - n_vote_circlesvc
+      - postgres-db-1-public
+    image: '${DOCKER_IMAGE_SERVICE_NAME?Variable not set}:${TAG-latest}'
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: service.dockerfile
+
+networks:
+  n_vote_circlesvc:
+  postgres-db-1-public:
+    external: true

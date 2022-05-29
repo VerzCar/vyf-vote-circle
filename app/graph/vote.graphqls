@@ -1,0 +1,8 @@
+type Vote {
+    id: ID!
+    voter: String!
+    elected: String!
+    circle: Circle!
+    createdAt: Time
+    updatedAt: Time
+}

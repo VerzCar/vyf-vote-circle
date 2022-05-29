@@ -1,0 +1,8 @@
+type CircleVoter {
+    id: ID!
+    voter: String!
+    committed: Boolean!
+    rejected: Boolean!
+    createdAt: Time
+    updatedAt: Time
+}

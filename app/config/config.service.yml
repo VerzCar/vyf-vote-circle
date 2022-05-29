@@ -1,0 +1,36 @@
+# hosts
+hosts:
+  vec: http://localhost:4200/
+  svc:
+    sso: http://localhost:1010
+
+# aws
+aws:
+  auth:
+    clientId: clientId
+    userPoolId: poolId
+    awsDefaultRegion: eu-central-1
+    clientSecret: secret
+
+# Database
+db:
+  host: publicPostgresDb
+  port: 5432
+  name: name
+  user: user
+  password: pwd
+  test:
+    host: db
+    port: 5432
+    name: tname
+    user: user
+    password: pwd
+
+# Security
+security:
+  secrets:
+    key: secret
+
+# used token definitions
+token:
+  type: bearer
