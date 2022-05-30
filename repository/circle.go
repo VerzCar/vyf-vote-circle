@@ -23,3 +23,13 @@ func (s *storage) CircleById(id int64) (*model.Circle, error) {
 
 	return circle, nil
 }
+
+// UpdateCircle update circle based on given circle model
+func (s *storage) UpdateCircle(circle *model.Circle) (*model.Circle, error) {
+	if err := s.db.Save(circle).Error; err != nil {
+		s.log.Errorf("error updating circle: %s", err)
+		return nil, err
+	}
+
+	return circle, nil
+}

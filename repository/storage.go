@@ -19,6 +19,7 @@ type Storage interface {
 	RunMigrationsUp(db *sql.DB) error
 	RunMigrationsDown(db *sql.DB) error
 	CircleById(id int64) (*model.Circle, error)
+	UpdateCircle(circle *model.Circle) (*model.Circle, error)
 }
 
 type storage struct {

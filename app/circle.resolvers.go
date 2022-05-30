@@ -5,10 +5,23 @@ package app
 
 import (
 	"context"
-
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
 )
+
+func (r *mutationResolver) UpdateCircle(
+	ctx context.Context,
+	id int64,
+	circleUpdateInput model.CircleUpdateInput,
+) (*model.Circle, error) {
+	circle, err := r.circleService.UpdateCircle(ctx, id, &circleUpdateInput)
+
+	if err != nil {
+		return nil, gqlerror.Errorf("cannot update circle")
+	}
+
+	return circle, nil
+}
 
 func (r *queryResolver) Circle(ctx context.Context, id int64) (*model.Circle, error) {
 	circle, err := r.circleService.Circle(ctx, id)

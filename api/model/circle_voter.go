@@ -21,3 +21,7 @@ type CircleVoter struct {
 	CreatedAt   time.Time `json:"createdAt" gorm:"autoCreateTime;"`
 	UpdatedAt   time.Time `json:"updatedAt" gorm:"autoUpdateTime;"`
 }
+
+type CircleVoterInput struct {
+	Voter string `json:"voter"`
+}

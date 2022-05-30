@@ -65,7 +65,8 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		Ping func(childComplexity int) int
+		Ping         func(childComplexity int) int
+		UpdateCircle func(childComplexity int, id int64, circleUpdateInput model.CircleUpdateInput) int
 	}
 
 	Query struct {
@@ -85,6 +86,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	Ping(ctx context.Context) (string, error)
+	UpdateCircle(ctx context.Context, id int64, circleUpdateInput model.CircleUpdateInput) (*model.Circle, error)
 }
 type QueryResolver interface {
 	Ping(ctx context.Context) (string, error)
@@ -204,6 +206,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.Ping(childComplexity), true
 
+	case "Mutation.updateCircle":
+		if e.complexity.Mutation.UpdateCircle == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateCircle_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateCircle(childComplexity, args["id"].(int64), args["circleUpdateInput"].(model.CircleUpdateInput)), true
+
 	case "Query.circle":
 		if e.complexity.Query.Circle == nil {
 			break
@@ -272,7 +286,10 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e}
-	inputUnmarshalMap := graphql.BuildUnmarshalerMap()
+	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputCircleUpdateInput,
+		ec.unmarshalInputCircleVoterInput,
+	)
 	first := true
 
 	switch rc.Operation.Operation {
@@ -342,8 +359,19 @@ var sources = []*ast.Source{
     validUntil: Time
 }
 
+input CircleUpdateInput {
+    name: String
+    voters: [CircleVoterInput]!
+    private: Boolean
+    validUntil: Time
+}
+
 extend type Query {
     circle(id: ID!): Circle!
+}
+
+extend type Mutation {
+    updateCircle(id: ID!, circleUpdateInput: CircleUpdateInput!): Circle!
 }`, BuiltIn: false},
 	{Name: "../circle_voter.graphqls", Input: `type CircleVoter {
     id: ID!
@@ -352,6 +380,10 @@ extend type Query {
     rejected: Boolean!
     createdAt: Time
     updatedAt: Time
+}
+
+input CircleVoterInput {
+    voter: String!
 }`, BuiltIn: false},
 	{Name: "../schema.graphqls", Input: `scalar Time
 
@@ -376,6 +408,30 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_updateCircle_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int64
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2int64(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 model.CircleUpdateInput
+	if tmp, ok := rawArgs["circleUpdateInput"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("circleUpdateInput"))
+		arg1, err = ec.unmarshalNCircleUpdateInput2gitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleUpdateInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["circleUpdateInput"] = arg1
+	return args, nil
+}
 
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -1076,6 +1132,77 @@ func (ec *executionContext) fieldContext_Mutation_ping(ctx context.Context, fiel
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateCircle(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateCircle(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateCircle(rctx, fc.Args["id"].(int64), fc.Args["circleUpdateInput"].(model.CircleUpdateInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Circle)
+	fc.Result = res
+	return ec.marshalNCircle2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircle(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateCircle(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Circle_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Circle_name(ctx, field)
+			case "votes":
+				return ec.fieldContext_Circle_votes(ctx, field)
+			case "voters":
+				return ec.fieldContext_Circle_voters(ctx, field)
+			case "private":
+				return ec.fieldContext_Circle_private(ctx, field)
+			case "createdFrom":
+				return ec.fieldContext_Circle_createdFrom(ctx, field)
+			case "validUntil":
+				return ec.fieldContext_Circle_validUntil(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Circle", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateCircle_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
 	}
 	return fc, nil
 }
@@ -3371,6 +3498,76 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(ctx context.Conte
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputCircleUpdateInput(ctx context.Context, obj interface{}) (model.CircleUpdateInput, error) {
+	var it model.CircleUpdateInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "voters":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("voters"))
+			it.Voters, err = ec.unmarshalNCircleVoterInput2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoterInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "private":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("private"))
+			it.Private, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "validUntil":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("validUntil"))
+			it.ValidUntil, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputCircleVoterInput(ctx context.Context, obj interface{}) (model.CircleVoterInput, error) {
+	var it model.CircleVoterInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "voter":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("voter"))
+			it.Voter, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -3526,6 +3723,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_ping(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updateCircle":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateCircle(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
@@ -4034,6 +4240,11 @@ func (ec *executionContext) marshalNCircle2ᚖgitlabᚗvecomentmanᚗcomᚋvote�
 	return ec._Circle(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNCircleUpdateInput2gitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleUpdateInput(ctx context.Context, v interface{}) (model.CircleUpdateInput, error) {
+	res, err := ec.unmarshalInputCircleUpdateInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNCircleVoter2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoter(ctx context.Context, sel ast.SelectionSet, v []*model.CircleVoter) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -4070,6 +4281,23 @@ func (ec *executionContext) marshalNCircleVoter2ᚕᚖgitlabᚗvecomentmanᚗcom
 	wg.Wait()
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalNCircleVoterInput2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoterInput(ctx context.Context, v interface{}) ([]*model.CircleVoterInput, error) {
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*model.CircleVoterInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalOCircleVoterInput2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoterInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 func (ec *executionContext) unmarshalNID2int64(ctx context.Context, v interface{}) (int64, error) {
@@ -4424,6 +4652,14 @@ func (ec *executionContext) marshalOCircleVoter2ᚖgitlabᚗvecomentmanᚗcomᚋ
 		return graphql.Null
 	}
 	return ec._CircleVoter(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOCircleVoterInput2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoterInput(ctx context.Context, v interface{}) (*model.CircleVoterInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputCircleVoterInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

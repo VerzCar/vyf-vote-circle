@@ -8,6 +8,17 @@ type Circle {
     validUntil: Time
 }
 
+input CircleUpdateInput {
+    name: String
+    voters: [CircleVoterInput]!
+    private: Boolean
+    validUntil: Time
+}
+
 extend type Query {
     circle(id: ID!): Circle!
+}
+
+extend type Mutation {
+    updateCircle(id: ID!, circleUpdateInput: CircleUpdateInput!): Circle!
 }

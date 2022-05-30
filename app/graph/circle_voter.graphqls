@@ -6,3 +6,7 @@ type CircleVoter {
     createdAt: Time
     updatedAt: Time
 }
+
+input CircleVoterInput {
+    voter: String!
+}
