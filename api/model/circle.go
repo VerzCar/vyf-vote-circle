@@ -32,9 +32,16 @@ type Circle struct {
 }
 
 type CircleUpdateInput struct {
-	Name       *string             `json:"name"`
+	Name       *string             `json:"name" validate:"omitempty,gt=0,lte=40"`
 	Voters     []*CircleVoterInput `json:"voters"`
-	Private    *bool               `json:"private"`
-	Delete     *bool               `json:"delete"`
-	ValidUntil *time.Time          `json:"validUntil"`
+	Private    *bool               `json:"private" validate:"omitempty"`
+	Delete     *bool               `json:"delete" validate:"omitempty"`
+	ValidUntil *time.Time          `json:"validUntil" validate:"omitempty"`
+}
+
+type CircleCreateInput struct {
+	Name       string              `json:"name" validate:"gt=0,lte=40"`
+	Voters     []*CircleVoterInput `json:"voters"`
+	Private    *bool               `json:"private" validate:"omitempty"`
+	ValidUntil *time.Time          `json:"validUntil" validate:"omitempty"`
 }

@@ -3,6 +3,7 @@ package repository
 import (
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/database"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -28,6 +29,45 @@ func (s *storage) CircleById(id int64) (*model.Circle, error) {
 func (s *storage) UpdateCircle(circle *model.Circle) (*model.Circle, error) {
 	if err := s.db.Save(circle).Error; err != nil {
 		s.log.Errorf("error updating circle: %s", err)
+		return nil, err
+	}
+
+	return circle, nil
+}
+
+// CreateNewCircle based on given circle model.
+// The associations that come with it, will be created in the transaction accordingly.
+func (s *storage) CreateNewCircle(circle *model.Circle) (*model.Circle, error) {
+	err := s.db.Transaction(
+		func(tx *gorm.DB) error {
+			err := tx.Model(circle).Omit(clause.Associations).Create(circle).Error
+
+			if err != nil {
+				s.log.Error("error creating circle entry: %s", err)
+				return err
+			}
+
+			circleVoters := circle.Voters
+
+			for _, voter := range circleVoters {
+				voter.CircleID = circle.ID
+				voter.CircleRefer = &circle.ID
+			}
+
+			err = tx.Model(&model.CircleVoter{}).Create(circleVoters).Error
+
+			if err != nil {
+				s.log.Error("error creating circle voters entry: %s", err)
+				return err
+			}
+
+			circle.Voters = circleVoters
+			return nil
+		},
+	)
+
+	if err != nil {
+		s.log.Error("error creating circle: %s", err)
 		return nil, err
 	}
 

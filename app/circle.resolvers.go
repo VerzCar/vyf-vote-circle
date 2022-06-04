@@ -14,10 +14,37 @@ func (r *mutationResolver) UpdateCircle(
 	id int64,
 	circleUpdateInput model.CircleUpdateInput,
 ) (*model.Circle, error) {
+	gqlError := gqlerror.Errorf("circle cannot be updated")
+
+	if err := r.validate.Struct(circleUpdateInput); err != nil {
+		r.log.Error(err)
+		return nil, gqlError
+	}
+
 	circle, err := r.circleService.UpdateCircle(ctx, id, &circleUpdateInput)
 
 	if err != nil {
-		return nil, gqlerror.Errorf("cannot update circle")
+		return nil, gqlError
+	}
+
+	return circle, nil
+}
+
+func (r *mutationResolver) CreateCircle(ctx context.Context, circleCreateInput model.CircleCreateInput) (
+	*model.Circle,
+	error,
+) {
+	gqlError := gqlerror.Errorf("circle cannot be created")
+
+	if err := r.validate.Struct(circleCreateInput); err != nil {
+		r.log.Error(err)
+		return nil, gqlError
+	}
+
+	circle, err := r.circleService.CreateCircle(ctx, &circleCreateInput)
+
+	if err != nil {
+		return nil, gqlError
 	}
 
 	return circle, nil

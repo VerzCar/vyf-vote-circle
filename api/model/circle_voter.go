@@ -16,12 +16,12 @@ type CircleVoter struct {
 	Rejected bool `json:"rejected" gorm:"default:false;not null"`
 
 	CircleID    int64     `json:"circleId" gorm:"not null;"`
-	Circle      *Circle   `json:"circle" gorm:"constraint:OnDelete:RESTRICT;"`
+	Circle      *Circle   `json:"circle" gorm:"constraint:OnDelete:RESTRICT"`
 	CircleRefer *int64    `json:"circleRefer"`
 	CreatedAt   time.Time `json:"createdAt" gorm:"autoCreateTime;"`
 	UpdatedAt   time.Time `json:"updatedAt" gorm:"autoUpdateTime;"`
 }
 
 type CircleVoterInput struct {
-	Voter string `json:"voter"`
+	Voter string `json:"voter" validate:"omitempty,gt=0,lte=50"`
 }
