@@ -211,13 +211,7 @@ func (c *circleService) CreateCircle(
 		return nil, err
 	}
 
-	var circleVoters []*model.CircleVoter
-	for _, voter := range circleCreateInput.Voters {
-		circleVoter := &model.CircleVoter{
-			Voter: voter.Voter,
-		}
-		circleVoters = append(circleVoters, circleVoter)
-	}
+	var circleVoters = c.createCircleVoterList(authClaims.Subject, circleCreateInput.Voters)
 	newCircle.Voters = circleVoters
 
 	circle, err := c.storage.CreateNewCircle(newCircle)
@@ -284,4 +278,44 @@ func (c *circleService) inactivateCircle(
 	}
 
 	return nil
+}
+
+// createCircleVoterList based on the given createdFrom and the
+// circleVoterInputs. It removes all the duplicates from the
+// circleVoterInputs and add the createdFrom id to the list.
+func (c *circleService) createCircleVoterList(
+	createdFrom string,
+	circleVoterInputs []*model.CircleVoterInput,
+) []*model.CircleVoter {
+	var voterIdList []string
+
+	voterIdList = append(voterIdList, createdFrom)
+	for _, voter := range circleVoterInputs {
+		voterIdList = append(voterIdList, voter.Voter)
+	}
+
+	voterIdList = removeDuplicateStr(voterIdList)
+
+	var circleVoters []*model.CircleVoter
+	// add the given voters to the circle voters
+	for _, voter := range voterIdList {
+		circleVoter := &model.CircleVoter{
+			Voter: voter,
+		}
+		circleVoters = append(circleVoters, circleVoter)
+	}
+
+	return circleVoters
+}
+
+func removeDuplicateStr(strSlice []string) []string {
+	allKeys := make(map[string]bool)
+	var list []string
+	for _, item := range strSlice {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			list = append(list, item)
+		}
+	}
+	return list
 }
