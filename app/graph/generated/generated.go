@@ -367,8 +367,8 @@ var sources = []*ast.Source{
 	{Name: "../circle.graphqls", Input: `type Circle {
     id: ID!
     name: String!
-    votes: [Vote]!
-    voters: [CircleVoter]!
+    votes: [Vote!]
+    voters: [CircleVoter!]!
     private: Boolean!
     createdFrom: String!
     validUntil: Time
@@ -376,7 +376,7 @@ var sources = []*ast.Source{
 
 input CircleUpdateInput {
     name: String
-    voters: [CircleVoterInput]!
+    voters: [CircleVoterInput!]
     private: Boolean
     validUntil: Time
 }
@@ -648,14 +648,11 @@ func (ec *executionContext) _Circle_votes(ctx context.Context, field graphql.Col
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.([]*model.Vote)
 	fc.Result = res
-	return ec.marshalNVote2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐVote(ctx, field.Selections, res)
+	return ec.marshalOVote2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐVoteᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Circle_votes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -713,7 +710,7 @@ func (ec *executionContext) _Circle_voters(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.([]*model.CircleVoter)
 	fc.Result = res
-	return ec.marshalNCircleVoter2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoter(ctx, field.Selections, res)
+	return ec.marshalNCircleVoter2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoterᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Circle_voters(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3675,7 +3672,7 @@ func (ec *executionContext) unmarshalInputCircleUpdateInput(ctx context.Context,
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("voters"))
-			it.Voters, err = ec.unmarshalNCircleVoterInput2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoterInput(ctx, v)
+			it.Voters, err = ec.unmarshalOCircleVoterInput2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoterInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3760,9 +3757,6 @@ func (ec *executionContext) _Circle(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Values[i] = ec._Circle_votes(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "voters":
 
 			out.Values[i] = ec._Circle_voters(ctx, field, obj)
@@ -4415,7 +4409,7 @@ func (ec *executionContext) unmarshalNCircleUpdateInput2gitlabᚗvecomentmanᚗc
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNCircleVoter2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoter(ctx context.Context, sel ast.SelectionSet, v []*model.CircleVoter) graphql.Marshaler {
+func (ec *executionContext) marshalNCircleVoter2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoterᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.CircleVoter) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4439,7 +4433,7 @@ func (ec *executionContext) marshalNCircleVoter2ᚕᚖgitlabᚗvecomentmanᚗcom
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOCircleVoter2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoter(ctx, sel, v[i])
+			ret[i] = ec.marshalNCircleVoter2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoter(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4450,24 +4444,23 @@ func (ec *executionContext) marshalNCircleVoter2ᚕᚖgitlabᚗvecomentmanᚗcom
 	}
 	wg.Wait()
 
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
-func (ec *executionContext) unmarshalNCircleVoterInput2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoterInput(ctx context.Context, v interface{}) ([]*model.CircleVoterInput, error) {
-	var vSlice []interface{}
-	if v != nil {
-		vSlice = graphql.CoerceList(v)
-	}
-	var err error
-	res := make([]*model.CircleVoterInput, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalOCircleVoterInput2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoterInput(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
+func (ec *executionContext) marshalNCircleVoter2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoter(ctx context.Context, sel ast.SelectionSet, v *model.CircleVoter) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
 		}
+		return graphql.Null
 	}
-	return res, nil
+	return ec._CircleVoter(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNCircleVoterInput2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoterInputᚄ(ctx context.Context, v interface{}) ([]*model.CircleVoterInput, error) {
@@ -4522,42 +4515,14 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNVote2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐVote(ctx context.Context, sel ast.SelectionSet, v []*model.Vote) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
+func (ec *executionContext) marshalNVote2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐVote(ctx context.Context, sel ast.SelectionSet, v *model.Vote) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
 	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOVote2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐVote(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	return ret
+	return ec._Vote(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -4839,19 +4804,24 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) marshalOCircleVoter2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoter(ctx context.Context, sel ast.SelectionSet, v *model.CircleVoter) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._CircleVoter(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalOCircleVoterInput2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoterInput(ctx context.Context, v interface{}) (*model.CircleVoterInput, error) {
+func (ec *executionContext) unmarshalOCircleVoterInput2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoterInputᚄ(ctx context.Context, v interface{}) ([]*model.CircleVoterInput, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalInputCircleVoterInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*model.CircleVoterInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNCircleVoterInput2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoterInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
@@ -4896,11 +4866,51 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 	return res
 }
 
-func (ec *executionContext) marshalOVote2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐVote(ctx context.Context, sel ast.SelectionSet, v *model.Vote) graphql.Marshaler {
+func (ec *executionContext) marshalOVote2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐVoteᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Vote) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	return ec._Vote(ctx, sel, v)
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNVote2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐVote(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

@@ -1,8 +1,8 @@
 type Circle {
     id: ID!
     name: String!
-    votes: [Vote]!
-    voters: [CircleVoter]!
+    votes: [Vote!]
+    voters: [CircleVoter!]!
     private: Boolean!
     createdFrom: String!
     validUntil: Time
@@ -10,7 +10,7 @@ type Circle {
 
 input CircleUpdateInput {
     name: String
-    voters: [CircleVoterInput]!
+    voters: [CircleVoterInput!]
     private: Boolean
     validUntil: Time
 }
