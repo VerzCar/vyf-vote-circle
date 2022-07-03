@@ -1,6 +1,7 @@
 stages:
   #  - test
   - build
+  - deploy
 
 #test-source:
 #  image: golang:1.18
@@ -66,3 +67,17 @@ build-image-push:
       fi
     - docker build --pull -t "$DO_DOCKER_REGISTRY/$CI_PROJECT_NAMESPACE-$CI_PROJECT_NAME${tag}" -f service.dockerfile .
     - docker push "$DO_DOCKER_REGISTRY/$CI_PROJECT_NAMESPACE-$CI_PROJECT_NAME${tag}"
+
+# deploy stage
+deploy:
+  stage: build
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: [ '' ]
+  script:
+    - kubectl config get-contexts
+    - kubectl config use-context vote-your-face/service/vote_circle:vyf-k8s-dev
+    - kubectl get pods
+    - kubectl apply -f service-manifest.yaml
+    - kubectl rollout status deployment/vote-circle-service
+
