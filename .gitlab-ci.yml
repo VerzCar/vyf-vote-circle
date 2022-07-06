@@ -80,4 +80,3 @@ deploy:
     - kubectl get pods
     - kubectl apply -f service-manifest.yaml
     - kubectl rollout status deployment/vote-circle-service
-
