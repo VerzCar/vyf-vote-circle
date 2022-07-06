@@ -76,7 +76,7 @@ deploy:
     entrypoint: [ '' ]
   script:
     - kubectl config get-contexts
-    - kubectl config use-context vote-your-face/service/vote_circle:vyf-k8s-dev
+    - kubectl config use-context vote-your-face/service/vote_circle:vote-circle-k8s-dev
     - kubectl get pods
     - kubectl apply -f service-manifest.yaml
     - kubectl rollout status deployment/vote-circle-service
