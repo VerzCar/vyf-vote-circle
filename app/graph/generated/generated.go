@@ -39,6 +39,7 @@ type Config struct {
 type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
+	Vote() VoteResolver
 }
 
 type DirectiveRoot struct {
@@ -56,12 +57,11 @@ type ComplexityRoot struct {
 	}
 
 	CircleVoter struct {
-		Committed func(childComplexity int) int
-		CreatedAt func(childComplexity int) int
-		ID        func(childComplexity int) int
-		Rejected  func(childComplexity int) int
-		UpdatedAt func(childComplexity int) int
-		Voter     func(childComplexity int) int
+		Commitment func(childComplexity int) int
+		CreatedAt  func(childComplexity int) int
+		ID         func(childComplexity int) int
+		UpdatedAt  func(childComplexity int) int
+		Voter      func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -93,6 +93,10 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Ping(ctx context.Context) (string, error)
 	Circle(ctx context.Context, id int64) (*model.Circle, error)
+}
+type VoteResolver interface {
+	Voter(ctx context.Context, obj *model.Vote) (string, error)
+	Elected(ctx context.Context, obj *model.Vote) (string, error)
 }
 
 type executableSchema struct {
@@ -159,12 +163,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Circle.Votes(childComplexity), true
 
-	case "CircleVoter.committed":
-		if e.complexity.CircleVoter.Committed == nil {
+	case "CircleVoter.commitment":
+		if e.complexity.CircleVoter.Commitment == nil {
 			break
 		}
 
-		return e.complexity.CircleVoter.Committed(childComplexity), true
+		return e.complexity.CircleVoter.Commitment(childComplexity), true
 
 	case "CircleVoter.createdAt":
 		if e.complexity.CircleVoter.CreatedAt == nil {
@@ -179,13 +183,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.CircleVoter.ID(childComplexity), true
-
-	case "CircleVoter.rejected":
-		if e.complexity.CircleVoter.Rejected == nil {
-			break
-		}
-
-		return e.complexity.CircleVoter.Rejected(childComplexity), true
 
 	case "CircleVoter.updatedAt":
 		if e.complexity.CircleVoter.UpdatedAt == nil {
@@ -396,11 +393,16 @@ extend type Mutation {
     updateCircle(id: ID!, circleUpdateInput: CircleUpdateInput!): Circle!
     createCircle(circleCreateInput: CircleCreateInput!): Circle!
 }`, BuiltIn: false},
-	{Name: "../circle_voter.graphqls", Input: `type CircleVoter {
+	{Name: "../circle_voter.graphqls", Input: `enum Commitment {
+    OPEN
+    COMMITTED
+    REJECTED
+}
+
+type CircleVoter {
     id: ID!
     voter: String!
-    committed: Boolean!
-    rejected: Boolean!
+    commitment: Commitment!
     createdAt: Time
     updatedAt: Time
 }
@@ -725,10 +727,8 @@ func (ec *executionContext) fieldContext_Circle_voters(ctx context.Context, fiel
 				return ec.fieldContext_CircleVoter_id(ctx, field)
 			case "voter":
 				return ec.fieldContext_CircleVoter_voter(ctx, field)
-			case "committed":
-				return ec.fieldContext_CircleVoter_committed(ctx, field)
-			case "rejected":
-				return ec.fieldContext_CircleVoter_rejected(ctx, field)
+			case "commitment":
+				return ec.fieldContext_CircleVoter_commitment(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_CircleVoter_createdAt(ctx, field)
 			case "updatedAt":
@@ -957,8 +957,8 @@ func (ec *executionContext) fieldContext_CircleVoter_voter(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _CircleVoter_committed(ctx context.Context, field graphql.CollectedField, obj *model.CircleVoter) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_CircleVoter_committed(ctx, field)
+func (ec *executionContext) _CircleVoter_commitment(ctx context.Context, field graphql.CollectedField, obj *model.CircleVoter) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CircleVoter_commitment(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -971,7 +971,7 @@ func (ec *executionContext) _CircleVoter_committed(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Committed, nil
+		return obj.Commitment, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -983,63 +983,19 @@ func (ec *executionContext) _CircleVoter_committed(ctx context.Context, field gr
 		}
 		return graphql.Null
 	}
-	res := resTmp.(bool)
+	res := resTmp.(model.Commitment)
 	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalNCommitment2gitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCommitment(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_CircleVoter_committed(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_CircleVoter_commitment(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "CircleVoter",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _CircleVoter_rejected(ctx context.Context, field graphql.CollectedField, obj *model.CircleVoter) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_CircleVoter_rejected(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Rejected, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_CircleVoter_rejected(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CircleVoter",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
+			return nil, errors.New("field of type Commitment does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1615,7 +1571,7 @@ func (ec *executionContext) _Vote_voter(ctx context.Context, field graphql.Colle
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Voter, nil
+		return ec.resolvers.Vote().Voter(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1636,8 +1592,8 @@ func (ec *executionContext) fieldContext_Vote_voter(ctx context.Context, field g
 	fc = &graphql.FieldContext{
 		Object:     "Vote",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -1659,7 +1615,7 @@ func (ec *executionContext) _Vote_elected(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Elected, nil
+		return ec.resolvers.Vote().Elected(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1680,8 +1636,8 @@ func (ec *executionContext) fieldContext_Vote_elected(ctx context.Context, field
 	fc = &graphql.FieldContext{
 		Object:     "Vote",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -3817,16 +3773,9 @@ func (ec *executionContext) _CircleVoter(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "committed":
+		case "commitment":
 
-			out.Values[i] = ec._CircleVoter_committed(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "rejected":
-
-			out.Values[i] = ec._CircleVoter_rejected(ctx, field, obj)
+			out.Values[i] = ec._CircleVoter_commitment(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -4010,28 +3959,54 @@ func (ec *executionContext) _Vote(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._Vote_id(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "voter":
+			field := field
 
-			out.Values[i] = ec._Vote_voter(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Vote_voter(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
 			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "elected":
+			field := field
 
-			out.Values[i] = ec._Vote_elected(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Vote_elected(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
 			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "circle":
 
 			out.Values[i] = ec._Vote_circle(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "createdAt":
 
@@ -4483,6 +4458,16 @@ func (ec *executionContext) unmarshalNCircleVoterInput2ᚕᚖgitlabᚗvecomentma
 func (ec *executionContext) unmarshalNCircleVoterInput2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircleVoterInput(ctx context.Context, v interface{}) (*model.CircleVoterInput, error) {
 	res, err := ec.unmarshalInputCircleVoterInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNCommitment2gitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCommitment(ctx context.Context, v interface{}) (model.Commitment, error) {
+	var res model.Commitment
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCommitment2gitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCommitment(ctx context.Context, sel ast.SelectionSet, v model.Commitment) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNID2int64(ctx context.Context, v interface{}) (int64, error) {

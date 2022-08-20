@@ -23,7 +23,7 @@ func NewServer(router *gin.Engine, resolver *Resolver) *Server {
 }
 
 func (s *Server) Run() error {
-	err := s.router.Run()
+	err := s.router.Run(":8081")
 
 	if err != nil {
 		log.Printf("Server - there was an error calling Run on router: %v", err)

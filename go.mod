@@ -1,6 +1,6 @@
 module gitlab.vecomentman.com/vote-your-face/service/vote_circle
 
-go 1.17
+go 1.19
 
 require (
 	github.com/99designs/gqlgen v0.17.6

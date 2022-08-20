@@ -1,0 +1,19 @@
+enum Placement {
+    NEUTRAL
+    ASCENDING
+    DESCENDING
+}
+
+type Ranking {
+    id: ID!
+    identityId: String!
+    number: Int!
+    votes: Int!
+    placement: Placement!
+    createdAt: Time!
+    updatedAt: Time!
+}
+
+extend type Query {
+    rankingList(circleId: ID!): [Ranking]!
+}

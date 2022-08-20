@@ -21,6 +21,8 @@ type Storage interface {
 	CircleById(id int64) (*model.Circle, error)
 	UpdateCircle(circle *model.Circle) (*model.Circle, error)
 	CreateNewCircle(circle *model.Circle) (*model.Circle, error)
+
+	CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
 }
 
 type storage struct {
