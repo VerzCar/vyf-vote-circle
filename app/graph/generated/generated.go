@@ -39,7 +39,6 @@ type Config struct {
 type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
-	Vote() VoteResolver
 }
 
 type DirectiveRoot struct {
@@ -48,12 +47,13 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Circle struct {
 		CreatedFrom func(childComplexity int) int
+		Description func(childComplexity int) int
 		ID          func(childComplexity int) int
+		ImageSrc    func(childComplexity int) int
 		Name        func(childComplexity int) int
 		Private     func(childComplexity int) int
 		ValidUntil  func(childComplexity int) int
 		Voters      func(childComplexity int) int
-		Votes       func(childComplexity int) int
 	}
 
 	CircleVoter struct {
@@ -71,17 +71,19 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Circle func(childComplexity int, id int64) int
-		Ping   func(childComplexity int) int
+		Circle      func(childComplexity int, id int64) int
+		Ping        func(childComplexity int) int
+		RankingList func(childComplexity int, circleID int64) int
 	}
 
-	Vote struct {
-		Circle    func(childComplexity int) int
-		CreatedAt func(childComplexity int) int
-		Elected   func(childComplexity int) int
-		ID        func(childComplexity int) int
-		UpdatedAt func(childComplexity int) int
-		Voter     func(childComplexity int) int
+	Ranking struct {
+		CreatedAt  func(childComplexity int) int
+		ID         func(childComplexity int) int
+		IdentityID func(childComplexity int) int
+		Number     func(childComplexity int) int
+		Placement  func(childComplexity int) int
+		UpdatedAt  func(childComplexity int) int
+		Votes      func(childComplexity int) int
 	}
 }
 
@@ -93,10 +95,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Ping(ctx context.Context) (string, error)
 	Circle(ctx context.Context, id int64) (*model.Circle, error)
-}
-type VoteResolver interface {
-	Voter(ctx context.Context, obj *model.Vote) (string, error)
-	Elected(ctx context.Context, obj *model.Vote) (string, error)
+	RankingList(ctx context.Context, circleID int64) ([]*model.Ranking, error)
 }
 
 type executableSchema struct {
@@ -121,12 +120,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Circle.CreatedFrom(childComplexity), true
 
+	case "Circle.description":
+		if e.complexity.Circle.Description == nil {
+			break
+		}
+
+		return e.complexity.Circle.Description(childComplexity), true
+
 	case "Circle.id":
 		if e.complexity.Circle.ID == nil {
 			break
 		}
 
 		return e.complexity.Circle.ID(childComplexity), true
+
+	case "Circle.imageSrc":
+		if e.complexity.Circle.ImageSrc == nil {
+			break
+		}
+
+		return e.complexity.Circle.ImageSrc(childComplexity), true
 
 	case "Circle.name":
 		if e.complexity.Circle.Name == nil {
@@ -155,13 +168,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Circle.Voters(childComplexity), true
-
-	case "Circle.votes":
-		if e.complexity.Circle.Votes == nil {
-			break
-		}
-
-		return e.complexity.Circle.Votes(childComplexity), true
 
 	case "CircleVoter.commitment":
 		if e.complexity.CircleVoter.Commitment == nil {
@@ -248,47 +254,66 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Ping(childComplexity), true
 
-	case "Vote.circle":
-		if e.complexity.Vote.Circle == nil {
+	case "Query.rankingList":
+		if e.complexity.Query.RankingList == nil {
 			break
 		}
 
-		return e.complexity.Vote.Circle(childComplexity), true
+		args, err := ec.field_Query_rankingList_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
 
-	case "Vote.createdAt":
-		if e.complexity.Vote.CreatedAt == nil {
+		return e.complexity.Query.RankingList(childComplexity, args["circleId"].(int64)), true
+
+	case "Ranking.createdAt":
+		if e.complexity.Ranking.CreatedAt == nil {
 			break
 		}
 
-		return e.complexity.Vote.CreatedAt(childComplexity), true
+		return e.complexity.Ranking.CreatedAt(childComplexity), true
 
-	case "Vote.elected":
-		if e.complexity.Vote.Elected == nil {
+	case "Ranking.id":
+		if e.complexity.Ranking.ID == nil {
 			break
 		}
 
-		return e.complexity.Vote.Elected(childComplexity), true
+		return e.complexity.Ranking.ID(childComplexity), true
 
-	case "Vote.id":
-		if e.complexity.Vote.ID == nil {
+	case "Ranking.identityId":
+		if e.complexity.Ranking.IdentityID == nil {
 			break
 		}
 
-		return e.complexity.Vote.ID(childComplexity), true
+		return e.complexity.Ranking.IdentityID(childComplexity), true
 
-	case "Vote.updatedAt":
-		if e.complexity.Vote.UpdatedAt == nil {
+	case "Ranking.number":
+		if e.complexity.Ranking.Number == nil {
 			break
 		}
 
-		return e.complexity.Vote.UpdatedAt(childComplexity), true
+		return e.complexity.Ranking.Number(childComplexity), true
 
-	case "Vote.voter":
-		if e.complexity.Vote.Voter == nil {
+	case "Ranking.placement":
+		if e.complexity.Ranking.Placement == nil {
 			break
 		}
 
-		return e.complexity.Vote.Voter(childComplexity), true
+		return e.complexity.Ranking.Placement(childComplexity), true
+
+	case "Ranking.updatedAt":
+		if e.complexity.Ranking.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.Ranking.UpdatedAt(childComplexity), true
+
+	case "Ranking.votes":
+		if e.complexity.Ranking.Votes == nil {
+			break
+		}
+
+		return e.complexity.Ranking.Votes(childComplexity), true
 
 	}
 	return 0, false
@@ -364,7 +389,8 @@ var sources = []*ast.Source{
 	{Name: "../circle.graphqls", Input: `type Circle {
     id: ID!
     name: String!
-    votes: [Vote!]
+    description: String!
+    imageSrc: String!
     voters: [CircleVoter!]!
     private: Boolean!
     createdFrom: String!
@@ -373,6 +399,8 @@ var sources = []*ast.Source{
 
 input CircleUpdateInput {
     name: String
+    description: String
+    imageSrc: String
     voters: [CircleVoterInput!]
     private: Boolean
     validUntil: Time
@@ -380,6 +408,8 @@ input CircleUpdateInput {
 
 input CircleCreateInput {
     name: String!
+    description: String
+    imageSrc: String
     voters: [CircleVoterInput!]!
     private: Boolean
     validUntil: Time
@@ -403,13 +433,33 @@ type CircleVoter {
     id: ID!
     voter: String!
     commitment: Commitment!
-    createdAt: Time
-    updatedAt: Time
+    createdAt: Time!
+    updatedAt: Time!
 }
 
 input CircleVoterInput {
     voter: String!
 }`, BuiltIn: false},
+	{Name: "../ranking.graphqls", Input: `enum Placement {
+    NEUTRAL
+    ASCENDING
+    DESCENDING
+}
+
+type Ranking {
+    id: ID!
+    identityId: String!
+    number: Int!
+    votes: Int!
+    placement: Placement!
+    createdAt: Time!
+    updatedAt: Time!
+}
+
+extend type Query {
+    rankingList(circleId: ID!): [Ranking]!
+}
+`, BuiltIn: false},
 	{Name: "../schema.graphqls", Input: `scalar Time
 
 type Query {
@@ -418,14 +468,6 @@ type Query {
 
 type Mutation {
     ping: String!
-}`, BuiltIn: false},
-	{Name: "../vote.graphqls", Input: `type Vote {
-    id: ID!
-    voter: String!
-    elected: String!
-    circle: Circle!
-    createdAt: Time
-    updatedAt: Time
 }`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -500,6 +542,21 @@ func (ec *executionContext) field_Query_circle_args(ctx context.Context, rawArgs
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_rankingList_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int64
+	if tmp, ok := rawArgs["circleId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("circleId"))
+		arg0, err = ec.unmarshalNID2int64(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["circleId"] = arg0
 	return args, nil
 }
 
@@ -629,8 +686,8 @@ func (ec *executionContext) fieldContext_Circle_name(ctx context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Circle_votes(ctx context.Context, field graphql.CollectedField, obj *model.Circle) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Circle_votes(ctx, field)
+func (ec *executionContext) _Circle_description(ctx context.Context, field graphql.CollectedField, obj *model.Circle) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Circle_description(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -643,42 +700,75 @@ func (ec *executionContext) _Circle_votes(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Votes, nil
+		return obj.Description, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Vote)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOVote2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐVoteᚄ(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Circle_votes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Circle_description(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Circle",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Vote_id(ctx, field)
-			case "voter":
-				return ec.fieldContext_Vote_voter(ctx, field)
-			case "elected":
-				return ec.fieldContext_Vote_elected(ctx, field)
-			case "circle":
-				return ec.fieldContext_Vote_circle(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Vote_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_Vote_updatedAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Vote", field.Name)
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Circle_imageSrc(ctx context.Context, field graphql.CollectedField, obj *model.Circle) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Circle_imageSrc(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ImageSrc, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Circle_imageSrc(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Circle",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1022,11 +1112,14 @@ func (ec *executionContext) _CircleVoter_createdAt(ctx context.Context, field gr
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(time.Time)
 	fc.Result = res
-	return ec.marshalOTime2timeᚐTime(ctx, field.Selections, res)
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_CircleVoter_createdAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1063,11 +1156,14 @@ func (ec *executionContext) _CircleVoter_updatedAt(ctx context.Context, field gr
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(time.Time)
 	fc.Result = res
-	return ec.marshalOTime2timeᚐTime(ctx, field.Selections, res)
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_CircleVoter_updatedAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1170,8 +1266,10 @@ func (ec *executionContext) fieldContext_Mutation_updateCircle(ctx context.Conte
 				return ec.fieldContext_Circle_id(ctx, field)
 			case "name":
 				return ec.fieldContext_Circle_name(ctx, field)
-			case "votes":
-				return ec.fieldContext_Circle_votes(ctx, field)
+			case "description":
+				return ec.fieldContext_Circle_description(ctx, field)
+			case "imageSrc":
+				return ec.fieldContext_Circle_imageSrc(ctx, field)
 			case "voters":
 				return ec.fieldContext_Circle_voters(ctx, field)
 			case "private":
@@ -1241,8 +1339,10 @@ func (ec *executionContext) fieldContext_Mutation_createCircle(ctx context.Conte
 				return ec.fieldContext_Circle_id(ctx, field)
 			case "name":
 				return ec.fieldContext_Circle_name(ctx, field)
-			case "votes":
-				return ec.fieldContext_Circle_votes(ctx, field)
+			case "description":
+				return ec.fieldContext_Circle_description(ctx, field)
+			case "imageSrc":
+				return ec.fieldContext_Circle_imageSrc(ctx, field)
 			case "voters":
 				return ec.fieldContext_Circle_voters(ctx, field)
 			case "private":
@@ -1356,8 +1456,10 @@ func (ec *executionContext) fieldContext_Query_circle(ctx context.Context, field
 				return ec.fieldContext_Circle_id(ctx, field)
 			case "name":
 				return ec.fieldContext_Circle_name(ctx, field)
-			case "votes":
-				return ec.fieldContext_Circle_votes(ctx, field)
+			case "description":
+				return ec.fieldContext_Circle_description(ctx, field)
+			case "imageSrc":
+				return ec.fieldContext_Circle_imageSrc(ctx, field)
 			case "voters":
 				return ec.fieldContext_Circle_voters(ctx, field)
 			case "private":
@@ -1378,6 +1480,77 @@ func (ec *executionContext) fieldContext_Query_circle(ctx context.Context, field
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_circle_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_rankingList(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_rankingList(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().RankingList(rctx, fc.Args["circleId"].(int64))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Ranking)
+	fc.Result = res
+	return ec.marshalNRanking2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐRanking(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_rankingList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Ranking_id(ctx, field)
+			case "identityId":
+				return ec.fieldContext_Ranking_identityId(ctx, field)
+			case "number":
+				return ec.fieldContext_Ranking_number(ctx, field)
+			case "votes":
+				return ec.fieldContext_Ranking_votes(ctx, field)
+			case "placement":
+				return ec.fieldContext_Ranking_placement(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Ranking_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Ranking_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Ranking", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_rankingList_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -1513,8 +1686,8 @@ func (ec *executionContext) fieldContext_Query___schema(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Vote_id(ctx context.Context, field graphql.CollectedField, obj *model.Vote) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Vote_id(ctx, field)
+func (ec *executionContext) _Ranking_id(ctx context.Context, field graphql.CollectedField, obj *model.Ranking) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Ranking_id(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1544,9 +1717,9 @@ func (ec *executionContext) _Vote_id(ctx context.Context, field graphql.Collecte
 	return ec.marshalNID2int64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Vote_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Ranking_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Vote",
+		Object:     "Ranking",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -1557,8 +1730,8 @@ func (ec *executionContext) fieldContext_Vote_id(ctx context.Context, field grap
 	return fc, nil
 }
 
-func (ec *executionContext) _Vote_voter(ctx context.Context, field graphql.CollectedField, obj *model.Vote) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Vote_voter(ctx, field)
+func (ec *executionContext) _Ranking_identityId(ctx context.Context, field graphql.CollectedField, obj *model.Ranking) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Ranking_identityId(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1571,7 +1744,7 @@ func (ec *executionContext) _Vote_voter(ctx context.Context, field graphql.Colle
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Vote().Voter(rctx, obj)
+		return obj.IdentityID, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1588,125 +1761,153 @@ func (ec *executionContext) _Vote_voter(ctx context.Context, field graphql.Colle
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Vote_voter(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Ranking_identityId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Vote",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Vote_elected(ctx context.Context, field graphql.CollectedField, obj *model.Vote) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Vote_elected(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Vote().Elected(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Vote_elected(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Vote",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Vote_circle(ctx context.Context, field graphql.CollectedField, obj *model.Vote) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Vote_circle(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Circle, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Circle)
-	fc.Result = res
-	return ec.marshalNCircle2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐCircle(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Vote_circle(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Vote",
+		Object:     "Ranking",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Circle_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Circle_name(ctx, field)
-			case "votes":
-				return ec.fieldContext_Circle_votes(ctx, field)
-			case "voters":
-				return ec.fieldContext_Circle_voters(ctx, field)
-			case "private":
-				return ec.fieldContext_Circle_private(ctx, field)
-			case "createdFrom":
-				return ec.fieldContext_Circle_createdFrom(ctx, field)
-			case "validUntil":
-				return ec.fieldContext_Circle_validUntil(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Circle", field.Name)
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Vote_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Vote) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Vote_createdAt(ctx, field)
+func (ec *executionContext) _Ranking_number(ctx context.Context, field graphql.CollectedField, obj *model.Ranking) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Ranking_number(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Number, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Ranking_number(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ranking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ranking_votes(ctx context.Context, field graphql.CollectedField, obj *model.Ranking) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Ranking_votes(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Votes, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Ranking_votes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ranking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ranking_placement(ctx context.Context, field graphql.CollectedField, obj *model.Ranking) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Ranking_placement(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Placement, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Placement)
+	fc.Result = res
+	return ec.marshalNPlacement2gitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐPlacement(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Ranking_placement(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ranking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Placement does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ranking_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Ranking) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Ranking_createdAt(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1726,16 +1927,19 @@ func (ec *executionContext) _Vote_createdAt(ctx context.Context, field graphql.C
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(time.Time)
 	fc.Result = res
-	return ec.marshalOTime2timeᚐTime(ctx, field.Selections, res)
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Vote_createdAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Ranking_createdAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Vote",
+		Object:     "Ranking",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -1746,8 +1950,8 @@ func (ec *executionContext) fieldContext_Vote_createdAt(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Vote_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.Vote) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Vote_updatedAt(ctx, field)
+func (ec *executionContext) _Ranking_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.Ranking) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Ranking_updatedAt(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1767,16 +1971,19 @@ func (ec *executionContext) _Vote_updatedAt(ctx context.Context, field graphql.C
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(time.Time)
 	fc.Result = res
-	return ec.marshalOTime2timeᚐTime(ctx, field.Selections, res)
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Vote_updatedAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Ranking_updatedAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Vote",
+		Object:     "Ranking",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -3567,13 +3774,34 @@ func (ec *executionContext) unmarshalInputCircleCreateInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	for k, v := range asMap {
+	fieldsInOrder := [...]string{"name", "description", "imageSrc", "voters", "private", "validUntil"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
 		switch k {
 		case "name":
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "imageSrc":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("imageSrc"))
+			it.ImageSrc, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3614,13 +3842,34 @@ func (ec *executionContext) unmarshalInputCircleUpdateInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	for k, v := range asMap {
+	fieldsInOrder := [...]string{"name", "description", "imageSrc", "voters", "private", "validUntil"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
 		switch k {
 		case "name":
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			it.Name, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "imageSrc":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("imageSrc"))
+			it.ImageSrc, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3661,7 +3910,12 @@ func (ec *executionContext) unmarshalInputCircleVoterInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	for k, v := range asMap {
+	fieldsInOrder := [...]string{"voter"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
 		switch k {
 		case "voter":
 			var err error
@@ -3709,10 +3963,20 @@ func (ec *executionContext) _Circle(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "votes":
+		case "description":
 
-			out.Values[i] = ec._Circle_votes(ctx, field, obj)
+			out.Values[i] = ec._Circle_description(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "imageSrc":
+
+			out.Values[i] = ec._Circle_imageSrc(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "voters":
 
 			out.Values[i] = ec._Circle_voters(ctx, field, obj)
@@ -3784,10 +4048,16 @@ func (ec *executionContext) _CircleVoter(ctx context.Context, sel ast.SelectionS
 
 			out.Values[i] = ec._CircleVoter_createdAt(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "updatedAt":
 
 			out.Values[i] = ec._CircleVoter_updatedAt(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3921,6 +4191,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
+		case "rankingList":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_rankingList(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
 		case "__type":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
@@ -3944,78 +4237,65 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 	return out
 }
 
-var voteImplementors = []string{"Vote"}
+var rankingImplementors = []string{"Ranking"}
 
-func (ec *executionContext) _Vote(ctx context.Context, sel ast.SelectionSet, obj *model.Vote) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, voteImplementors)
+func (ec *executionContext) _Ranking(ctx context.Context, sel ast.SelectionSet, obj *model.Ranking) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, rankingImplementors)
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("Vote")
+			out.Values[i] = graphql.MarshalString("Ranking")
 		case "id":
 
-			out.Values[i] = ec._Vote_id(ctx, field, obj)
+			out.Values[i] = ec._Ranking_id(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
-		case "voter":
-			field := field
+		case "identityId":
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Vote_voter(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
-		case "elected":
-			field := field
-
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Vote_elected(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
-		case "circle":
-
-			out.Values[i] = ec._Vote_circle(ctx, field, obj)
+			out.Values[i] = ec._Ranking_identityId(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
+			}
+		case "number":
+
+			out.Values[i] = ec._Ranking_number(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "votes":
+
+			out.Values[i] = ec._Ranking_votes(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "placement":
+
+			out.Values[i] = ec._Ranking_placement(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
 		case "createdAt":
 
-			out.Values[i] = ec._Vote_createdAt(ctx, field, obj)
+			out.Values[i] = ec._Ranking_createdAt(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "updatedAt":
 
-			out.Values[i] = ec._Vote_updatedAt(ctx, field, obj)
+			out.Values[i] = ec._Ranking_updatedAt(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4485,6 +4765,69 @@ func (ec *executionContext) marshalNID2int64(ctx context.Context, sel ast.Select
 	return res
 }
 
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	res := graphql.MarshalInt(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNPlacement2gitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐPlacement(ctx context.Context, v interface{}) (model.Placement, error) {
+	var res model.Placement
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNPlacement2gitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐPlacement(ctx context.Context, sel ast.SelectionSet, v model.Placement) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNRanking2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐRanking(ctx context.Context, sel ast.SelectionSet, v []*model.Ranking) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalORanking2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐRanking(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4500,14 +4843,19 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNVote2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐVote(ctx context.Context, sel ast.SelectionSet, v *model.Vote) graphql.Marshaler {
-	if v == nil {
+func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
+	res, err := graphql.UnmarshalTime(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
+	res := graphql.MarshalTime(v)
+	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
 		}
-		return graphql.Null
 	}
-	return ec._Vote(ctx, sel, v)
+	return res
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -4809,6 +5157,13 @@ func (ec *executionContext) unmarshalOCircleVoterInput2ᚕᚖgitlabᚗvecomentma
 	return res, nil
 }
 
+func (ec *executionContext) marshalORanking2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐRanking(ctx context.Context, sel ast.SelectionSet, v *model.Ranking) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Ranking(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
 	if v == nil {
 		return nil, nil
@@ -4822,16 +5177,6 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	res := graphql.MarshalString(*v)
-	return res
-}
-
-func (ec *executionContext) unmarshalOTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
-	res, err := graphql.UnmarshalTime(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
-	res := graphql.MarshalTime(v)
 	return res
 }
 
@@ -4849,53 +5194,6 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 	}
 	res := graphql.MarshalTime(*v)
 	return res
-}
-
-func (ec *executionContext) marshalOVote2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐVoteᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Vote) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNVote2ᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐVote(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

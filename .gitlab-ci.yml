@@ -4,7 +4,7 @@ stages:
   - deploy
 
 #test-source:
-#  image: golang:1.18
+#  image: golang:1.19
 #  stage: test
 #  variables:
 #    POSTGRES_HOST: "db"

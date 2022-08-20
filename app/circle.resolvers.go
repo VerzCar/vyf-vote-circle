@@ -10,6 +10,7 @@ import (
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
 )
 
+// UpdateCircle is the resolver for the updateCircle field.
 func (r *mutationResolver) UpdateCircle(ctx context.Context, id int64, circleUpdateInput model.CircleUpdateInput) (*model.Circle, error) {
 	gqlError := gqlerror.Errorf("circle cannot be updated")
 
@@ -27,6 +28,7 @@ func (r *mutationResolver) UpdateCircle(ctx context.Context, id int64, circleUpd
 	return circle, nil
 }
 
+// CreateCircle is the resolver for the createCircle field.
 func (r *mutationResolver) CreateCircle(ctx context.Context, circleCreateInput model.CircleCreateInput) (*model.Circle, error) {
 	gqlError := gqlerror.Errorf("circle cannot be created")
 
@@ -44,6 +46,7 @@ func (r *mutationResolver) CreateCircle(ctx context.Context, circleCreateInput m
 	return circle, nil
 }
 
+// Circle is the resolver for the circle field.
 func (r *queryResolver) Circle(ctx context.Context, id int64) (*model.Circle, error) {
 	circle, err := r.circleService.Circle(ctx, id)
 

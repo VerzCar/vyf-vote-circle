@@ -9,10 +9,12 @@ import (
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/graph/generated"
 )
 
+// Ping is the resolver for the ping field.
 func (r *mutationResolver) Ping(ctx context.Context) (string, error) {
 	return "pong", nil
 }
 
+// Ping is the resolver for the ping field.
 func (r *queryResolver) Ping(ctx context.Context) (string, error) {
 	return "pong", nil
 }
