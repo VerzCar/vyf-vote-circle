@@ -10,25 +10,31 @@ import (
 )
 
 type Resolver struct {
-	authService   awsx.AuthService
-	circleService api.CircleService
-	validate      *validator.Validate
-	config        *config.Config
-	log           logger.Logger
+	authService    awsx.AuthService
+	circleService  api.CircleService
+	rankingService api.RankingService
+	voteService    api.VoteService
+	validate       *validator.Validate
+	config         *config.Config
+	log            logger.Logger
 }
 
 func NewResolver(
 	authService awsx.AuthService,
 	circleService api.CircleService,
+	rankingService api.RankingService,
+	voteService api.VoteService,
 	validate *validator.Validate,
 	config *config.Config,
 	log logger.Logger,
 ) *Resolver {
 	return &Resolver{
-		authService:   authService,
-		circleService: circleService,
-		validate:      validate,
-		config:        config,
-		log:           log,
+		authService:    authService,
+		circleService:  circleService,
+		rankingService: rankingService,
+		voteService:    voteService,
+		validate:       validate,
+		config:         config,
+		log:            log,
 	}
 }

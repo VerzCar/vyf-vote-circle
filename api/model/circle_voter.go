@@ -25,7 +25,7 @@ type CircleVoter struct {
 }
 
 type CircleVoterInput struct {
-	Voter string `json:"voter" validate:"omitempty,gt=0,lte=50"`
+	Voter string `json:"voter" validate:"gt=0,lte=50"`
 }
 
 type Commitment string

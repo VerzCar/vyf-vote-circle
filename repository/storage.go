@@ -23,6 +23,15 @@ type Storage interface {
 	CreateNewCircle(circle *model.Circle) (*model.Circle, error)
 
 	CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
+	CircleVoterByCircleId(circleId int64, voterId string) (*model.CircleVoter, error)
+
+	RankingsByCircleId(circleId int64) ([]*model.Ranking, error)
+
+	CreateNewVote(
+		voterId int64,
+		electedId int64,
+		circleId int64,
+	) (*model.Vote, error)
 }
 
 type storage struct {

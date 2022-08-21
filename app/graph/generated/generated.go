@@ -66,6 +66,7 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		CreateCircle func(childComplexity int, circleCreateInput model.CircleCreateInput) int
+		CreateVote   func(childComplexity int, circleID int64, voteCreateInput model.VoteCreateInput) int
 		Ping         func(childComplexity int) int
 		UpdateCircle func(childComplexity int, id int64, circleUpdateInput model.CircleUpdateInput) int
 	}
@@ -91,6 +92,7 @@ type MutationResolver interface {
 	Ping(ctx context.Context) (string, error)
 	UpdateCircle(ctx context.Context, id int64, circleUpdateInput model.CircleUpdateInput) (*model.Circle, error)
 	CreateCircle(ctx context.Context, circleCreateInput model.CircleCreateInput) (*model.Circle, error)
+	CreateVote(ctx context.Context, circleID int64, voteCreateInput model.VoteCreateInput) (bool, error)
 }
 type QueryResolver interface {
 	Ping(ctx context.Context) (string, error)
@@ -216,6 +218,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateCircle(childComplexity, args["circleCreateInput"].(model.CircleCreateInput)), true
 
+	case "Mutation.createVote":
+		if e.complexity.Mutation.CreateVote == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createVote_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateVote(childComplexity, args["circleId"].(int64), args["voteCreateInput"].(model.VoteCreateInput)), true
+
 	case "Mutation.ping":
 		if e.complexity.Mutation.Ping == nil {
 			break
@@ -326,6 +340,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCircleCreateInput,
 		ec.unmarshalInputCircleUpdateInput,
 		ec.unmarshalInputCircleVoterInput,
+		ec.unmarshalInputVoteCreateInput,
 	)
 	first := true
 
@@ -469,6 +484,13 @@ type Query {
 type Mutation {
     ping: String!
 }`, BuiltIn: false},
+	{Name: "../vote.graphqls", Input: `input VoteCreateInput {
+    elected: String
+}
+
+extend type Mutation {
+    createVote(circleId: ID!, voteCreateInput: VoteCreateInput!): Boolean!
+}`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -488,6 +510,30 @@ func (ec *executionContext) field_Mutation_createCircle_args(ctx context.Context
 		}
 	}
 	args["circleCreateInput"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createVote_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int64
+	if tmp, ok := rawArgs["circleId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("circleId"))
+		arg0, err = ec.unmarshalNID2int64(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["circleId"] = arg0
+	var arg1 model.VoteCreateInput
+	if tmp, ok := rawArgs["voteCreateInput"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("voteCreateInput"))
+		arg1, err = ec.unmarshalNVoteCreateInput2gitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐVoteCreateInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["voteCreateInput"] = arg1
 	return args, nil
 }
 
@@ -1363,6 +1409,61 @@ func (ec *executionContext) fieldContext_Mutation_createCircle(ctx context.Conte
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_createCircle_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createVote(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_createVote(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateVote(rctx, fc.Args["circleId"].(int64), fc.Args["voteCreateInput"].(model.VoteCreateInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createVote(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createVote_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -3931,6 +4032,34 @@ func (ec *executionContext) unmarshalInputCircleVoterInput(ctx context.Context, 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputVoteCreateInput(ctx context.Context, obj interface{}) (model.VoteCreateInput, error) {
+	var it model.VoteCreateInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"elected"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "elected":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("elected"))
+			it.Elected, err = ec.unmarshalOString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -4110,6 +4239,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createCircle(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "createVote":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createVote(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
@@ -4858,6 +4996,11 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 	return res
 }
 
+func (ec *executionContext) unmarshalNVoteCreateInput2gitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐVoteCreateInput(ctx context.Context, v interface{}) (model.VoteCreateInput, error) {
+	res, err := ec.unmarshalInputVoteCreateInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
 	return ec.___Directive(ctx, sel, &v)
 }
@@ -5162,6 +5305,16 @@ func (ec *executionContext) marshalORanking2ᚖgitlabᚗvecomentmanᚗcomᚋvote
 		return graphql.Null
 	}
 	return ec._Ranking(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
+	res, err := graphql.UnmarshalString(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalString(v)
+	return res
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

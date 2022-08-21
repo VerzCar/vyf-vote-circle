@@ -1,0 +1,7 @@
+input VoteCreateInput {
+    elected: String
+}
+
+extend type Mutation {
+    createVote(circleId: ID!, voteCreateInput: VoteCreateInput!): Boolean!
+}

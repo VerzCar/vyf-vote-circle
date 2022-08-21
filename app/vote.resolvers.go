@@ -10,13 +10,16 @@ import (
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
 )
 
-// RankingList is the resolver for the rankingList field.
-func (r *queryResolver) RankingList(ctx context.Context, circleID int64) ([]*model.Ranking, error) {
-	rankings, err := r.rankingService.Rankings(ctx, circleID)
+// CreateVote is the resolver for the createVote field.
+func (r *mutationResolver) CreateVote(ctx context.Context, circleID int64, voteCreateInput model.VoteCreateInput) (
+	bool,
+	error,
+) {
+	result, err := r.voteService.Vote(ctx, circleID, &voteCreateInput)
 
 	if err != nil {
-		return nil, gqlerror.Errorf("cannot find rankings")
+		return false, gqlerror.Errorf("cannot vote")
 	}
 
-	return rankings, nil
+	return result, nil
 }
