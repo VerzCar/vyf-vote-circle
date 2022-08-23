@@ -43,6 +43,15 @@ type Config struct {
 		}
 	}
 
+	Redis struct {
+		Host     string
+		Port     uint16
+		Username string
+		Db       uint16
+		Timeout  uint16
+		Password string
+	}
+
 	Security struct {
 		Cors struct {
 			Origins []string

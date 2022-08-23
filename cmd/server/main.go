@@ -7,6 +7,7 @@ import (
 	"gitlab.vecomentman.com/libs/logger"
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api"
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app"
+	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/cache"
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/config"
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/database"
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/router"
@@ -43,6 +44,9 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
+	redisCache := cache.Connect(log, envConfig)
+	redis := cache.NewRedisCache(redisCache, envConfig, log)
 
 	// initialize auth service
 	authService, err := awsx.NewAuthService(

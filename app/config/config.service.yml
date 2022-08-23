@@ -26,6 +26,15 @@ db:
     user: user
     password: pwd
 
+# Redis server
+redis:
+  host: public-redis-1
+  port: 6379
+  username: default
+  db: 1
+  timeout: 60
+  password: pwd
+
 # Security
 security:
   secrets:

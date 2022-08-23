@@ -21,3 +21,6 @@ type Vote struct {
 type VoteCreateInput struct {
 	Elected string `json:"elected" validate:"gt=0,lte=50"`
 }
+
+// VoteCount represents the votes as a number
+type VoteCount int64
