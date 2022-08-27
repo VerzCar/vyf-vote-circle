@@ -63,7 +63,7 @@ func run() error {
 	// initialize api services
 	circleService := api.NewCircleService(storage, envConfig, log)
 	rankingService := api.NewRankingService(storage, envConfig, log)
-	voteService := api.NewVoteService(storage, envConfig, log)
+	voteService := api.NewVoteService(storage, redis, envConfig, log)
 
 	validate = validator.New()
 

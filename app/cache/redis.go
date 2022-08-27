@@ -5,20 +5,18 @@ import (
 	"encoding/json"
 	"github.com/go-redis/redis/v8"
 	"gitlab.vecomentman.com/libs/logger"
+	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/config"
 	"time"
 )
 
 type RedisCache interface {
-	StartResetUserPassword(
+	UpdateRanking(
 		ctx context.Context,
-		passwordActivationKey string,
-		userId string,
+		circleId int64,
+		identityId model.UserIdentityId,
+		votes int64,
 	) error
-	UserInPasswordReset(
-		ctx context.Context,
-		resetPasswordKey string,
-	) (string, error)
 }
 
 type redisCache struct {
@@ -62,9 +60,7 @@ func (c *redisCache) setJson(ctx context.Context, key string, value interface{},
 		return err
 	}
 
-	err = c.redis.Set(ctx, key, encodedData, t).Err()
-
-	return err
+	return c.redis.Set(ctx, key, encodedData, t).Err()
 }
 
 // getJson gets the entry from the given key
@@ -84,22 +80,14 @@ func (c *redisCache) getJson(ctx context.Context, key string, dest interface{}) 
 	}
 }
 
-// setHashJson converts the given value as JSON into the cache
-// with the given key.
-func (c *redisCache) setHashJson(
+// setHashMap sets the given value as hash into the cache
+// with the given hashField key.
+func (c *redisCache) setHashMap(
 	ctx context.Context,
 	hashField string,
 	value interface{},
 ) error {
-	encodedData, err := json.Marshal(value)
-
-	if err != nil {
-		return err
-	}
-
-	err = c.redis.HSet(ctx, hashField, encodedData).Err()
-
-	return err
+	return c.redis.HSet(ctx, hashField, value).Err()
 }
 
 // getHashJson gets the entry from the given key
@@ -114,7 +102,6 @@ func (c *redisCache) getHashJson(
 	entry := c.redis.HGet(ctx, hashField, key)
 
 	result := HEntry{Exists: false}
-
 	switch {
 	case entry.Err() == redis.Nil:
 		return result, nil
@@ -122,7 +109,7 @@ func (c *redisCache) getHashJson(
 		return result, entry.Err()
 	default:
 		result.Exists = true
-		err := json.Unmarshal([]byte(entry.Val()), dest)
+		err := json.Unmarshal([]byte(entry.Val()), &dest)
 		return result, err
 	}
 }

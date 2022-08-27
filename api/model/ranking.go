@@ -2,6 +2,7 @@ package model
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	_ "github.com/go-playground/validator/v10"
 	"io"
@@ -10,29 +11,57 @@ import (
 )
 
 type Ranking struct {
-	ID         int64          `json:"id" gorm:"primary_key;index;"`
-	IdentityID UserIdentityId `json:"identityId" gorm:"type:varchar(50);not null"`
-	Number     int            `json:"number" gorm:"primary_key;index;"`
-	Votes      int            `json:"votes" gorm:"not null;default:0"`
-	Placement  Placement      `json:"placement" gorm:"type:placement;not null;default:NEUTRAL"`
-	CircleID   int64          `json:"circleId" gorm:"not null;"`
-	Circle     *Circle        `json:"circle" gorm:"constraint:OnDelete:RESTRICT;"`
-	CreatedAt  time.Time      `json:"createdAt" gorm:"autoCreateTime;"`
-	UpdatedAt  time.Time      `json:"updatedAt" gorm:"autoUpdateTime;"`
+	ID         int64           `json:"id" gorm:"primary_key;index;"`
+	IdentityID UserIdentityId  `json:"identityId" gorm:"type:varchar(50);not null"`
+	Number     PlacementNumber `json:"number" gorm:"primary_key;index;"`
+	Votes      int64           `json:"votes" gorm:"not null;default:0"`
+	Placement  Placement       `json:"placement" gorm:"type:placement;not null;default:NEUTRAL"`
+	CircleID   int64           `json:"circleId" gorm:"not null;"`
+	Circle     *Circle         `json:"circle" gorm:"constraint:OnDelete:RESTRICT;"`
+	CreatedAt  time.Time       `json:"createdAt" gorm:"autoCreateTime;"`
+	UpdatedAt  time.Time       `json:"updatedAt" gorm:"autoUpdateTime;"`
 }
 
 // RankingMap is a map with the identityId as key and Ranking as value
 type RankingMap map[UserIdentityId]*Ranking
 
-// UserPlacementMap is a map with the count of vote as key and UserPlacementMap as value
-type UserPlacementMap map[VoteCount]*UserPlacementMap
+// UserPlacementMap is a map with the UserIdentityId as key and VoteCount as value
+type UserPlacementMap map[UserIdentityId]PlacementNumber
 
-type UserPlacement struct {
-	IdentityID UserIdentityId `json:"identityId"`
-	Number     VoteCount      `json:"number"`
-}
+type VoteCountMap map[VoteCount]UserPlacementMap
 
 type UserIdentityId string
+
+func (u UserIdentityId) String() string {
+	return string(u)
+}
+
+// PlacementNumber represents the placement as a number
+type PlacementNumber int64
+
+func (s UserPlacementMap) MarshalBinary() ([]byte, error) {
+	return json.Marshal(s)
+}
+
+func (s UserPlacementMap) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, &s)
+}
+
+func (s Ranking) MarshalBinary() ([]byte, error) {
+	return json.Marshal(s)
+}
+
+func (s Ranking) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, &s)
+}
+
+func (s RankingMap) MarshalBinary() ([]byte, error) {
+	return json.Marshal(s)
+}
+
+func (s RankingMap) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, &s)
+}
 
 type Placement string
 

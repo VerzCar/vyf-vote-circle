@@ -2,6 +2,7 @@ package model
 
 import (
 	_ "github.com/go-playground/validator/v10"
+	"strconv"
 	"time"
 )
 
@@ -24,3 +25,7 @@ type VoteCreateInput struct {
 
 // VoteCount represents the votes as a number
 type VoteCount int64
+
+func (v VoteCount) String() string {
+	return strconv.FormatInt(int64(v), 10)
+}

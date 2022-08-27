@@ -10,32 +10,29 @@ import (
 func (c *redisCache) UpdateRanking(
 	ctx context.Context,
 	circleId int64,
-	identityID string,
+	identityId model.UserIdentityId,
+	votes int64,
 ) error {
 
-	rankingMap, err := c.getRanking(ctx, circleId, identityID)
-
-	if err != nil {
-		return err
-	}
-	rankingMap[identityID].Votes = rankingMap[identityID].Votes + 1
-
-	index, err := c.findVotesRankingPlacement(ctx, circleId, rankingMap[identityID].Votes)
+	rankingMap, err := c.getRankingMap(ctx, circleId, identityId)
 
 	if err != nil {
 		return err
 	}
 
-	if index == -1 {
-		index, err = c.pushToVotesRankingPlacement(ctx, circleId, rankingMap[identityID].Votes)
-		if err != nil {
-			return err
-		}
+	ranking := rankingMap[identityId]
+
+	ranking.Votes = votes
+
+	placementNumber, err := c.setUserPlacement(ctx, circleId, identityId, model.VoteCount(votes))
+
+	if err != nil {
+		return err
 	}
 
-	rankingMap[identityID].Number = int(index + 1)
+	ranking.Number = placementNumber
 
-	_, err = c.setRanking(ctx, circleId, rankingMap)
+	err = c.setRanking(ctx, circleId, identityId, ranking)
 
 	if err != nil {
 		return err
@@ -44,25 +41,25 @@ func (c *redisCache) UpdateRanking(
 	return nil
 }
 
-func (c *redisCache) getRanking(
+func (c *redisCache) getRankingMap(
 	ctx context.Context,
 	circleId int64,
-	identityID string,
+	identityId model.UserIdentityId,
 ) (model.RankingMap, error) {
-	hashField := hashField(circleId)
+	hashField := circleHashField(circleId)
 	rankingMap := model.RankingMap{
-		identityID: &model.Ranking{
-			IdentityID: identityID,
+		identityId: &model.Ranking{
+			IdentityID: identityId,
 			CircleID:   circleId,
 		},
 	}
-	_, err := c.getHashJson(ctx, hashField, identityID, rankingMap)
+	_, err := c.getHashJson(ctx, hashField, string(identityId), rankingMap[identityId])
 
 	if err != nil {
 		c.log.Errorf(
 			"error reading ranking: reading field %s with current key %s: %s",
 			hashField,
-			identityID,
+			identityId,
 			err,
 		)
 		return nil, err
@@ -74,77 +71,171 @@ func (c *redisCache) getRanking(
 func (c *redisCache) setRanking(
 	ctx context.Context,
 	circleId int64,
-	rankingMap model.RankingMap,
-) (model.RankingMap, error) {
-	hashField := hashField(circleId)
+	identityId model.UserIdentityId,
+	ranking *model.Ranking,
+) error {
+	hashField := circleHashField(circleId)
 
-	err := c.setHashJson(ctx, hashField, rankingMap)
+	encodedRanking, err := ranking.MarshalBinary()
+	if err != nil {
+		c.log.Errorf(
+			"error encoding ranking by setting ranking: for hash field %s map %v: %s",
+			hashField,
+			encodedRanking,
+			err,
+		)
+		return err
+	}
+
+	rankingMap := map[string]interface{}{identityId.String(): encodedRanking}
+
+	err = c.setHashMap(ctx, hashField, rankingMap)
 
 	if err != nil {
 		c.log.Errorf(
-			"error reading ranking: reading field %s with ranking map %v: %s",
+			"error setting ranking: setting field %s with ranking map %v: %s",
 			hashField,
 			rankingMap,
 			err,
 		)
-		return nil, err
+		return err
 	}
 
-	return rankingMap, nil
+	return nil
 }
 
-func (c *redisCache) findVotesRankingPlacement(
+func (c *redisCache) setUserPlacement(
 	ctx context.Context,
 	circleId int64,
-	voteCount int,
-) (int64, error) {
-	entry, err := c.getIndexInList(ctx, circleVoteRankingListKey(circleId), string(rune(voteCount)))
+	identityId model.UserIdentityId,
+	voteCount model.VoteCount,
+) (model.PlacementNumber, error) {
+	hashField := circleVotesUserPlacementHashField(circleId)
+	userPlacementMap := model.UserPlacementMap{}
+
+	var placementNumber model.PlacementNumber
+	placementNumber = 1
+	previousVoteCount := voteCount - 1
+
+	// try to find an existing entry for the previous vote
+	entry, err := c.getHashJson(ctx, hashField, strconv.FormatInt(int64(previousVoteCount), 10), &userPlacementMap)
 
 	if err != nil {
 		c.log.Errorf(
-			"error reading key %s in list for vote count %d: %s",
-			circleVoteRankingListKey(circleId),
-			voteCount,
-			err,
-		)
-		return -1, err
-	}
-
-	if !entry.Exists {
-		return -1, fmt.Errorf("company cannot be verified anymore. new token required")
-	}
-
-	return entry.Val, nil
-}
-
-func (c *redisCache) pushToVotesRankingPlacement(
-	ctx context.Context,
-	circleId int64,
-	voteCount int,
-) (int64, error) {
-	index, err := c.pushToListEnd(ctx, circleVoteRankingListKey(circleId), voteCount)
-
-	if err != nil {
-		c.log.Errorf(
-			"error push element to list with key %s for vote count %d: %s",
-			circleVoteRankingListKey(circleId),
+			"error reading user placement in votes: reading field %s with key %d: %s",
+			hashField,
 			voteCount,
 			err,
 		)
 		return 0, err
 	}
+	// if an entry exists for this count of vote
+	// try to find the user id in the map and get the current
+	// placing number from it.
+	if entry.Exists {
+		var userExist bool
+		placementNumber, userExist = userPlacementMap[identityId]
 
-	return index, nil
+		// count the placement one down for the next higher placement
+		if placementNumber != 1 {
+			placementNumber--
+		}
+		// the user must always exist, otherwise something has gone wrong
+		if userExist {
+			// delete the entry from the map
+			// and overwrite the vote count hash entry
+			delete(userPlacementMap, identityId)
+
+			encodedUserPlacementMap, err := userPlacementMap.MarshalBinary()
+			if err != nil {
+				c.log.Errorf(
+					"error encoding user placement map for vote count for previous vote: for hash field %s map %v: %s",
+					hashField,
+					userPlacementMap,
+					err,
+				)
+				return 0, err
+			}
+
+			voteCountMap := map[string]interface{}{previousVoteCount.String(): encodedUserPlacementMap}
+			err = c.setHashMap(ctx, hashField, voteCountMap)
+
+			if err != nil {
+				c.log.Errorf(
+					"error setting vote count for previous vote: for hash field %s map %v: %s",
+					hashField,
+					userPlacementMap,
+					err,
+				)
+				return 0, err
+			}
+		} else {
+			return 0, fmt.Errorf(
+				"user does not exist in user placement map - internal error: hashfield %s, voteCount %d, map %v",
+				hashField,
+				voteCount,
+				userPlacementMap,
+			)
+		}
+	}
+
+	userPlacementMap = model.UserPlacementMap{}
+	// try to find an existing entry for the next (current) vote
+	entry, err = c.getHashJson(ctx, hashField, string(rune(voteCount)), &userPlacementMap)
+
+	if err != nil {
+		c.log.Errorf(
+			"error getting vote count for current vote: for hash field %s map %v: %s",
+			hashField,
+			userPlacementMap,
+			err,
+		)
+		return 0, err
+	}
+
+	// entry exists, get the placement from one of the existing users',
+	// with one of the other users' placement number.
+	// If it does not exist, set the placement number from the previous
+	// found placement or default place 1.
+	if entry.Exists {
+		for key := range userPlacementMap {
+			placementNumber = userPlacementMap[key]
+			break
+		}
+	}
+
+	userPlacementMap[identityId] = placementNumber
+	encodedUserPlacementMap, err := userPlacementMap.MarshalBinary()
+	if err != nil {
+		c.log.Errorf(
+			"error encoding user placement map for vote count for previous vote: for hash field %s map %v: %s",
+			hashField,
+			userPlacementMap,
+			err,
+		)
+		return 0, err
+	}
+
+	voteCountMap := map[string]interface{}{voteCount.String(): encodedUserPlacementMap}
+	err = c.setHashMap(ctx, hashField, voteCountMap)
+
+	if err != nil {
+		c.log.Errorf(
+			"error setting vote count for previous vote: for hash field %s map %v: %s",
+			hashField,
+			userPlacementMap,
+			err,
+		)
+		return 0, err
+	}
+
+	return placementNumber, nil
 }
 
-func hashField(id int64) string {
+func circleHashField(id int64) string {
 	return "circle_" + strconv.FormatInt(id, 10)
 }
 
-func circleVoteRankingListKey(id int64) string {
-	return "circle_" + strconv.FormatInt(id, 10) + "vote_ranking_list"
-}
-
-func isNumberNil(value *int64) bool {
-	return value == nil
+func circleVotesUserPlacementHashField(id int64) string {
+	return "circle_" + strconv.FormatInt(id, 10) + "_votes_user_placement"
 }
