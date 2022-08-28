@@ -5,6 +5,7 @@ import (
 	"gitlab.vecomentman.com/libs/logger"
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/config"
+	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/database"
 	routerContext "gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/router/ctx"
 )
 
@@ -89,22 +90,22 @@ func (c *voteService) Vote(
 		return false, err
 	}
 
-	//// validate if voter already elected once - if so throw an error
-	//_, err = c.storage.VoterElectedByCircleId(circleId, voter.ID, elected.ID)
-	//
-	//if err != nil && !database.RecordNotFound(err) {
-	//	c.log.Errorf("error getting voter %d for elected %d not in circle: %s", voter.ID, elected.ID, err)
-	//	return false, err
-	//}
-	//if err == nil {
-	//	c.log.Errorf(
-	//		"failure voter %d for elected %d already voted in circle: %d",
-	//		voter.ID,
-	//		elected.ID,
-	//		circleId,
-	//	)
-	//	return false, err
-	//}
+	// validate if voter already elected once - if so throw an error
+	_, err = c.storage.VoterElectedByCircleId(circleId, voter.ID, elected.ID)
+
+	if err != nil && !database.RecordNotFound(err) {
+		c.log.Errorf("error getting voter %d for elected %d not in circle: %s", voter.ID, elected.ID, err)
+		return false, err
+	}
+	if err == nil {
+		c.log.Errorf(
+			"failure voter %d for elected %d already voted in circle: %d",
+			voter.ID,
+			elected.ID,
+			circleId,
+		)
+		return false, err
+	}
 
 	_, err = c.storage.CreateNewVote(voter.ID, elected.ID, circleId)
 

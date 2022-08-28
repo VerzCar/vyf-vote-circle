@@ -22,13 +22,13 @@ type Ranking struct {
 	UpdatedAt  time.Time       `json:"updatedAt" gorm:"autoUpdateTime;"`
 }
 
-// RankingMap is a map with the identityId as key and Ranking as value
-type RankingMap map[UserIdentityId]*Ranking
+// PlacementNumber represents the placement as a number
+type PlacementNumber int64
 
-// UserPlacementMap is a map with the UserIdentityId as key and VoteCount as value
-type UserPlacementMap map[UserIdentityId]PlacementNumber
-
-type VoteCountMap map[VoteCount]UserPlacementMap
+type RankingScore struct {
+	VoteCount      VoteCount
+	UserIdentityId UserIdentityId
+}
 
 type UserIdentityId string
 
@@ -36,30 +36,27 @@ func (u UserIdentityId) String() string {
 	return string(u)
 }
 
-// PlacementNumber represents the placement as a number
-type PlacementNumber int64
-
-func (s UserPlacementMap) MarshalBinary() ([]byte, error) {
+func (s UserIdentityId) MarshalBinary() ([]byte, error) {
 	return json.Marshal(s)
 }
 
-func (s UserPlacementMap) UnmarshalBinary(data []byte) error {
+func (s UserIdentityId) UnmarshalBinary(data []byte) error {
 	return json.Unmarshal(data, &s)
 }
 
-func (s Ranking) MarshalBinary() ([]byte, error) {
+func (s VoteCount) MarshalBinary() ([]byte, error) {
 	return json.Marshal(s)
 }
 
-func (s Ranking) UnmarshalBinary(data []byte) error {
+func (s VoteCount) UnmarshalBinary(data []byte) error {
 	return json.Unmarshal(data, &s)
 }
 
-func (s RankingMap) MarshalBinary() ([]byte, error) {
+func (s RankingScore) MarshalBinary() ([]byte, error) {
 	return json.Marshal(s)
 }
 
-func (s RankingMap) UnmarshalBinary(data []byte) error {
+func (s RankingScore) UnmarshalBinary(data []byte) error {
 	return json.Unmarshal(data, &s)
 }
 

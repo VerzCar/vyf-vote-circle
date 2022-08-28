@@ -80,64 +80,6 @@ func (c *redisCache) getJson(ctx context.Context, key string, dest interface{}) 
 	}
 }
 
-// setHashMap sets the given value as hash into the cache
-// with the given hashField key.
-func (c *redisCache) setHashMap(
-	ctx context.Context,
-	hashField string,
-	value interface{},
-) error {
-	return c.redis.HSet(ctx, hashField, value).Err()
-}
-
-// getHashJson gets the entry from the given key
-// as JSON format and Unmarshal it to the given destination
-// interface structure type
-func (c *redisCache) getHashJson(
-	ctx context.Context,
-	hashField string,
-	key string,
-	dest interface{},
-) (HEntry, error) {
-	entry := c.redis.HGet(ctx, hashField, key)
-
-	result := HEntry{Exists: false}
-	switch {
-	case entry.Err() == redis.Nil:
-		return result, nil
-	case entry.Err() != nil:
-		return result, entry.Err()
-	default:
-		result.Exists = true
-		err := json.Unmarshal([]byte(entry.Val()), &dest)
-		return result, err
-	}
-}
-
-// getAllHashJson gets the entry from the given key
-// as JSON format and Unmarshal it to the given destination
-// interface structure type
-func (c *redisCache) getAllHashJson(
-	ctx context.Context,
-	hashField string,
-	dest []interface{},
-) (HEntry, error) {
-	entry := c.redis.HGetAll(ctx, hashField)
-
-	result := HEntry{Exists: false}
-
-	switch {
-	case entry.Err() == redis.Nil:
-		return result, nil
-	case entry.Err() != nil:
-		return result, entry.Err()
-	default:
-		result.Exists = true
-		err := entry.Scan(&dest)
-		return result, err
-	}
-}
-
 // get the entry from the given key
 // as Entry. If the entry does not exist, the Entry
 // has the flag Exists set false and no error will be returned.
