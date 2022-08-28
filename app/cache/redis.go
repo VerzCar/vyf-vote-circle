@@ -14,9 +14,13 @@ type RedisCache interface {
 	UpdateRanking(
 		ctx context.Context,
 		circleId int64,
-		identityId model.UserIdentityId,
+		identityId string,
 		votes int64,
 	) error
+	RankingList(
+		ctx context.Context,
+		circleId int64,
+	) ([]*model.Ranking, error)
 }
 
 type redisCache struct {

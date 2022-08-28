@@ -36,7 +36,7 @@ type VoteCache interface {
 	UpdateRanking(
 		ctx context.Context,
 		circleId int64,
-		identityId model.UserIdentityId,
+		identityId string,
 		votes int64,
 	) error
 }
@@ -99,9 +99,9 @@ func (c *voteService) Vote(
 	}
 	if err == nil {
 		c.log.Errorf(
-			"failure voter %d for elected %d already voted in circle: %d",
-			voter.ID,
-			elected.ID,
+			"failure voter %s for elected %s already voted in circle: %d",
+			voter.Voter,
+			elected.Voter,
 			circleId,
 		)
 		return false, err
@@ -119,7 +119,7 @@ func (c *voteService) Vote(
 		return false, err
 	}
 
-	err = c.cache.UpdateRanking(ctx, circleId, model.UserIdentityId(elected.Voter), voteCount)
+	err = c.cache.UpdateRanking(ctx, circleId, elected.Voter, voteCount)
 
 	if err != nil {
 		return false, err

@@ -19,19 +19,29 @@ type RankingRepository interface {
 	RankingsByCircleId(circleId int64) ([]*model.Ranking, error)
 }
 
+type RankingCache interface {
+	RankingList(
+		ctx context.Context,
+		circleId int64,
+	) ([]*model.Ranking, error)
+}
+
 type rankingService struct {
 	storage RankingRepository
+	cache   RankingCache
 	config  *config.Config
 	log     logger.Logger
 }
 
 func NewRankingService(
 	circleRepo RankingRepository,
+	cache RankingCache,
 	config *config.Config,
 	log logger.Logger,
 ) RankingService {
 	return &rankingService{
 		storage: circleRepo,
+		cache:   cache,
 		config:  config,
 		log:     log,
 	}
@@ -48,7 +58,8 @@ func (c *rankingService) Rankings(
 		return nil, err
 	}
 
-	rankings, err := c.storage.RankingsByCircleId(circleId)
+	rankings, err := c.cache.RankingList(ctx, circleId)
+	//rankings, err := c.storage.RankingsByCircleId(circleId)
 
 	if err != nil {
 		return nil, err

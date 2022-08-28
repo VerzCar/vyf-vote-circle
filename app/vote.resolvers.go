@@ -11,10 +11,7 @@ import (
 )
 
 // CreateVote is the resolver for the createVote field.
-func (r *mutationResolver) CreateVote(ctx context.Context, circleID int64, voteCreateInput model.VoteCreateInput) (
-	bool,
-	error,
-) {
+func (r *mutationResolver) CreateVote(ctx context.Context, circleID int64, voteCreateInput model.VoteCreateInput) (bool, error) {
 	result, err := r.voteService.Vote(ctx, circleID, &voteCreateInput)
 
 	if err != nil {

@@ -11,45 +11,20 @@ import (
 )
 
 type Ranking struct {
-	ID         int64           `json:"id" gorm:"primary_key;index;"`
-	IdentityID UserIdentityId  `json:"identityId" gorm:"type:varchar(50);not null"`
-	Number     PlacementNumber `json:"number" gorm:"primary_key;index;"`
-	Votes      int64           `json:"votes" gorm:"not null;default:0"`
-	Placement  Placement       `json:"placement" gorm:"type:placement;not null;default:NEUTRAL"`
-	CircleID   int64           `json:"circleId" gorm:"not null;"`
-	Circle     *Circle         `json:"circle" gorm:"constraint:OnDelete:RESTRICT;"`
-	CreatedAt  time.Time       `json:"createdAt" gorm:"autoCreateTime;"`
-	UpdatedAt  time.Time       `json:"updatedAt" gorm:"autoUpdateTime;"`
+	ID         int64     `json:"id" gorm:"primary_key;index;"`
+	IdentityID string    `json:"identityId" gorm:"type:varchar(50);not null"`
+	Number     int64     `json:"number" gorm:"primary_key;index;"`
+	Votes      int64     `json:"votes" gorm:"not null;default:0"`
+	Placement  Placement `json:"placement" gorm:"type:placement;not null;default:NEUTRAL"`
+	CircleID   int64     `json:"circleId" gorm:"not null;"`
+	Circle     *Circle   `json:"circle" gorm:"constraint:OnDelete:RESTRICT;"`
+	CreatedAt  time.Time `json:"createdAt" gorm:"autoCreateTime;"`
+	UpdatedAt  time.Time `json:"updatedAt" gorm:"autoUpdateTime;"`
 }
-
-// PlacementNumber represents the placement as a number
-type PlacementNumber int64
 
 type RankingScore struct {
-	VoteCount      VoteCount
-	UserIdentityId UserIdentityId
-}
-
-type UserIdentityId string
-
-func (u UserIdentityId) String() string {
-	return string(u)
-}
-
-func (s UserIdentityId) MarshalBinary() ([]byte, error) {
-	return json.Marshal(s)
-}
-
-func (s UserIdentityId) UnmarshalBinary(data []byte) error {
-	return json.Unmarshal(data, &s)
-}
-
-func (s VoteCount) MarshalBinary() ([]byte, error) {
-	return json.Marshal(s)
-}
-
-func (s VoteCount) UnmarshalBinary(data []byte) error {
-	return json.Unmarshal(data, &s)
+	VoteCount      int64
+	UserIdentityId string
 }
 
 func (s RankingScore) MarshalBinary() ([]byte, error) {
