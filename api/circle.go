@@ -98,14 +98,6 @@ func (c *circleService) Circle(
 		return nil, err
 	}
 
-	if circle.Active {
-		if c.hasValidationTimeExpired(circle) {
-			if err := c.inactivateCircle(circle); err != nil {
-				c.log.Warnf("circle has validateValidationTime error: circle ID %d, error %s", circle.ID, err)
-			}
-		}
-	}
-
 	return circle, nil
 }
 
@@ -164,8 +156,6 @@ func (c *circleService) UpdateCircle(
 			return nil, err
 		}
 		circle.ValidUntil = circleUpdateInput.ValidUntil
-	} else if c.hasValidationTimeExpired(circle) {
-		circle.Active = false
 	}
 
 	if circleUpdateInput.Name != nil {
@@ -259,29 +249,6 @@ func (c *circleService) eligibleToBeInCircle(
 		if voter.Voter == userIdentityId {
 			return true
 		}
-	}
-
-	return false
-}
-
-// hasValidationTimeExpired checks if the validationUntil time has expired.
-// If an validUntil time is set, it will be compared to the current time
-// and validated if it has expired.
-// Returns false if either no validationUntil time is set
-// or the validation time has not expired, otherwise true.
-func (c *circleService) hasValidationTimeExpired(
-	circle *model.Circle,
-) bool {
-
-	if circle.ValidUntil == nil {
-		return false
-	}
-
-	currentTime := time.Now()
-	validUntilTime := *circle.ValidUntil
-
-	if currentTime.After(validUntilTime) {
-		return true
 	}
 
 	return false

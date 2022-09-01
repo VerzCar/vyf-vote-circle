@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"gorm.io/gorm"
+	"time"
+)
 
 type Circle struct {
 	ID int64 `json:"id" gorm:"primary_key;index;"`
@@ -45,4 +48,36 @@ type CircleCreateInput struct {
 	Voters      []*CircleVoterInput `json:"voters"`
 	Private     *bool               `json:"private" validate:"omitempty"`
 	ValidUntil  *time.Time          `json:"validUntil" validate:"omitempty"`
+}
+
+// db hooks with checks
+
+// AfterFind checks whether the circle validation is expired and set
+// the circle inactive if so. If the update of the column failed,
+// the query will fail.
+func (circle *Circle) AfterFind(tx *gorm.DB) (err error) {
+	// check if any validation time is set
+	if circle.ValidUntil == nil {
+		return
+	}
+
+	if isValidationTimeExpired(circle) {
+		circle.Active = false
+		err := tx.Model(&Circle{}).Update("active", false).Error
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+func isValidationTimeExpired(
+	circle *Circle,
+) bool {
+	if time.Now().After(*circle.ValidUntil) {
+		return true
+	}
+	return false
 }

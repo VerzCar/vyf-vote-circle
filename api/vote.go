@@ -18,6 +18,7 @@ type VoteService interface {
 }
 
 type VoteRepository interface {
+	CircleById(id int64) (*model.Circle, error)
 	CircleVoterByCircleId(circleId int64, voterId string) (*model.CircleVoter, error)
 	CreateNewVote(
 		voterId int64,
@@ -71,6 +72,22 @@ func (c *voteService) Vote(
 
 	if err != nil {
 		c.log.Errorf("error getting auth claims: %s", err)
+		return false, err
+	}
+
+	circle, err := c.storage.CircleById(circleId)
+
+	if err != nil {
+		return false, err
+	}
+
+	if !circle.Active {
+		c.log.Infof(
+			"tried to vote for an inactive circle with circle id %d and subject %s: %s",
+			circleId,
+			authClaims.Subject,
+			err,
+		)
 		return false, err
 	}
 
