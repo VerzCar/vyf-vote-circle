@@ -46,6 +46,7 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Circle struct {
+		Active      func(childComplexity int) int
 		CreatedFrom func(childComplexity int) int
 		Description func(childComplexity int) int
 		ID          func(childComplexity int) int
@@ -114,6 +115,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Circle.active":
+		if e.complexity.Circle.Active == nil {
+			break
+		}
+
+		return e.complexity.Circle.Active(childComplexity), true
 
 	case "Circle.createdFrom":
 		if e.complexity.Circle.CreatedFrom == nil {
@@ -408,6 +416,7 @@ var sources = []*ast.Source{
     imageSrc: String!
     voters: [CircleVoter!]!
     private: Boolean!
+    active: Boolean!
     createdFrom: String!
     validUntil: Time
 }
@@ -920,6 +929,50 @@ func (ec *executionContext) fieldContext_Circle_private(ctx context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _Circle_active(ctx context.Context, field graphql.CollectedField, obj *model.Circle) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Circle_active(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Active, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Circle_active(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Circle",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Circle_createdFrom(ctx context.Context, field graphql.CollectedField, obj *model.Circle) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Circle_createdFrom(ctx, field)
 	if err != nil {
@@ -1320,6 +1373,8 @@ func (ec *executionContext) fieldContext_Mutation_updateCircle(ctx context.Conte
 				return ec.fieldContext_Circle_voters(ctx, field)
 			case "private":
 				return ec.fieldContext_Circle_private(ctx, field)
+			case "active":
+				return ec.fieldContext_Circle_active(ctx, field)
 			case "createdFrom":
 				return ec.fieldContext_Circle_createdFrom(ctx, field)
 			case "validUntil":
@@ -1393,6 +1448,8 @@ func (ec *executionContext) fieldContext_Mutation_createCircle(ctx context.Conte
 				return ec.fieldContext_Circle_voters(ctx, field)
 			case "private":
 				return ec.fieldContext_Circle_private(ctx, field)
+			case "active":
+				return ec.fieldContext_Circle_active(ctx, field)
 			case "createdFrom":
 				return ec.fieldContext_Circle_createdFrom(ctx, field)
 			case "validUntil":
@@ -1565,6 +1622,8 @@ func (ec *executionContext) fieldContext_Query_circle(ctx context.Context, field
 				return ec.fieldContext_Circle_voters(ctx, field)
 			case "private":
 				return ec.fieldContext_Circle_private(ctx, field)
+			case "active":
+				return ec.fieldContext_Circle_active(ctx, field)
 			case "createdFrom":
 				return ec.fieldContext_Circle_createdFrom(ctx, field)
 			case "validUntil":
@@ -4116,6 +4175,13 @@ func (ec *executionContext) _Circle(ctx context.Context, sel ast.SelectionSet, o
 		case "private":
 
 			out.Values[i] = ec._Circle_private(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "active":
+
+			out.Values[i] = ec._Circle_active(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++

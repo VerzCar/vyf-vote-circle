@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"gitlab.vecomentman.com/libs/logger"
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/config"
@@ -121,7 +122,7 @@ func (c *voteService) Vote(
 			elected.Voter,
 			circleId,
 		)
-		return false, err
+		return false, fmt.Errorf("already voted in circle")
 	}
 
 	_, err = c.storage.CreateNewVote(voter.ID, elected.ID, circleId)

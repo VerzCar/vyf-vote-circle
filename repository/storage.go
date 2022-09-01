@@ -38,6 +38,7 @@ type Storage interface {
 		voterId int64,
 		electedId int64,
 	) (*model.Vote, error)
+	Votes(circleId int64) ([]*model.Vote, error)
 }
 
 type storage struct {

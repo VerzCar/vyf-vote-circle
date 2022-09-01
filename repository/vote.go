@@ -71,7 +71,7 @@ func (s *storage) VoterElectedByCircleId(
 		return nil, err
 	case database.RecordNotFound(err):
 		s.log.Infof(
-			"vote with or voter %s and elected %s by circle id %d not found: %s",
+			"voter %s and elected %s by circle id %d not found: %s",
 			voterId,
 			electedId,
 			circleId,
@@ -81,4 +81,21 @@ func (s *storage) VoterElectedByCircleId(
 	}
 
 	return vote, nil
+}
+
+// Votes gets all votes for the given circle id
+func (s *storage) Votes(circleId int64) ([]*model.Vote, error) {
+	var votes []*model.Vote
+	err := s.db.Where(&model.Vote{CircleID: circleId, CircleRefer: &circleId}).Find(&votes).Error
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		s.log.Errorf("error reading votes by circle id %d: %s", circleId, err)
+		return nil, err
+	case database.RecordNotFound(err):
+		s.log.Infof("votes with circle id %d not found: %s", circleId, err)
+		return nil, err
+	}
+
+	return votes, nil
 }

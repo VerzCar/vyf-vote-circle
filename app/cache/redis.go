@@ -21,6 +21,15 @@ type RedisCache interface {
 		ctx context.Context,
 		circleId int64,
 	) ([]*model.Ranking, error)
+	ExistsRankingListForCircle(
+		ctx context.Context,
+		circleId int64,
+	) (bool, error)
+	BuildRankingList(
+		ctx context.Context,
+		circleId int64,
+		votes []*model.Vote,
+	) error
 }
 
 type redisCache struct {
@@ -110,42 +119,6 @@ func (c *redisCache) get(ctx context.Context, key string) (Entry, error) {
 func (c *redisCache) set(ctx context.Context, key string, value interface{}, t time.Duration) error {
 	err := c.redis.Set(ctx, key, value, t).Err()
 	return err
-}
-
-func (c *redisCache) getIndexInList(
-	ctx context.Context,
-	key string,
-	value string,
-) (EntryNumber, error) {
-	entry := c.redis.LPos(ctx, key, value, redis.LPosArgs{})
-
-	result := EntryNumber{Exists: false}
-
-	switch {
-	case entry.Err() == redis.Nil:
-		return result, nil
-	case entry.Err() != nil:
-		return result, entry.Err()
-	default:
-		result.Exists = true
-		result.Val = entry.Val()
-		return result, nil
-	}
-}
-
-func (c *redisCache) pushToListEnd(
-	ctx context.Context,
-	key string,
-	values ...interface{},
-) (int64, error) {
-	entry := c.redis.RPush(ctx, key, values)
-
-	switch {
-	case entry.Err() != nil:
-		return 0, entry.Err()
-	default:
-		return entry.Val(), nil
-	}
 }
 
 // FlushAll the cache and flush the db

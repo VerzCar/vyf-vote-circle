@@ -63,7 +63,7 @@ func (circle *Circle) AfterFind(tx *gorm.DB) (err error) {
 
 	if isValidationTimeExpired(circle) {
 		circle.Active = false
-		err := tx.Model(&Circle{}).Update("active", false).Error
+		err := tx.Model(circle).Update("active", false).Error
 
 		if err != nil {
 			return err

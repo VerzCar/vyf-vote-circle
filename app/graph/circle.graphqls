@@ -5,6 +5,7 @@ type Circle {
     imageSrc: String!
     voters: [CircleVoter!]!
     private: Boolean!
+    active: Boolean!
     createdFrom: String!
     validUntil: Time
 }
