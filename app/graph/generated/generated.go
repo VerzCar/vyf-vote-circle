@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -39,6 +40,7 @@ type Config struct {
 type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
+	Subscription() SubscriptionResolver
 }
 
 type DirectiveRoot struct {
@@ -87,6 +89,10 @@ type ComplexityRoot struct {
 		UpdatedAt  func(childComplexity int) int
 		Votes      func(childComplexity int) int
 	}
+
+	Subscription struct {
+		RankingList func(childComplexity int, circleID int64) int
+	}
 }
 
 type MutationResolver interface {
@@ -99,6 +105,9 @@ type QueryResolver interface {
 	Ping(ctx context.Context) (string, error)
 	Circle(ctx context.Context, id int64) (*model.Circle, error)
 	RankingList(ctx context.Context, circleID int64) ([]*model.Ranking, error)
+}
+type SubscriptionResolver interface {
+	RankingList(ctx context.Context, circleID int64) (<-chan []*model.Ranking, error)
 }
 
 type executableSchema struct {
@@ -337,6 +346,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Ranking.Votes(childComplexity), true
 
+	case "Subscription.rankingList":
+		if e.complexity.Subscription.RankingList == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_rankingList_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.RankingList(childComplexity, args["circleId"].(int64)), true
+
 	}
 	return 0, false
 }
@@ -377,6 +398,23 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
 			data := ec._Mutation(ctx, rc.Operation.SelectionSet)
 			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data: buf.Bytes(),
+			}
+		}
+	case ast.Subscription:
+		next := ec._Subscription(ctx, rc.Operation.SelectionSet)
+
+		var buf bytes.Buffer
+		return func(ctx context.Context) *graphql.Response {
+			buf.Reset()
+			data := next(ctx)
+
+			if data == nil {
+				return nil
+			}
 			data.MarshalGQL(&buf)
 
 			return &graphql.Response{
@@ -483,7 +521,10 @@ type Ranking {
 extend type Query {
     rankingList(circleId: ID!): [Ranking]!
 }
-`, BuiltIn: false},
+
+type Subscription {
+    rankingList(circleId: ID!): [Ranking]!
+}`, BuiltIn: false},
 	{Name: "../schema.graphqls", Input: `scalar Time
 
 type Query {
@@ -601,6 +642,21 @@ func (ec *executionContext) field_Query_circle_args(ctx context.Context, rawArgs
 }
 
 func (ec *executionContext) field_Query_rankingList_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int64
+	if tmp, ok := rawArgs["circleId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("circleId"))
+		arg0, err = ec.unmarshalNID2int64(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["circleId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_rankingList_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int64
@@ -2150,6 +2206,91 @@ func (ec *executionContext) fieldContext_Ranking_updatedAt(ctx context.Context, 
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_rankingList(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_rankingList(ctx, field)
+	if err != nil {
+		return nil
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().RankingList(rctx, fc.Args["circleId"].(int64))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return nil
+	}
+	return func(ctx context.Context) graphql.Marshaler {
+		select {
+		case res, ok := <-resTmp.(<-chan []*model.Ranking):
+			if !ok {
+				return nil
+			}
+			return graphql.WriterFunc(func(w io.Writer) {
+				w.Write([]byte{'{'})
+				graphql.MarshalString(field.Alias).MarshalGQL(w)
+				w.Write([]byte{':'})
+				ec.marshalNRanking2ᚕᚖgitlabᚗvecomentmanᚗcomᚋvoteᚑyourᚑfaceᚋserviceᚋvote_circleᚋapiᚋmodelᚐRanking(ctx, field.Selections, res).MarshalGQL(w)
+				w.Write([]byte{'}'})
+			})
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (ec *executionContext) fieldContext_Subscription_rankingList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Ranking_id(ctx, field)
+			case "identityId":
+				return ec.fieldContext_Ranking_identityId(ctx, field)
+			case "number":
+				return ec.fieldContext_Ranking_number(ctx, field)
+			case "votes":
+				return ec.fieldContext_Ranking_votes(ctx, field)
+			case "placement":
+				return ec.fieldContext_Ranking_placement(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Ranking_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Ranking_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Ranking", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Subscription_rankingList_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
 	}
 	return fc, nil
 }
@@ -4509,6 +4650,26 @@ func (ec *executionContext) _Ranking(ctx context.Context, sel ast.SelectionSet, 
 		return graphql.Null
 	}
 	return out
+}
+
+var subscriptionImplementors = []string{"Subscription"}
+
+func (ec *executionContext) _Subscription(ctx context.Context, sel ast.SelectionSet) func(ctx context.Context) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, subscriptionImplementors)
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Object: "Subscription",
+	})
+	if len(fields) != 1 {
+		ec.Errorf(ctx, "must subscribe to exactly one stream")
+		return nil
+	}
+
+	switch fields[0].Name {
+	case "rankingList":
+		return ec._Subscription_rankingList(ctx, fields[0])
+	default:
+		panic("unknown field " + strconv.Quote(fields[0].Name))
+	}
 }
 
 var __DirectiveImplementors = []string{"__Directive"}

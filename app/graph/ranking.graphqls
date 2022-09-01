@@ -17,3 +17,7 @@ type Ranking {
 extend type Query {
     rankingList(circleId: ID!): [Ranking]!
 }
+
+type Subscription {
+    rankingList(circleId: ID!): [Ranking]!
+}
