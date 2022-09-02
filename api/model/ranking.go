@@ -27,6 +27,10 @@ type RankingScore struct {
 	UserIdentityId string
 }
 
+type RankingObservers map[int64]RankingListObservableMap
+type RankingListObservableMap map[string]RankingListObservable
+type RankingListObservable chan []*Ranking
+
 func (s RankingScore) MarshalBinary() ([]byte, error) {
 	return json.Marshal(s)
 }

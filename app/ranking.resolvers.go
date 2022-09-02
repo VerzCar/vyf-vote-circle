@@ -23,13 +23,13 @@ func (r *queryResolver) RankingList(ctx context.Context, circleID int64) ([]*mod
 
 // RankingList is the resolver for the rankingList field.
 func (r *subscriptionResolver) RankingList(ctx context.Context, circleID int64) (<-chan []*model.Ranking, error) {
-	_, err := r.rankingService.Rankings(ctx, circleID)
+	rankings, err := r.rankingSubscriptionService.Rankings(ctx, circleID)
 
 	if err != nil {
-		return nil, gqlerror.Errorf("cannot find rankings")
+		return nil, gqlerror.Errorf("cannot subscribe to ranking list for circle %d", circleID)
 	}
 
-	return nil, nil
+	return rankings, nil
 }
 
 // Subscription returns generated.SubscriptionResolver implementation.

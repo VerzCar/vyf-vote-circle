@@ -19,7 +19,7 @@ func (s *Server) ginContextToContext() gin.HandlerFunc {
 }
 
 // authGuard verifies the Authorization token against the SSO service.
-// If the authentification fails the request will be aborted.
+// If the authentication fails the request will be aborted.
 // Otherwise, the given subject of the token will be saved in the context and
 // the next request served.
 func (s *Server) authGuard(authService awsx.AuthService) gin.HandlerFunc {

@@ -3,6 +3,7 @@ package app
 import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/graph/generated"
@@ -25,7 +26,15 @@ func gqlHandler(resolver *Resolver) gin.HandlerFunc {
 			},
 		},
 	)
-	//h.Use(extension.Introspection{})
+
+	return func(c *gin.Context) {
+		h.ServeHTTP(c.Writer, c.Request)
+	}
+}
+
+// Defining the Playground handler
+func playgroundHandler() gin.HandlerFunc {
+	h := playground.Handler("GraphQL", "/query")
 
 	return func(c *gin.Context) {
 		h.ServeHTTP(c.Writer, c.Request)

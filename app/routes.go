@@ -10,6 +10,8 @@ func (s *Server) routes() {
 	{
 		// graphql route
 		authorized.POST("/query", gqlHandler(s.resolver))
+		//authorized.GET("/query", gqlHandler(s.resolver))
 	}
 
+	//router.GET("/", playgroundHandler())
 }

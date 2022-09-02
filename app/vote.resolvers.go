@@ -5,13 +5,15 @@ package app
 
 import (
 	"context"
-
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
 )
 
 // CreateVote is the resolver for the createVote field.
-func (r *mutationResolver) CreateVote(ctx context.Context, circleID int64, voteCreateInput model.VoteCreateInput) (bool, error) {
+func (r *mutationResolver) CreateVote(ctx context.Context, circleID int64, voteCreateInput model.VoteCreateInput) (
+	bool,
+	error,
+) {
 	result, err := r.voteService.Vote(ctx, circleID, &voteCreateInput)
 
 	if err != nil {

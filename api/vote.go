@@ -44,23 +44,26 @@ type VoteCache interface {
 }
 
 type voteService struct {
-	storage VoteRepository
-	cache   VoteCache
-	config  *config.Config
-	log     logger.Logger
+	storage                    VoteRepository
+	cache                      VoteCache
+	rankingSubscriptionService RankingSubscriptionService
+	config                     *config.Config
+	log                        logger.Logger
 }
 
 func NewVoteService(
 	circleRepo VoteRepository,
 	cache VoteCache,
+	rankingSubscriptionService RankingSubscriptionService,
 	config *config.Config,
 	log logger.Logger,
 ) VoteService {
 	return &voteService{
-		storage: circleRepo,
-		cache:   cache,
-		config:  config,
-		log:     log,
+		storage:                    circleRepo,
+		cache:                      cache,
+		rankingSubscriptionService: rankingSubscriptionService,
+		config:                     config,
+		log:                        log,
 	}
 }
 
@@ -125,6 +128,7 @@ func (c *voteService) Vote(
 		return false, fmt.Errorf("already voted in circle")
 	}
 
+	// TODO put this write block in transaction as the update ranking in the cache could fail
 	_, err = c.storage.CreateNewVote(voter.ID, elected.ID, circleId)
 
 	if err != nil {
@@ -142,6 +146,8 @@ func (c *voteService) Vote(
 	if err != nil {
 		return false, err
 	}
+
+	c.rankingSubscriptionService.RankingChangedEvent(circleId)
 
 	return true, nil
 }
