@@ -23,7 +23,7 @@ test-source:
       go list -m gitlab.vecomentman.com/libs/awsx
     - go mod download
     # copy secret file for dev into container
-    - cp $SECRETS_USER_SVC_DEV $(pwd)/app/config/secret.service.yml
+    - cp $SECRETS_SVC_DEV $(pwd)/app/config/secret.service.yml
     - go test -cover -p 1 ./...
 
 #sonarqube-check:
