@@ -77,25 +77,25 @@ func (c *circleService) Circle(
 		// the global list if not. This has to be done if a new user
 		// creates an account and therefore must be inserted in the global list
 		// for the first time, otherwise he is not eligible to be in any circle.
-		if circleId == 1 {
-			circleVoter := &model.CircleVoter{
-				Voter:       authClaims.Subject,
-				Circle:      circle,
-				CircleRefer: &circle.ID,
-				Commitment:  model.CommitmentCommitted,
-			}
-			circleVoter, err = c.storage.CreateNewCircleVoter(circleVoter)
-
-			if err != nil {
-				c.log.Errorf("error adding voter to global circle: %s", err)
-			} else {
-				circle.Voters = append(circle.Voters, circleVoter)
-			}
+		if circleId != 1 {
+			c.log.Infof("user is not eligible to be in circle: user %s, circle ID %d", authClaims.Subject, circle.ID)
+			err = fmt.Errorf("user is not eligible to be in circle")
+			return nil, err
 		}
 
-		c.log.Infof("user is not eligible to be in circle: user %s, circle ID %d", authClaims.Subject, circle.ID)
-		err = fmt.Errorf("user is not eligible to be in circle")
-		return nil, err
+		circleVoter := &model.CircleVoter{
+			Voter:       authClaims.Subject,
+			Circle:      circle,
+			CircleRefer: &circle.ID,
+			Commitment:  model.CommitmentCommitted,
+		}
+		circleVoter, err = c.storage.CreateNewCircleVoter(circleVoter)
+
+		if err != nil {
+			c.log.Errorf("error adding voter to global circle: %s", err)
+		} else {
+			circle.Voters = append(circle.Voters, circleVoter)
+		}
 	}
 
 	return circle, nil
@@ -137,14 +137,16 @@ func (c *circleService) UpdateCircle(
 
 	// if circle should be deleted, deactivated it and return deactivated circle
 	if circleUpdateInput.Delete != nil {
-		err := c.inactivateCircle(circle)
+		if *circleUpdateInput.Delete {
+			err := c.inactivateCircle(circle)
 
-		if err != nil {
-			c.log.Warnf("circle has validateValidationTime error: circle ID %d, error %s", circle.ID, err)
-			return nil, err
+			if err != nil {
+				c.log.Warnf("could not deactivate circle, error: circle ID %d, error %s", circle.ID, err)
+				return nil, err
+			}
+
+			return circle, nil
 		}
-
-		return circle, nil
 	}
 
 	// check if new valid until time is given and is in the future from now on

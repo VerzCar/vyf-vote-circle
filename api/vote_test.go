@@ -46,6 +46,13 @@ func TestVoteService_Vote(t *testing.T) {
 			input:    voteInput,
 			want:     fmt.Errorf("circle inactive"),
 		},
+		{
+			name:     "should fail because user is not authenticated",
+			ctx:      emptyUserContext(),
+			circleId: inactiveCircleId,
+			input:    voteInput,
+			want:     fmt.Errorf("could not retrieve auth claims"),
+		},
 	}
 
 	for _, test := range tests {

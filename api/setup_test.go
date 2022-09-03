@@ -43,3 +43,9 @@ func putUserIntoContext(jwtToken *awsx.JWTToken) context.Context {
 	ctx = context.WithValue(context.Background(), "AuthClaimsContextKey", jwtToken)
 	return ctx
 }
+
+// emptyUserContext represents an authentication token in context without value
+func emptyUserContext() context.Context {
+	ctx = context.WithValue(context.Background(), "AuthClaimsContextKey", nil)
+	return ctx
+}
