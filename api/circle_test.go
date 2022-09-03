@@ -156,7 +156,7 @@ func TestCircleService_UpdateCircle(t *testing.T) {
 
 	circleId := int64(1)
 	circle02Id := int64(2)
-	circle03Id := int64(3)
+	circle04Id := int64(4)
 
 	name := "test1"
 	isPrivate := true
@@ -209,7 +209,7 @@ func TestCircleService_UpdateCircle(t *testing.T) {
 		{
 			name:     "should fail because circle is not active anymore",
 			ctx:      ctxMock,
-			circleId: circle03Id,
+			circleId: circle04Id,
 			input:    &circleUpdateMockInput,
 			want:     fmt.Errorf("circle is not active"),
 		},
@@ -285,7 +285,7 @@ func (m mockCircleRepository) CircleById(id int64) (*model.Circle, error) {
 	case 2:
 		circle.CreatedFrom = mockUser.Elon.Subject
 		break
-	case 3:
+	case 4:
 		circle.CreatedFrom = mockUser.Elon.Subject
 		circle.Active = false
 		break
