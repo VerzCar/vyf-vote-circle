@@ -71,7 +71,7 @@ func (s *rankingSubscriptionService) Rankings(
 	s.mu.Unlock()
 	// This is optional, and this allows newly subscribed clients to get a list of all the rankings that have been
 	// listed so far. Upon subscribing the client will be pushed the rankings once, further changes are handled
-	// in the Vote mutation.
+	// in the CreateVote mutation.
 	rankingList, err := s.rankingService.Rankings(ctx, circleId)
 
 	if err == nil {

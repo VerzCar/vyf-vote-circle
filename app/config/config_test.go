@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-const dbName string = "name"
+const environment string = "development"
 
 func TestNewConfig(t *testing.T) {
 	c := NewConfig(".")
 
-	require.Equal(t, c.Db.Name, dbName)
+	require.Equal(t, c.Environment, EnvironmentDev)
 }

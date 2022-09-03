@@ -11,7 +11,7 @@ import (
 )
 
 type VoteService interface {
-	Vote(
+	CreateVote(
 		ctx context.Context,
 		circleId int64,
 		voteInput *model.VoteCreateInput,
@@ -43,31 +43,35 @@ type VoteCache interface {
 	) error
 }
 
+type VoteSubscription interface {
+	RankingChangedEvent(circleId int64)
+}
+
 type voteService struct {
-	storage                    VoteRepository
-	cache                      VoteCache
-	rankingSubscriptionService RankingSubscriptionService
-	config                     *config.Config
-	log                        logger.Logger
+	storage      VoteRepository
+	cache        VoteCache
+	subscription VoteSubscription
+	config       *config.Config
+	log          logger.Logger
 }
 
 func NewVoteService(
 	circleRepo VoteRepository,
 	cache VoteCache,
-	rankingSubscriptionService RankingSubscriptionService,
+	subscription VoteSubscription,
 	config *config.Config,
 	log logger.Logger,
 ) VoteService {
 	return &voteService{
-		storage:                    circleRepo,
-		cache:                      cache,
-		rankingSubscriptionService: rankingSubscriptionService,
-		config:                     config,
-		log:                        log,
+		storage:      circleRepo,
+		cache:        cache,
+		subscription: subscription,
+		config:       config,
+		log:          log,
 	}
 }
 
-func (c *voteService) Vote(
+func (c *voteService) CreateVote(
 	ctx context.Context,
 	circleId int64,
 	voteInput *model.VoteCreateInput,
@@ -147,7 +151,7 @@ func (c *voteService) Vote(
 		return false, err
 	}
 
-	c.rankingSubscriptionService.RankingChangedEvent(circleId)
+	c.subscription.RankingChangedEvent(circleId)
 
 	return true, nil
 }

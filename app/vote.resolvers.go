@@ -14,7 +14,7 @@ func (r *mutationResolver) CreateVote(ctx context.Context, circleID int64, voteC
 	bool,
 	error,
 ) {
-	result, err := r.voteService.Vote(ctx, circleID, &voteCreateInput)
+	result, err := r.voteService.CreateVote(ctx, circleID, &voteCreateInput)
 
 	if err != nil {
 		return false, gqlerror.Errorf("cannot vote")
