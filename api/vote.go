@@ -91,12 +91,11 @@ func (c *voteService) CreateVote(
 
 	if !circle.Active {
 		c.log.Infof(
-			"tried to vote for an inactive circle with circle id %d and subject %s: %s",
+			"tried to vote for an inactive circle with circle id %d and subject %s",
 			circleId,
 			authClaims.Subject,
-			err,
 		)
-		return false, err
+		return false, fmt.Errorf("circle inactive")
 	}
 
 	voterId := authClaims.Subject

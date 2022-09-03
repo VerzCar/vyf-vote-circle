@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"context"
+	"fmt"
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api"
 	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
 	"gorm.io/gorm"
@@ -22,6 +23,8 @@ func TestVoteService_Vote(t *testing.T) {
 	}
 	circleId := int64(1)
 
+	inactiveCircleId := int64(2)
+
 	tests := []struct {
 		name     string
 		ctx      context.Context
@@ -35,6 +38,13 @@ func TestVoteService_Vote(t *testing.T) {
 			circleId: circleId,
 			input:    voteInput,
 			want:     nil,
+		},
+		{
+			name:     "should fail because circle is inactive",
+			ctx:      ctxMock,
+			circleId: inactiveCircleId,
+			input:    voteInput,
+			want:     fmt.Errorf("circle inactive"),
 		},
 	}
 
@@ -72,6 +82,14 @@ func (m mockVoteRepository) CircleById(id int64) (*model.Circle, error) {
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
+	switch id {
+	case 1:
+		break
+	case 2:
+		circle.Active = false
+		break
+	}
+
 	return circle, nil
 }
 
