@@ -47,14 +47,15 @@ type CircleResponse struct {
 	ValidUntil  *time.Time             `json:"validUntil"`
 }
 
-type CircleUpdateInput struct {
-	Name        *string               `json:"name" validate:"omitempty,gt=0,lte=40"`
-	Description *string               `json:"description" validate:"omitempty,gt=0,lte=1200"`
-	ImageSrc    *string               `json:"imageSrc" validate:"omitempty,url"`
-	Voters      []*CircleVoterRequest `json:"voters"`
-	Private     *bool                 `json:"private" validate:"omitempty"`
-	Delete      *bool                 `json:"delete" validate:"omitempty"`
-	ValidUntil  *time.Time            `json:"validUntil" validate:"omitempty"`
+type CircleUpdateRequest struct {
+	ID          int64                 `json:"id" validate:"gt=0"`
+	Name        *string               `json:"name,omitempty" validate:"omitempty,gt=0,lte=40"`
+	Description *string               `json:"description,omitempty" validate:"omitempty,gt=0,lte=1200"`
+	ImageSrc    *string               `json:"imageSrc,omitempty" validate:"omitempty,url"`
+	Voters      []*CircleVoterRequest `json:"voters,omitempty"`
+	Private     *bool                 `json:"private,omitempty" validate:"omitempty"`
+	Delete      *bool                 `json:"delete,omitempty" validate:"omitempty"`
+	ValidUntil  *time.Time            `json:"validUntil,omitempty" validate:"omitempty"`
 }
 
 type CircleCreateRequest struct {

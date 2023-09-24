@@ -164,7 +164,7 @@ func TestCircleService_UpdateCircle(t *testing.T) {
 	imageSrc := "https://source.com/img/2"
 	validUntil := time.Now().Add(time.Hour * 10)
 	deleteCircle := false
-	circleUpdateMockInput := model.CircleUpdateInput{
+	circleUpdateMockInput := model.CircleUpdateRequest{
 		Name:        &name,
 		Description: &description,
 		ImageSrc:    &imageSrc,
@@ -189,7 +189,7 @@ func TestCircleService_UpdateCircle(t *testing.T) {
 		name     string
 		ctx      context.Context
 		circleId int64
-		input    *model.CircleUpdateInput
+		input    *model.CircleUpdateRequest
 		want     error
 	}{
 		{

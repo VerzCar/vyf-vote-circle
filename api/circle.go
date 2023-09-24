@@ -17,12 +17,11 @@ type CircleService interface {
 	) (*model.Circle, error)
 	UpdateCircle(
 		ctx context.Context,
-		circleId int64,
-		circleUpdateInput *model.CircleUpdateInput,
+		circleUpdateRequest *model.CircleUpdateRequest,
 	) (*model.Circle, error)
 	CreateCircle(
 		ctx context.Context,
-		circleCreateInput *model.CircleCreateRequest,
+		circleCreateRequest *model.CircleCreateRequest,
 	) (*model.Circle, error)
 }
 
@@ -103,8 +102,7 @@ func (c *circleService) Circle(
 
 func (c *circleService) UpdateCircle(
 	ctx context.Context,
-	circleId int64,
-	circleUpdateInput *model.CircleUpdateInput,
+	circleUpdateRequest *model.CircleUpdateRequest,
 ) (*model.Circle, error) {
 	authClaims, err := routerContext.ContextToAuthClaims(ctx)
 
@@ -113,7 +111,7 @@ func (c *circleService) UpdateCircle(
 		return nil, err
 	}
 
-	circle, err := c.storage.CircleById(circleId)
+	circle, err := c.storage.CircleById(circleUpdateRequest.ID)
 
 	if err != nil {
 		return nil, err
@@ -136,8 +134,8 @@ func (c *circleService) UpdateCircle(
 	}
 
 	// if circle should be deleted, deactivated it and return deactivated circle
-	if circleUpdateInput.Delete != nil {
-		if *circleUpdateInput.Delete {
+	if circleUpdateRequest.Delete != nil {
+		if *circleUpdateRequest.Delete {
 			err := c.inactivateCircle(circle)
 
 			if err != nil {
@@ -151,26 +149,26 @@ func (c *circleService) UpdateCircle(
 
 	// check if new valid until time is given and is in the future from now on
 	// otherwise check if current valid until time has expired
-	if circleUpdateInput.ValidUntil != nil {
+	if circleUpdateRequest.ValidUntil != nil {
 		currentTime := time.Now()
-		if currentTime.After(*circleUpdateInput.ValidUntil) {
+		if currentTime.After(*circleUpdateRequest.ValidUntil) {
 			err = fmt.Errorf("valid until time must be in the future from now")
 			return nil, err
 		}
-		circle.ValidUntil = circleUpdateInput.ValidUntil
+		circle.ValidUntil = circleUpdateRequest.ValidUntil
 	}
 
-	if circleUpdateInput.Name != nil {
-		circle.Name = *circleUpdateInput.Name
+	if circleUpdateRequest.Name != nil {
+		circle.Name = *circleUpdateRequest.Name
 	}
 
-	if circleUpdateInput.Private != nil {
-		circle.Private = *circleUpdateInput.Private
+	if circleUpdateRequest.Private != nil {
+		circle.Private = *circleUpdateRequest.Private
 	}
 
-	if circleUpdateInput.Voters != nil {
+	if circleUpdateRequest.Voters != nil {
 		var circleVoters []*model.CircleVoter
-		for _, voter := range circleUpdateInput.Voters {
+		for _, voter := range circleUpdateRequest.Voters {
 			circleVoter := &model.CircleVoter{
 				Voter:       voter.Voter,
 				Circle:      circle,
@@ -192,7 +190,7 @@ func (c *circleService) UpdateCircle(
 
 func (c *circleService) CreateCircle(
 	ctx context.Context,
-	circleCreateInput *model.CircleCreateRequest,
+	circleCreateRequest *model.CircleCreateRequest,
 ) (*model.Circle, error) {
 	authClaims, err := routerContext.ContextToAuthClaims(ctx)
 
@@ -202,30 +200,30 @@ func (c *circleService) CreateCircle(
 	}
 
 	newCircle := &model.Circle{
-		Name:        circleCreateInput.Name,
+		Name:        circleCreateRequest.Name,
 		CreatedFrom: authClaims.Subject,
 	}
 
-	if circleCreateInput.Private != nil {
-		newCircle.Private = *circleCreateInput.Private
+	if circleCreateRequest.Private != nil {
+		newCircle.Private = *circleCreateRequest.Private
 	}
 
 	// check if new valid until time is given and is in the future from now on
-	if circleCreateInput.ValidUntil != nil {
+	if circleCreateRequest.ValidUntil != nil {
 		currentTime := time.Now()
-		if currentTime.After(*circleCreateInput.ValidUntil) {
+		if currentTime.After(*circleCreateRequest.ValidUntil) {
 			err = fmt.Errorf("valid until time must be in the future from now")
 			return nil, err
 		}
-		newCircle.ValidUntil = circleCreateInput.ValidUntil
+		newCircle.ValidUntil = circleCreateRequest.ValidUntil
 	}
 
-	if len(circleCreateInput.Voters) <= 0 {
+	if len(circleCreateRequest.Voters) <= 0 {
 		err = fmt.Errorf("voters for circle are not given")
 		return nil, err
 	}
 
-	var circleVoters = c.createCircleVoterList(authClaims.Subject, circleCreateInput.Voters)
+	var circleVoters = c.createCircleVoterList(authClaims.Subject, circleCreateRequest.Voters)
 	newCircle.Voters = circleVoters
 
 	circle, err := c.storage.CreateNewCircle(newCircle)
