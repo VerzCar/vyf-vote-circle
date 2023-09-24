@@ -80,11 +80,11 @@ func TestCircleService_CreateCircle(t *testing.T) {
 	description := "Beste election 2045"
 	imageSrc := "https://source.com/img"
 	validUntil := time.Now().Add(time.Hour * 8)
-	circleCreateMockInput := model.CircleCreateInput{
+	circleCreateMockInput := model.CircleCreateRequest{
 		Name:        "test1",
 		Description: &description,
 		ImageSrc:    &imageSrc,
-		Voters: []*model.CircleVoterInput{
+		Voters: []*model.CircleVoterRequest{
 			{
 				Voter: mockUser.Elon.Subject,
 			},
@@ -101,12 +101,12 @@ func TestCircleService_CreateCircle(t *testing.T) {
 	circleCreateMock02Input.ValidUntil = &invalidValidUntilTime
 
 	circleCreateMock03Input := circleCreateMockInput
-	circleCreateMock03Input.Voters = make([]*model.CircleVoterInput, 0)
+	circleCreateMock03Input.Voters = make([]*model.CircleVoterRequest, 0)
 
 	tests := []struct {
 		name  string
 		ctx   context.Context
-		input *model.CircleCreateInput
+		input *model.CircleCreateRequest
 		want  error
 	}{
 		{
@@ -168,7 +168,7 @@ func TestCircleService_UpdateCircle(t *testing.T) {
 		Name:        &name,
 		Description: &description,
 		ImageSrc:    &imageSrc,
-		Voters: []*model.CircleVoterInput{
+		Voters: []*model.CircleVoterRequest{
 			{
 				Voter: mockUser.Elon.Subject,
 			},

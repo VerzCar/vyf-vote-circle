@@ -12,5 +12,6 @@ func (s *Server) routes() {
 	authorized.Use(s.authGuard(s.authService))
 	{
 		authorized.GET("/circle", s.Circle())
+		authorized.POST("/circle", s.CreateCircle())
 	}
 }

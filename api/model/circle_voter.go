@@ -32,7 +32,7 @@ type CircleVoterResponse struct {
 	UpdatedAt  time.Time  `json:"updatedAt"`
 }
 
-type CircleVoterInput struct {
+type CircleVoterRequest struct {
 	Voter string `json:"voter" validate:"gt=0,lte=50"`
 }
 

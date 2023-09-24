@@ -48,22 +48,22 @@ type CircleResponse struct {
 }
 
 type CircleUpdateInput struct {
-	Name        *string             `json:"name" validate:"omitempty,gt=0,lte=40"`
-	Description *string             `json:"description" validate:"omitempty,gt=0,lte=1200"`
-	ImageSrc    *string             `json:"imageSrc" validate:"omitempty,url"`
-	Voters      []*CircleVoterInput `json:"voters"`
-	Private     *bool               `json:"private" validate:"omitempty"`
-	Delete      *bool               `json:"delete" validate:"omitempty"`
-	ValidUntil  *time.Time          `json:"validUntil" validate:"omitempty"`
+	Name        *string               `json:"name" validate:"omitempty,gt=0,lte=40"`
+	Description *string               `json:"description" validate:"omitempty,gt=0,lte=1200"`
+	ImageSrc    *string               `json:"imageSrc" validate:"omitempty,url"`
+	Voters      []*CircleVoterRequest `json:"voters"`
+	Private     *bool                 `json:"private" validate:"omitempty"`
+	Delete      *bool                 `json:"delete" validate:"omitempty"`
+	ValidUntil  *time.Time            `json:"validUntil" validate:"omitempty"`
 }
 
-type CircleCreateInput struct {
-	Name        string              `json:"name" validate:"gt=0,lte=40"`
-	Description *string             `json:"description" validate:"omitempty,gt=0,lte=1200"`
-	ImageSrc    *string             `json:"imageSrc" validate:"omitempty,url"`
-	Voters      []*CircleVoterInput `json:"voters"`
-	Private     *bool               `json:"private" validate:"omitempty"`
-	ValidUntil  *time.Time          `json:"validUntil" validate:"omitempty"`
+type CircleCreateRequest struct {
+	Name        string                `json:"name" validate:"gt=0,lte=40"`
+	Description *string               `json:"description,omitempty" validate:"omitempty,gt=0,lte=1200"`
+	ImageSrc    *string               `json:"imageSrc,omitempty" validate:"omitempty,url"`
+	Voters      []*CircleVoterRequest `json:"voters"`
+	Private     *bool                 `json:"private,omitempty" validate:"omitempty"`
+	ValidUntil  *time.Time            `json:"validUntil,omitempty" validate:"omitempty"`
 }
 
 // db hooks with checks

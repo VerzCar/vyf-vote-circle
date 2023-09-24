@@ -22,7 +22,7 @@ type CircleService interface {
 	) (*model.Circle, error)
 	CreateCircle(
 		ctx context.Context,
-		circleCreateInput *model.CircleCreateInput,
+		circleCreateInput *model.CircleCreateRequest,
 	) (*model.Circle, error)
 }
 
@@ -192,7 +192,7 @@ func (c *circleService) UpdateCircle(
 
 func (c *circleService) CreateCircle(
 	ctx context.Context,
-	circleCreateInput *model.CircleCreateInput,
+	circleCreateInput *model.CircleCreateRequest,
 ) (*model.Circle, error) {
 	authClaims, err := routerContext.ContextToAuthClaims(ctx)
 
@@ -276,7 +276,7 @@ func (c *circleService) inactivateCircle(
 // circleVoterInputs and add the createdFrom id to the list.
 func (c *circleService) createCircleVoterList(
 	createdFrom string,
-	circleVoterInputs []*model.CircleVoterInput,
+	circleVoterInputs []*model.CircleVoterRequest,
 ) []*model.CircleVoter {
 	var voterIdList []string
 
