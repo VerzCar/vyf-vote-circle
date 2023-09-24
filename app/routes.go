@@ -11,10 +11,15 @@ func (s *Server) routes() {
 	authorized := v1.Group("/")
 	authorized.Use(s.authGuard(s.authService))
 	{
+		// circle
 		authorized.GET("/circle", s.Circle())
 		authorized.POST("/circle", s.CreateCircle())
 		authorized.PUT("/circle", s.UpdateCircle())
 
+		// votes
 		authorized.POST("/vote", s.CreateVote())
+
+		// rankings
+		authorized.GET("/rankings", s.Rankings())
 	}
 }
