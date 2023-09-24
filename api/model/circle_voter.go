@@ -24,6 +24,14 @@ type CircleVoter struct {
 	UpdatedAt   time.Time `json:"updatedAt" gorm:"autoUpdateTime;"`
 }
 
+type CircleVoterResponse struct {
+	ID         int64      `json:"id"`
+	Voter      string     `json:"voter"`
+	Commitment Commitment `json:"commitment"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	UpdatedAt  time.Time  `json:"updatedAt"`
+}
+
 type CircleVoterInput struct {
 	Voter string `json:"voter" validate:"gt=0,lte=50"`
 }

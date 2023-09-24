@@ -31,6 +31,22 @@ type Circle struct {
 	UpdatedAt  time.Time  `json:"updatedAt" gorm:"autoUpdateTime;"`
 }
 
+type CircleRequest struct {
+	ID int64 `json:"id"`
+}
+
+type CircleResponse struct {
+	ID          int64                  `json:"id"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	ImageSrc    string                 `json:"imageSrc"`
+	Voters      []*CircleVoterResponse `json:"voters"`
+	Private     bool                   `json:"private"`
+	Active      bool                   `json:"active"`
+	CreatedFrom string                 `json:"createdFrom"`
+	ValidUntil  *time.Time             `json:"validUntil"`
+}
+
 type CircleUpdateInput struct {
 	Name        *string             `json:"name" validate:"omitempty,gt=0,lte=40"`
 	Description *string             `json:"description" validate:"omitempty,gt=0,lte=1200"`

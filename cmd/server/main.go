@@ -2,17 +2,17 @@ package main
 
 import (
 	"fmt"
+	"github.com/VerzCar/vyf-lib-awsx"
+	logger "github.com/VerzCar/vyf-lib-logger"
+	"github.com/VerzCar/vyf-vote-circle/api"
+	"github.com/VerzCar/vyf-vote-circle/app"
+	"github.com/VerzCar/vyf-vote-circle/app/cache"
+	"github.com/VerzCar/vyf-vote-circle/app/config"
+	"github.com/VerzCar/vyf-vote-circle/app/database"
+	"github.com/VerzCar/vyf-vote-circle/app/router"
+	"github.com/VerzCar/vyf-vote-circle/repository"
+	"github.com/VerzCar/vyf-vote-circle/utils"
 	"github.com/go-playground/validator/v10"
-	"gitlab.vecomentman.com/libs/awsx"
-	"gitlab.vecomentman.com/libs/logger"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/cache"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/config"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/database"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/router"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/repository"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/utils"
 	"os"
 )
 
@@ -68,7 +68,9 @@ func run() error {
 
 	validate = validator.New()
 
-	resolver := app.NewResolver(
+	r := router.Setup(envConfig.Environment)
+	server := app.NewServer(
+		r,
 		authService,
 		circleService,
 		rankingService,
@@ -78,9 +80,6 @@ func run() error {
 		envConfig,
 		log,
 	)
-
-	r := router.Setup(envConfig.Environment)
-	server := app.NewServer(r, resolver)
 
 	err = server.Run()
 

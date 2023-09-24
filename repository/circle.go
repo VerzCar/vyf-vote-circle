@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/database"
+	"github.com/VerzCar/vyf-vote-circle/api/model"
+	"github.com/VerzCar/vyf-vote-circle/app/database"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

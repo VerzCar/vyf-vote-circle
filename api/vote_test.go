@@ -3,8 +3,8 @@ package api_test
 import (
 	"context"
 	"fmt"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
+	"github.com/VerzCar/vyf-vote-circle/api"
+	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"gorm.io/gorm"
 	"reflect"
 	"testing"

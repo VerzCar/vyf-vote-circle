@@ -2,10 +2,9 @@ package api_test
 
 import (
 	"context"
-	"gitlab.vecomentman.com/libs/awsx"
-	"gitlab.vecomentman.com/libs/logger"
-	appConfig "gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/config"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/utils"
+	"github.com/VerzCar/vyf-lib-logger"
+	appConfig "github.com/VerzCar/vyf-vote-circle/app/config"
+	"github.com/VerzCar/vyf-vote-circle/utils"
 	"os"
 	"testing"
 )

@@ -2,8 +2,8 @@ package testdb
 
 import (
 	"fmt"
-	"gitlab.vecomentman.com/libs/logger"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/config"
+	"github.com/VerzCar/vyf-lib-logger"
+	"github.com/VerzCar/vyf-vote-circle/app/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )

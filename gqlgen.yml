@@ -35,8 +35,8 @@ resolver:
 # gqlgen will search for any type names in the schema in these go packages
 # if they match it will use them, otherwise it will generate them.
 autobind:
-  # - "gitlab.vecomentman.com/vote-your-face/service/vote_circle/graph/model"
-  - "gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
+  # - "github.com/VerzCar/vyf-vote-circle/graph/model"
+  - "github.com/VerzCar/vyf-vote-circle/api/model"
 
 # This section declares type mapping between the GraphQL and go type systems
 #

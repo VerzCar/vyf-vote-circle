@@ -2,8 +2,8 @@ package cache
 
 import (
 	"context"
+	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/go-redis/redis/v8"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
 	"strconv"
 	"time"
 )

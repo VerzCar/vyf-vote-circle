@@ -1,17 +1,22 @@
 package app
 
+/*
 // This file will be automatically regenerated based on the schema, any resolver implementations
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
 	"context"
 
+	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/vektah/gqlparser/v2/gqlerror"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
 )
 
 // UpdateCircle is the resolver for the updateCircle field.
-func (r *mutationResolver) UpdateCircle(ctx context.Context, id int64, circleUpdateInput model.CircleUpdateInput) (*model.Circle, error) {
+func (r *mutationResolver) UpdateCircle(
+	ctx context.Context,
+	id int64,
+	circleUpdateInput model.CircleUpdateInput,
+) (*model.Circle, error) {
 	gqlError := gqlerror.Errorf("circle cannot be updated")
 
 	if err := r.validate.Struct(circleUpdateInput); err != nil {
@@ -29,7 +34,10 @@ func (r *mutationResolver) UpdateCircle(ctx context.Context, id int64, circleUpd
 }
 
 // CreateCircle is the resolver for the createCircle field.
-func (r *mutationResolver) CreateCircle(ctx context.Context, circleCreateInput model.CircleCreateInput) (*model.Circle, error) {
+func (r *mutationResolver) CreateCircle(ctx context.Context, circleCreateInput model.CircleCreateInput) (
+	*model.Circle,
+	error,
+) {
 	gqlError := gqlerror.Errorf("circle cannot be created")
 
 	if err := r.validate.Struct(circleCreateInput); err != nil {
@@ -56,3 +64,4 @@ func (r *queryResolver) Circle(ctx context.Context, id int64) (*model.Circle, er
 
 	return circle, nil
 }
+*/

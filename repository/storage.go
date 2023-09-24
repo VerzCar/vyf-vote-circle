@@ -3,14 +3,14 @@ package repository
 import (
 	"database/sql"
 	"fmt"
+	logger "github.com/VerzCar/vyf-lib-logger"
+	"github.com/VerzCar/vyf-vote-circle/api/model"
+	"github.com/VerzCar/vyf-vote-circle/app/config"
+	"github.com/VerzCar/vyf-vote-circle/utils"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
-	"gitlab.vecomentman.com/libs/logger"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/config"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/utils"
 	"gorm.io/gorm"
 	"path/filepath"
 )

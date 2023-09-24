@@ -3,10 +3,10 @@ package api
 import (
 	"context"
 	"fmt"
-	"gitlab.vecomentman.com/libs/logger"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/config"
-	routerContext "gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/router/ctx"
+	logger "github.com/VerzCar/vyf-lib-logger"
+	"github.com/VerzCar/vyf-vote-circle/api/model"
+	"github.com/VerzCar/vyf-vote-circle/app/config"
+	routerContext "github.com/VerzCar/vyf-vote-circle/app/router/ctx"
 	"time"
 )
 

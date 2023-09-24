@@ -3,8 +3,8 @@ package ctx
 import (
 	"context"
 	"fmt"
+	"github.com/VerzCar/vyf-lib-awsx"
 	"github.com/gin-gonic/gin"
-	"gitlab.vecomentman.com/libs/awsx"
 )
 
 const ginContextKey = "GinCtxKey"

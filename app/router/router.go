@@ -1,9 +1,9 @@
 package router
 
 import (
+	"github.com/VerzCar/vyf-vote-circle/app/config"
 	"github.com/gin-gonic/gin"
 	cors "github.com/rs/cors/wrapper/gin"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/config"
 )
 
 // Setup the router

@@ -2,11 +2,11 @@ package api
 
 import (
 	"context"
-	"gitlab.vecomentman.com/libs/logger"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/config"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/database"
-	routerContext "gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/router/ctx"
+	logger "github.com/VerzCar/vyf-lib-logger"
+	"github.com/VerzCar/vyf-vote-circle/api/model"
+	"github.com/VerzCar/vyf-vote-circle/app/config"
+	"github.com/VerzCar/vyf-vote-circle/app/database"
+	routerContext "github.com/VerzCar/vyf-vote-circle/app/router/ctx"
 )
 
 type RankingService interface {

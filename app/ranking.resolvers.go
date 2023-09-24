@@ -1,13 +1,14 @@
 package app
 
+/*
 // This file will be automatically regenerated based on the schema, any resolver implementations
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
 	"context"
+	"github.com/VerzCar/vyf-vote-circle/api/model"
+	"github.com/VerzCar/vyf-vote-circle/app/graph/generated"
 	"github.com/vektah/gqlparser/v2/gqlerror"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/graph/generated"
 )
 
 // RankingList is the resolver for the rankingList field.
@@ -36,3 +37,4 @@ func (r *subscriptionResolver) RankingList(ctx context.Context, circleID int64) 
 func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
 
 type subscriptionResolver struct{ *Resolver }
+*/
