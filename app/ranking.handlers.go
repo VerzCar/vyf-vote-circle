@@ -3,7 +3,9 @@ package app
 import (
 	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"net/http"
+	"time"
 )
 
 func (s *Server) Rankings() gin.HandlerFunc {
@@ -34,7 +36,6 @@ func (s *Server) Rankings() gin.HandlerFunc {
 
 		if err != nil {
 			s.log.Errorf("service error: %v", err)
-			errResponse.Msg = err.Error()
 			ctx.JSON(http.StatusInternalServerError, errResponse)
 			return
 		}
@@ -46,5 +47,26 @@ func (s *Server) Rankings() gin.HandlerFunc {
 		}
 
 		ctx.JSON(http.StatusOK, response)
+	}
+}
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
+
+// TODO check msg events - not working currently
+func (s *Server) RankingsSubscription() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		for {
+			rankings, _ := s.rankingSubscriptionService.Rankings(ctx.Request.Context(), 4)
+			conn.WriteJSON(rankings)
+			time.Sleep(time.Second)
+		}
 	}
 }

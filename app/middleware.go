@@ -9,15 +9,6 @@ import (
 	"net/http"
 )
 
-// ginContextToContext creates a gin middleware to add its context
-// to the context.Context
-func (s *Server) ginContextToContext() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		routerContext.SetGinContext(ctx)
-		ctx.Next()
-	}
-}
-
 // authGuard verifies the Authorization token against the SSO service.
 // If the authentication fails the request will be aborted.
 // Otherwise, the given subject of the token will be saved in the context and

@@ -5,7 +5,6 @@ func (s *Server) routes() {
 
 	// Service group
 	v1 := router.Group("/v1/api/vote-circle")
-	v1.Use(s.ginContextToContext())
 
 	// Authorization group
 	authorized := v1.Group("/")
@@ -21,5 +20,11 @@ func (s *Server) routes() {
 
 		// rankings
 		authorized.GET("/rankings", s.Rankings())
+
+		// websockets
+		ws := authorized.Group("/ws")
+
+		// socket rankings
+		ws.GET("/rankings", s.RankingsSubscription())
 	}
 }
