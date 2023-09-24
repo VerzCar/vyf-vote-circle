@@ -18,7 +18,7 @@ func TestVoteService_Vote(t *testing.T) {
 	mockService := api.NewVoteService(mockRepo, mockCache, mockVoteSubscriptionSvc, config, log)
 
 	ctxMock := putUserIntoContext(mockUser.Elon)
-	voteInput := &model.VoteCreateInput{
+	voteInput := &model.VoteCreateRequest{
 		Elected: "test1",
 	}
 	circleId := int64(1)
@@ -29,7 +29,7 @@ func TestVoteService_Vote(t *testing.T) {
 		name     string
 		ctx      context.Context
 		circleId int64
-		input    *model.VoteCreateInput
+		input    *model.VoteCreateRequest
 		want     error
 	}{
 		{

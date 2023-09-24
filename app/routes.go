@@ -14,5 +14,7 @@ func (s *Server) routes() {
 		authorized.GET("/circle", s.Circle())
 		authorized.POST("/circle", s.CreateCircle())
 		authorized.PUT("/circle", s.UpdateCircle())
+
+		authorized.POST("/vote", s.CreateVote())
 	}
 }

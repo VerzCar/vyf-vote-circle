@@ -18,6 +18,7 @@ type Vote struct {
 	UpdatedAt    time.Time   `json:"updatedAt" gorm:"autoUpdateTime;"`
 }
 
-type VoteCreateInput struct {
-	Elected string `json:"elected" validate:"gt=0,lte=50"`
+type VoteCreateRequest struct {
+	CircleID int64  `json:"CircleId" validate:"gt=0"`
+	Elected  string `json:"elected" validate:"gt=0,lte=50"`
 }

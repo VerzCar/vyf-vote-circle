@@ -13,8 +13,7 @@ import (
 type VoteService interface {
 	CreateVote(
 		ctx context.Context,
-		circleId int64,
-		voteInput *model.VoteCreateInput,
+		voteInput *model.VoteCreateRequest,
 	) (bool, error)
 }
 
@@ -73,8 +72,7 @@ func NewVoteService(
 
 func (c *voteService) CreateVote(
 	ctx context.Context,
-	circleId int64,
-	voteInput *model.VoteCreateInput,
+	voteRequest *model.VoteCreateRequest,
 ) (bool, error) {
 	authClaims, err := routerContext.ContextToAuthClaims(ctx)
 
@@ -83,7 +81,7 @@ func (c *voteService) CreateVote(
 		return false, err
 	}
 
-	circle, err := c.storage.CircleById(circleId)
+	circle, err := c.storage.CircleById(voteRequest.CircleID)
 
 	if err != nil {
 		return false, err
@@ -92,7 +90,7 @@ func (c *voteService) CreateVote(
 	if !circle.Active {
 		c.log.Infof(
 			"tried to vote for an inactive circle with circle id %d and subject %s",
-			circleId,
+			voteRequest.CircleID,
 			authClaims.Subject,
 		)
 		return false, fmt.Errorf("circle inactive")
@@ -100,22 +98,22 @@ func (c *voteService) CreateVote(
 
 	voterId := authClaims.Subject
 
-	voter, err := c.storage.CircleVoterByCircleId(circleId, voterId)
+	voter, err := c.storage.CircleVoterByCircleId(voteRequest.CircleID, voterId)
 
 	if err != nil {
 		c.log.Errorf("error voter id %s not in circle: %s", voterId, err)
 		return false, err
 	}
 
-	elected, err := c.storage.CircleVoterByCircleId(circleId, voteInput.Elected)
+	elected, err := c.storage.CircleVoterByCircleId(voteRequest.CircleID, voteRequest.Elected)
 
 	if err != nil {
-		c.log.Errorf("error elected id %s not in circle: %s", voteInput.Elected, err)
+		c.log.Errorf("error elected id %s not in circle: %s", voteRequest.Elected, err)
 		return false, err
 	}
 
 	// validate if voter already elected once - if so throw an error
-	_, err = c.storage.VoterElectedByCircleId(circleId, voter.ID, elected.ID)
+	_, err = c.storage.VoterElectedByCircleId(voteRequest.CircleID, voter.ID, elected.ID)
 
 	if err != nil && !database.RecordNotFound(err) {
 		c.log.Errorf("error getting voter %d for elected %d not in circle: %s", voter.ID, elected.ID, err)
@@ -126,31 +124,31 @@ func (c *voteService) CreateVote(
 			"failure voter %s for elected %s already voted in circle: %d",
 			voter.Voter,
 			elected.Voter,
-			circleId,
+			voteRequest.CircleID,
 		)
 		return false, fmt.Errorf("already voted in circle")
 	}
 
 	// TODO put this write block in transaction as the update ranking in the cache could fail
-	_, err = c.storage.CreateNewVote(voter.ID, elected.ID, circleId)
+	_, err = c.storage.CreateNewVote(voter.ID, elected.ID, voteRequest.CircleID)
 
 	if err != nil {
 		return false, err
 	}
 
-	voteCount, err := c.storage.ElectedVoterCountsByCircleId(circleId, elected.ID)
+	voteCount, err := c.storage.ElectedVoterCountsByCircleId(voteRequest.CircleID, elected.ID)
 
 	if err != nil {
 		return false, err
 	}
 
-	err = c.cache.UpdateRanking(ctx, circleId, elected.Voter, voteCount)
+	err = c.cache.UpdateRanking(ctx, voteRequest.CircleID, elected.Voter, voteCount)
 
 	if err != nil {
 		return false, err
 	}
 
-	c.subscription.RankingChangedEvent(circleId)
+	c.subscription.RankingChangedEvent(voteRequest.CircleID)
 
 	return true, nil
 }
