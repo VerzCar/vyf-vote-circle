@@ -31,8 +31,8 @@ type Circle struct {
 	UpdatedAt  time.Time  `json:"updatedAt" gorm:"autoUpdateTime;"`
 }
 
-type CircleRequest struct {
-	ID int64 `json:"id"`
+type CircleUriRequest struct {
+	CircleID int64 `uri:"circleId"`
 }
 
 type CircleResponse struct {

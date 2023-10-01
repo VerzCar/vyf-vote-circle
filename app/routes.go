@@ -11,7 +11,7 @@ func (s *Server) routes() {
 	authorized.Use(s.authGuard(s.authService))
 	{
 		// circle
-		authorized.GET("/circle", s.Circle())
+		authorized.GET("/circle/:circleId", s.Circle())
 		authorized.POST("/circle", s.CreateCircle())
 		authorized.PUT("/circle", s.UpdateCircle())
 
@@ -19,7 +19,7 @@ func (s *Server) routes() {
 		authorized.POST("/vote", s.CreateVote())
 
 		// rankings
-		authorized.GET("/rankings", s.Rankings())
+		authorized.GET("/rankings/:circleId", s.Rankings())
 
 		// websockets
 		ws := authorized.Group("/ws")

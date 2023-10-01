@@ -22,8 +22,8 @@ type Ranking struct {
 	UpdatedAt  time.Time `json:"updatedAt" gorm:"autoUpdateTime;"`
 }
 
-type RankingsRequest struct {
-	CircleID int64 `json:"CircleId" validate:"gt=0"`
+type RankingsUriRequest struct {
+	CircleID int64 `uri:"circleId" validate:"gt=0"`
 }
 
 type RankingScore struct {

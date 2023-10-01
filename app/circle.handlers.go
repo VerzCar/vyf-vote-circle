@@ -14,9 +14,9 @@ func (s *Server) Circle() gin.HandlerFunc {
 			Data:   nil,
 		}
 
-		circleReq := &model.CircleRequest{}
+		circleReq := &model.CircleUriRequest{}
 
-		err := ctx.ShouldBindJSON(circleReq)
+		err := ctx.ShouldBindUri(circleReq)
 
 		if err != nil {
 			s.log.Error(err)
@@ -24,7 +24,7 @@ func (s *Server) Circle() gin.HandlerFunc {
 			return
 		}
 
-		circle, err := s.circleService.Circle(ctx.Request.Context(), circleReq.ID)
+		circle, err := s.circleService.Circle(ctx.Request.Context(), circleReq.CircleID)
 
 		if err != nil {
 			s.log.Errorf("service error: %v", err)

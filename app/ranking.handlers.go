@@ -16,9 +16,9 @@ func (s *Server) Rankings() gin.HandlerFunc {
 			Data:   false,
 		}
 
-		rankingsReq := &model.RankingsRequest{}
+		rankingsReq := &model.RankingsUriRequest{}
 
-		err := ctx.ShouldBindJSON(rankingsReq)
+		err := ctx.ShouldBindUri(rankingsReq)
 
 		if err != nil {
 			s.log.Error(err)
