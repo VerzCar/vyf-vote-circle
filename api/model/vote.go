@@ -19,6 +19,6 @@ type Vote struct {
 }
 
 type VoteCreateRequest struct {
-	CircleID int64  `json:"CircleId" validate:"gt=0"`
+	CircleID int64  `json:"circleId" validate:"gt=0"`
 	Elected  string `json:"elected" validate:"gt=0,lte=50"`
 }
