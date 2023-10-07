@@ -23,6 +23,13 @@ type CircleService interface {
 		ctx context.Context,
 		circleCreateRequest *model.CircleCreateRequest,
 	) (*model.Circle, error)
+	EligibleToBeInCircle(
+		ctx context.Context,
+		circleId int64,
+	) (bool, error)
+	AddToGlobalCircle(
+		ctx context.Context,
+	) error
 }
 
 type CircleRepository interface {
@@ -30,6 +37,7 @@ type CircleRepository interface {
 	UpdateCircle(circle *model.Circle) (*model.Circle, error)
 	CreateNewCircle(circle *model.Circle) (*model.Circle, error)
 	CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
+	IsVoterInCircle(userIdentityId string, circle *model.Circle) (bool, error)
 }
 
 type circleService struct {
@@ -67,34 +75,34 @@ func (c *circleService) Circle(
 		return nil, err
 	}
 
-	if !c.eligibleToBeInCircle(
-		authClaims.Subject,
-		circle,
-	) {
-		// if the queried circle is the global one,
-		// checks whether the user exists in the voters list and add it to
-		// the global list if not. This has to be done if a new user
-		// creates an account and therefore must be inserted in the global list
-		// for the first time, otherwise he is not eligible to be in any circle.
-		if circleId != 1 {
-			c.log.Infof("user is not eligible to be in circle: user %s, circle ID %d", authClaims.Subject, circle.ID)
-			err = fmt.Errorf("user is not eligible to be in circle")
-			return nil, err
-		}
+	eligibleToBeInCircle, err := c.eligibleToBeInCircle(authClaims.Subject, circle)
 
-		circleVoter := &model.CircleVoter{
-			Voter:       authClaims.Subject,
-			Circle:      circle,
-			CircleRefer: &circle.ID,
-			Commitment:  model.CommitmentCommitted,
-		}
-		circleVoter, err = c.storage.CreateNewCircleVoter(circleVoter)
+	if err != nil {
+		return nil, err
+	}
+	// if the queried circle is the global one,
+	// checks whether the user exists in the voters list and add it to
+	// the global list if not. This has to be done if a new user
+	// creates an account and therefore must be inserted in the global list
+	// for the first time, otherwise he is not eligible to be in any circle.
+	if !eligibleToBeInCircle {
+		c.log.Infof("user is not eligible to be in circle: user %s, circle ID %d", authClaims.Subject, circle.ID)
+		err = fmt.Errorf("user is not eligible to be in circle")
+		return nil, err
+	}
 
-		if err != nil {
-			c.log.Errorf("error adding voter to global circle: %s", err)
-		} else {
-			circle.Voters = append(circle.Voters, circleVoter)
-		}
+	circleVoter := &model.CircleVoter{
+		Voter:       authClaims.Subject,
+		Circle:      circle,
+		CircleRefer: &circle.ID,
+		Commitment:  model.CommitmentCommitted,
+	}
+	circleVoter, err = c.storage.CreateNewCircleVoter(circleVoter)
+
+	if err != nil {
+		c.log.Errorf("error adding voter to global circle: %s", err)
+	} else {
+		circle.Voters = append(circle.Voters, circleVoter)
 	}
 
 	return circle, nil
@@ -235,23 +243,90 @@ func (c *circleService) CreateCircle(
 	return circle, nil
 }
 
-// eligibleToBeInCircle checks whether the user is allowed to be in the circle.
+// EligibleToBeInCircle checks whether the user is allowed to be in the circle.
 // Either, if the user itself has created the circle or if it is one of the voters.
+func (c *circleService) EligibleToBeInCircle(
+	ctx context.Context,
+	circleId int64,
+) (bool, error) {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return false, err
+	}
+
+	userIdentityId := authClaims.Subject
+
+	circle, err := c.storage.CircleById(circleId)
+
+	if err != nil {
+		return false, err
+	}
+
+	return c.eligibleToBeInCircle(userIdentityId, circle)
+}
+
+// AddToGlobalCircle adds the user to the global circle.
+// It checks whether the user exists in the voters list and add it to
+// the global list if not. This has to be done if a new user
+// creates an account and therefore must be inserted in the global list
+// for the first time.
+func (c *circleService) AddToGlobalCircle(
+	ctx context.Context,
+) error {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return err
+	}
+
+	circle, err := c.storage.CircleById(1)
+
+	if err != nil {
+		return err
+	}
+
+	isVoterInCircle, err := c.storage.IsVoterInCircle(authClaims.Subject, circle)
+
+	if err != nil {
+		return err
+	}
+
+	if isVoterInCircle {
+		return nil
+	}
+
+	circleVoter := &model.CircleVoter{
+		Voter:       authClaims.Subject,
+		Circle:      circle,
+		CircleRefer: &circle.ID,
+		Commitment:  model.CommitmentCommitted,
+	}
+	circleVoter, err = c.storage.CreateNewCircleVoter(circleVoter)
+
+	if err != nil {
+		c.log.Errorf("error adding voter to global circle: %s", err)
+		return err
+	}
+
+	return nil
+}
+
 func (c *circleService) eligibleToBeInCircle(
 	userIdentityId string,
 	circle *model.Circle,
-) bool {
+) (bool, error) {
+	if !circle.Private {
+		return true, nil
+	}
+
 	if userIdentityId == circle.CreatedFrom {
-		return true
+		return true, nil
 	}
 
-	for _, voter := range circle.Voters {
-		if voter.Voter == userIdentityId {
-			return true
-		}
-	}
-
-	return false
+	return c.storage.IsVoterInCircle(userIdentityId, circle)
 }
 
 // inactivateCircle of the given circle and updates it in the database to an

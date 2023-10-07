@@ -67,6 +67,47 @@ func (s *Server) Circle() gin.HandlerFunc {
 	}
 }
 
+func (s *Server) EligibleToBeInCircle() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		errResponse := model.Response{
+			Status: model.ResponseError,
+			Msg:    "user is not eligible to be in circle",
+			Data:   nil,
+		}
+
+		circleReq := &model.CircleUriRequest{}
+
+		err := ctx.ShouldBindUri(circleReq)
+
+		if err != nil {
+			s.log.Error(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
+		eligible, err := s.circleService.EligibleToBeInCircle(ctx.Request.Context(), circleReq.CircleID)
+
+		if err != nil {
+			s.log.Errorf("service error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, errResponse)
+			return
+		}
+
+		if !eligible {
+			ctx.JSON(http.StatusForbidden, errResponse)
+			return
+		}
+
+		response := model.Response{
+			Status: model.ResponseSuccess,
+			Msg:    "",
+			Data:   eligible,
+		}
+
+		ctx.JSON(http.StatusOK, response)
+	}
+}
+
 func (s *Server) CreateCircle() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		errResponse := model.Response{
@@ -195,6 +236,32 @@ func (s *Server) UpdateCircle() gin.HandlerFunc {
 			Status: model.ResponseSuccess,
 			Msg:    "",
 			Data:   circleResponse,
+		}
+
+		ctx.JSON(http.StatusOK, response)
+	}
+}
+
+func (s *Server) AddToGlobalCircle() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		errResponse := model.Response{
+			Status: model.ResponseError,
+			Msg:    "user cannot be added to global circle",
+			Data:   nil,
+		}
+
+		err := s.circleService.AddToGlobalCircle(ctx.Request.Context())
+
+		if err != nil {
+			s.log.Errorf("service error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, errResponse)
+			return
+		}
+
+		response := model.Response{
+			Status: model.ResponseSuccess,
+			Msg:    "Added to global circle",
+			Data:   nil,
 		}
 
 		ctx.JSON(http.StatusOK, response)
