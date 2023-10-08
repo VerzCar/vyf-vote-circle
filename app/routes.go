@@ -15,7 +15,7 @@ func (s *Server) routes() {
 		authorized.GET("/circle/:circleId/eligible", s.EligibleToBeInCircle())
 		authorized.POST("/circle", s.CreateCircle())
 		authorized.PUT("/circle", s.UpdateCircle())
-		authorized.POST("/circle/to-global", s.AddToGlobalCircle())
+		authorized.PUT("/circle/to-global", s.AddToGlobalCircle())
 
 		// votes
 		authorized.POST("/vote", s.CreateVote())
