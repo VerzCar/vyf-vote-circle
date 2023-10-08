@@ -80,29 +80,11 @@ func (c *circleService) Circle(
 	if err != nil {
 		return nil, err
 	}
-	// if the queried circle is the global one,
-	// checks whether the user exists in the voters list and add it to
-	// the global list if not. This has to be done if a new user
-	// creates an account and therefore must be inserted in the global list
-	// for the first time, otherwise he is not eligible to be in any circle.
+
 	if !eligibleToBeInCircle {
 		c.log.Infof("user is not eligible to be in circle: user %s, circle ID %d", authClaims.Subject, circle.ID)
 		err = fmt.Errorf("user is not eligible to be in circle")
 		return nil, err
-	}
-
-	circleVoter := &model.CircleVoter{
-		Voter:       authClaims.Subject,
-		Circle:      circle,
-		CircleRefer: &circle.ID,
-		Commitment:  model.CommitmentCommitted,
-	}
-	circleVoter, err = c.storage.CreateNewCircleVoter(circleVoter)
-
-	if err != nil {
-		c.log.Errorf("error adding voter to global circle: %s", err)
-	} else {
-		circle.Voters = append(circle.Voters, circleVoter)
 	}
 
 	return circle, nil
