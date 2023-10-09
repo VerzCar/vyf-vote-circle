@@ -31,6 +31,7 @@ func (s *storage) Circles(userIdentityId string) ([]*model.Circle, error) {
 	err := s.db.Preload(clause.Associations).
 		Where(&model.Circle{CreatedFrom: userIdentityId}).
 		Limit(int(s.config.Circle.MaxAmountPerUser)).
+		Order("updated_at desc").
 		Find(&circles).
 		Error
 
