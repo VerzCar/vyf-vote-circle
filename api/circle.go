@@ -38,6 +38,7 @@ type CircleRepository interface {
 	CreateNewCircle(circle *model.Circle) (*model.Circle, error)
 	CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
 	IsVoterInCircle(userIdentityId string, circle *model.Circle) (bool, error)
+	CountCirclesOfUser(userIdentityId string) (int64, error)
 }
 
 type circleService struct {
@@ -189,6 +190,17 @@ func (c *circleService) CreateCircle(
 		return nil, err
 	}
 
+	circlesCount, err := c.storage.CountCirclesOfUser(authClaims.Subject)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if circlesCount > c.config.Circle.MaxAmountPerUser {
+		err = fmt.Errorf("user has more than %d allowed circles", c.config.Circle.MaxAmountPerUser)
+		return nil, err
+	}
+
 	newCircle := &model.Circle{
 		Name:        circleCreateRequest.Name,
 		CreatedFrom: authClaims.Subject,
@@ -210,6 +222,11 @@ func (c *circleService) CreateCircle(
 
 	if len(circleCreateRequest.Voters) <= 0 {
 		err = fmt.Errorf("voters for circle are not given")
+		return nil, err
+	}
+
+	if len(circleCreateRequest.Voters) > c.config.Circle.MaxVoters {
+		err = fmt.Errorf("circle has more than %d allowed voters", c.config.Circle.MaxVoters)
 		return nil, err
 	}
 

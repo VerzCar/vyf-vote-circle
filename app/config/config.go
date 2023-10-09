@@ -11,6 +11,11 @@ import (
 type Config struct {
 	Environment string
 
+	Circle struct {
+		MaxAmountPerUser int64
+		MaxVoters        int
+	}
+
 	Aws struct {
 		Auth struct {
 			ClientId         string

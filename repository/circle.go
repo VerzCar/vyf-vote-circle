@@ -73,3 +73,24 @@ func (s *storage) CreateNewCircle(circle *model.Circle) (*model.Circle, error) {
 
 	return circle, nil
 }
+
+// CountCirclesOfUser determines how many circles the user already obtains
+func (s *storage) CountCirclesOfUser(
+	userIdentityId string,
+) (int64, error) {
+	var count int64
+	err := s.db.Model(&model.Circle{}).
+		Where(&model.Circle{CreatedFrom: userIdentityId}).
+		Count(&count).Error
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		s.log.Errorf("error reading circle count by user id %s: %s", userIdentityId, err)
+		return 0, err
+	case database.RecordNotFound(err):
+		s.log.Infof("user with id %s in circles not found: %s", userIdentityId, err)
+		return 0, err
+	}
+
+	return count, nil
+}
