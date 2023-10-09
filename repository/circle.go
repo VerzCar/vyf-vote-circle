@@ -25,6 +25,27 @@ func (s *storage) CircleById(id int64) (*model.Circle, error) {
 	return circle, nil
 }
 
+// Circles gets all the circles that have been create from the user
+func (s *storage) Circles(userIdentityId string) ([]*model.Circle, error) {
+	var circles []*model.Circle
+	err := s.db.Preload(clause.Associations).
+		Where(&model.Circle{CreatedFrom: userIdentityId}).
+		Limit(int(s.config.Circle.MaxAmountPerUser)).
+		Find(&circles).
+		Error
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		s.log.Errorf("error reading circles for user id %s: %s", userIdentityId, err)
+		return nil, err
+	case database.RecordNotFound(err):
+		s.log.Infof("circles with user id %s not found: %s", userIdentityId, err)
+		return nil, err
+	}
+
+	return circles, nil
+}
+
 // UpdateCircle update circle based on given circle model
 func (s *storage) UpdateCircle(circle *model.Circle) (*model.Circle, error) {
 	if err := s.db.Save(circle).Error; err != nil {

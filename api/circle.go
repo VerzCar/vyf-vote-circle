@@ -6,6 +6,7 @@ import (
 	logger "github.com/VerzCar/vyf-lib-logger"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/VerzCar/vyf-vote-circle/app/config"
+	"github.com/VerzCar/vyf-vote-circle/app/database"
 	routerContext "github.com/VerzCar/vyf-vote-circle/app/router/ctx"
 	"time"
 )
@@ -15,6 +16,9 @@ type CircleService interface {
 		ctx context.Context,
 		circleId int64,
 	) (*model.Circle, error)
+	Circles(
+		ctx context.Context,
+	) ([]*model.Circle, error)
 	UpdateCircle(
 		ctx context.Context,
 		circleUpdateRequest *model.CircleUpdateRequest,
@@ -34,6 +38,7 @@ type CircleService interface {
 
 type CircleRepository interface {
 	CircleById(id int64) (*model.Circle, error)
+	Circles(userIdentityId string) ([]*model.Circle, error)
 	UpdateCircle(circle *model.Circle) (*model.Circle, error)
 	CreateNewCircle(circle *model.Circle) (*model.Circle, error)
 	CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
@@ -89,6 +94,35 @@ func (c *circleService) Circle(
 	}
 
 	return circle, nil
+}
+
+// Circles will determine all the circles the authenticated
+// user has and returns the circles as a list.
+// If the user hasn't any circles the return value will be empty.
+func (c *circleService) Circles(
+	ctx context.Context,
+) ([]*model.Circle, error) {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return nil, err
+	}
+
+	circles, err := c.storage.Circles(authClaims.Subject)
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		{
+			return nil, err
+		}
+	case database.RecordNotFound(err):
+		{
+			return nil, nil
+		}
+	}
+
+	return circles, nil
 }
 
 func (c *circleService) UpdateCircle(

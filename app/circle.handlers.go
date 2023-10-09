@@ -108,6 +108,73 @@ func (s *Server) EligibleToBeInCircle() gin.HandlerFunc {
 	}
 }
 
+func (s *Server) Circles() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		errResponse := model.Response{
+			Status: model.ResponseError,
+			Msg:    "cannot find circles",
+			Data:   nil,
+		}
+
+		circles, err := s.circleService.Circles(ctx.Request.Context())
+
+		if err != nil {
+			s.log.Errorf("service error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, errResponse)
+			return
+		}
+
+		if circles == nil {
+			response := model.Response{
+				Status: model.ResponseSuccess,
+				Msg:    "Has no circles",
+				Data:   []*model.Circle{},
+			}
+			ctx.JSON(http.StatusNoContent, response)
+			return
+		}
+
+		var circlesResponse []*model.CircleResponse
+
+		for _, circle := range circles {
+			var voters []*model.CircleVoterResponse
+
+			for _, voter := range circle.Voters {
+				voterResponse := &model.CircleVoterResponse{
+					ID:         voter.ID,
+					Voter:      voter.Voter,
+					Commitment: voter.Commitment,
+					CreatedAt:  voter.CreatedAt,
+					UpdatedAt:  voter.UpdatedAt,
+				}
+				voters = append(voters, voterResponse)
+			}
+
+			circleResponse := &model.CircleResponse{
+				ID:          circle.ID,
+				Name:        circle.Name,
+				Description: circle.Description,
+				ImageSrc:    circle.ImageSrc,
+				Voters:      voters,
+				Private:     circle.Private,
+				Active:      circle.Active,
+				CreatedFrom: circle.CreatedFrom,
+				ValidUntil:  circle.ValidUntil,
+			}
+
+			circlesResponse = append(circlesResponse, circleResponse)
+		}
+
+		response := model.Response{
+			Status: model.ResponseSuccess,
+			Msg:    "",
+			Data:   circlesResponse,
+		}
+
+		ctx.JSON(http.StatusOK, response)
+	}
+}
+
 func (s *Server) CreateCircle() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		errResponse := model.Response{
