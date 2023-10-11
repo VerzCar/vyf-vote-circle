@@ -32,7 +32,7 @@ func (s *Server) Circle() gin.HandlerFunc {
 			return
 		}
 
-		voters := []*model.CircleVoterResponse{}
+		var voters []*model.CircleVoterResponse
 
 		for _, voter := range circle.Voters {
 			voterResponse := &model.CircleVoterResponse{
@@ -207,7 +207,7 @@ func (s *Server) CreateCircle() gin.HandlerFunc {
 			return
 		}
 
-		voters := []*model.CircleVoterResponse{}
+		var voters []*model.CircleVoterResponse
 
 		for _, voter := range circle.Voters {
 			voterResponse := &model.CircleVoterResponse{
@@ -274,7 +274,7 @@ func (s *Server) UpdateCircle() gin.HandlerFunc {
 			return
 		}
 
-		voters := []*model.CircleVoterResponse{}
+		var voters []*model.CircleVoterResponse
 
 		for _, voter := range circle.Voters {
 			voterResponse := &model.CircleVoterResponse{

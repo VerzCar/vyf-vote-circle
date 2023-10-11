@@ -56,6 +56,7 @@ var upgrader = websocket.Upgrader{
 }
 
 // TODO check msg events - not working currently
+
 func (s *Server) RankingsSubscription() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)

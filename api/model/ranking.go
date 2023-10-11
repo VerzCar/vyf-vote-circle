@@ -3,10 +3,7 @@ package model
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"fmt"
 	_ "github.com/go-playground/validator/v10"
-	"io"
-	"strconv"
 	"time"
 )
 
@@ -76,21 +73,4 @@ func (e Placement) IsValid() bool {
 
 func (e Placement) String() string {
 	return string(e)
-}
-
-func (e *Placement) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = Placement(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid Placement", str)
-	}
-	return nil
-}
-
-func (e Placement) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
 }

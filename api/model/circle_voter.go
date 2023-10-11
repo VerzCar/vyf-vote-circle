@@ -2,9 +2,6 @@ package model
 
 import (
 	"database/sql/driver"
-	"fmt"
-	"io"
-	"strconv"
 	"time"
 )
 
@@ -69,21 +66,4 @@ func (e Commitment) IsValid() bool {
 
 func (e Commitment) String() string {
 	return string(e)
-}
-
-func (e *Commitment) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = Commitment(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid Commitment", str)
-	}
-	return nil
-}
-
-func (e Commitment) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
 }
