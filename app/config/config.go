@@ -149,7 +149,7 @@ func (c *Config) checkEnvironment() {
 		c.Db.Password = os.Getenv("DB_PASSWORD")
 
 		c.Redis.Host = os.Getenv("REDIS_HOST")
-		redisPort, _ := strconv.ParseUint(os.Getenv("REDIS_PORT"), 16, 16)
+		redisPort, _ := strconv.Atoi(os.Getenv("REDIS_PORT"))
 		c.Redis.Port = uint16(redisPort)
 		c.Redis.Username = os.Getenv("REDIS_USERNAME")
 		redisDb, _ := strconv.ParseUint(os.Getenv("REDIS_DB"), 16, 16)
