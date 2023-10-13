@@ -5,11 +5,13 @@ import (
 	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 // Config represents the composition of yml settings.
 type Config struct {
 	Environment string
+	Port        string
 
 	Circle struct {
 		MaxAmountPerUser int64
@@ -102,6 +104,12 @@ func (c *Config) readDefaultConfig(configPath string) {
 // readSecretConfig reads the secret configuration from the given
 // config path. This configuration is required.
 func (c *Config) readSecretConfig(configPath string) {
+	configDir := filepath.Dir(configPath)
+
+	if _, err := os.Stat(configDir + "/" + secretFileName + ".yml"); os.IsNotExist(err) {
+		return
+	}
+
 	c.readConfig(configPath, secretFileName)
 }
 
@@ -124,10 +132,27 @@ func (c *Config) checkEnvironment() {
 
 	if env == EnvironmentProd {
 		c.Environment = EnvironmentProd
-		return
+	} else {
+		c.Environment = EnvironmentDev
 	}
 
-	c.Environment = EnvironmentDev
+	herokuEnvironments := os.Getenv("HEROKU_ENVS")
+
+	if herokuEnvironments == "true" {
+		c.Aws.Auth.ClientId = os.Getenv("AWS_AUTH_CLIENT_ID")
+		c.Aws.Auth.UserPoolId = os.Getenv("AWS_AUTH_USER_POOL_ID")
+		c.Aws.Auth.ClientSecret = os.Getenv("AWS_AUTH_CLIENT_SECRET")
+
+		c.Db.Host = os.Getenv("DB_HOST")
+		c.Db.Name = os.Getenv("DB_NAME")
+		c.Db.User = os.Getenv("DB_USER")
+		c.Db.Password = os.Getenv("DB_PASSWORD")
+
+		c.Port = os.Getenv("PORT")
+
+		c.Circle.MaxAmountPerUser, _ = strconv.ParseInt(os.Getenv("CIRCLE_MAX_AMOUNT_PER_USER"), 10, 64)
+		c.Circle.MaxVoters, _ = strconv.Atoi(os.Getenv("CIRCLE_MAX_VOTERS"))
+	}
 }
 
 func (c *Config) readConfig(configPath string, configFileType string) {

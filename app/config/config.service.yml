@@ -1,4 +1,5 @@
-# Circle
+# web service
+port: 8080
 circle:
   maxAmountPerUser: 10
   maxVoters: 100
