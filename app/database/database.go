@@ -25,7 +25,7 @@ func Connect(log logger.Logger, conf *config.Config) *gorm.DB {
 		log.Fatalf("Connect to database DSN: %s failed: %s", dsn(conf), err)
 	}
 
-	log.Infof("Connection to database established.")
+	log.Infof("Connection to database successfully established via: %s", dsn(conf))
 
 	return db
 }

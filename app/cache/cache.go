@@ -33,6 +33,8 @@ func Connect(log logger.Logger, conf *config.Config) *redis.Client {
 		log.Fatalf("Connect to redis failed. cause: ping failed.")
 	}
 
+	log.Infof("Connected successfully to redis via: %s", redisUrl(conf))
+
 	return rdb
 }
 
