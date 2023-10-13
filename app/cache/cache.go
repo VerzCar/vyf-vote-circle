@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	logger "github.com/VerzCar/vyf-lib-logger"
 	"github.com/VerzCar/vyf-vote-circle/app/config"
@@ -20,6 +21,12 @@ func Connect(log logger.Logger, conf *config.Config) *redis.Client {
 	}
 
 	opt.ReadTimeout = utils.FormatDuration(uint(conf.Redis.Timeout))
+
+	if conf.Environment == config.EnvironmentProd {
+		opt.TLSConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
 
 	rdb := redis.NewClient(opt)
 
