@@ -148,6 +148,14 @@ func (c *Config) checkEnvironment() {
 		c.Db.User = os.Getenv("DB_USER")
 		c.Db.Password = os.Getenv("DB_PASSWORD")
 
+		c.Redis.Host = os.Getenv("REDIS_HOST")
+		redisPort, _ := strconv.ParseUint(os.Getenv("REDIS_PORT"), 16, 16)
+		c.Redis.Port = uint16(redisPort)
+		c.Redis.Username = os.Getenv("REDIS_USERNAME")
+		redisDb, _ := strconv.ParseUint(os.Getenv("REDIS_DB"), 16, 16)
+		c.Redis.Db = uint16(redisDb)
+		c.Redis.Password = os.Getenv("REDIS_PASSWORD")
+
 		c.Port = os.Getenv("PORT")
 
 		c.Circle.MaxAmountPerUser, _ = strconv.ParseInt(os.Getenv("CIRCLE_MAX_AMOUNT_PER_USER"), 10, 64)
