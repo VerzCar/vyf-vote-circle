@@ -6,6 +6,7 @@ import (
 	"github.com/VerzCar/vyf-vote-circle/app/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"strings"
 )
 
 // Connect to the database with configured dsn.
@@ -25,7 +26,10 @@ func Connect(log logger.Logger, conf *config.Config) *gorm.DB {
 		log.Fatalf("Connect to database DSN: %s failed: %s", dsn(conf), err)
 	}
 
-	log.Infof("Connection to database successfully established via: %s", dsn(conf))
+	log.Infof(
+		"Connection to database successfully established via: %s",
+		strings.ReplaceAll(dsn(conf), conf.Db.Password, ""),
+	)
 
 	return db
 }

@@ -11,6 +11,8 @@ import (
 
 // Connect the cache database
 func Connect(log logger.Logger, conf *config.Config) *redis.Client {
+	log.Infof("Connect to redis via: %s", redisUrl(conf))
+
 	opt, err := redis.ParseURL(redisUrl(conf))
 
 	if err != nil {
