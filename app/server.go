@@ -6,8 +6,8 @@ import (
 	logger "github.com/VerzCar/vyf-lib-logger"
 	"github.com/VerzCar/vyf-vote-circle/api"
 	"github.com/VerzCar/vyf-vote-circle/app/config"
+	"github.com/VerzCar/vyf-vote-circle/app/sanitizer"
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"log"
 )
 
@@ -18,7 +18,7 @@ type Server struct {
 	rankingService             api.RankingService
 	rankingSubscriptionService api.RankingSubscriptionService
 	voteService                api.VoteService
-	validate                   *validator.Validate
+	validate                   sanitizer.Validator
 	config                     *config.Config
 	log                        logger.Logger
 }
@@ -30,7 +30,7 @@ func NewServer(
 	rankingService api.RankingService,
 	rankingSubscriptionService api.RankingSubscriptionService,
 	voteService api.VoteService,
-	validate *validator.Validate,
+	validate sanitizer.Validator,
 	config *config.Config,
 	log logger.Logger,
 ) *Server {
