@@ -12,7 +12,7 @@ import (
 // Connect to the database with configured dsn.
 // If successful, the gorm.DB connection will be returned, otherwise
 // an error is written and os.exit will be executed.
-func Connect(log logger.Logger, conf *config.Config) *gorm.DB {
+func Connect(log logger.Logger, conf *config.Config) Client {
 	log.Infof("Connect to database...")
 
 	db, err := gorm.Open(

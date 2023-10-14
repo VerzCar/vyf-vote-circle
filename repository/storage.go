@@ -6,12 +6,12 @@ import (
 	logger "github.com/VerzCar/vyf-lib-logger"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/VerzCar/vyf-vote-circle/app/config"
+	"github.com/VerzCar/vyf-vote-circle/app/database"
 	"github.com/VerzCar/vyf-vote-circle/utils"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
-	"gorm.io/gorm"
 	"path/filepath"
 )
 
@@ -45,13 +45,13 @@ type Storage interface {
 }
 
 type storage struct {
-	db     *gorm.DB
+	db     database.Client
 	config *config.Config
 	log    logger.Logger
 }
 
 func NewStorage(
-	db *gorm.DB,
+	db database.Client,
 	config *config.Config,
 	log logger.Logger,
 ) Storage {

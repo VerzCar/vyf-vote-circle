@@ -61,6 +61,7 @@ require (
 	github.com/VerzCar/vyf-lib-logger v1.1.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/uuid v1.3.1
+	github.com/gorilla/websocket v1.5.0
 	github.com/rs/cors/wrapper/gin v0.0.0-20230905230807-20a76bd635d3
 )
 
@@ -86,7 +87,6 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/jackc/pgx/v5 v5.4.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.2 // indirect
