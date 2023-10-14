@@ -11,7 +11,7 @@ import (
 )
 
 // Connect the cache database
-func Connect(log logger.Logger, conf *config.Config) *redis.Client {
+func Connect(log logger.Logger, conf *config.Config) Client {
 	log.Infof("Connect to redis via: %s", redisUrl(conf))
 
 	opt, err := redis.ParseURL(redisUrl(conf))

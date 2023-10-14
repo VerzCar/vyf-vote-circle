@@ -33,13 +33,13 @@ type RedisCache interface {
 }
 
 type redisCache struct {
-	redis  *redis.Client
+	redis  Client
 	config *config.Config
 	log    logger.Logger
 }
 
 func NewRedisCache(
-	redis *redis.Client,
+	redis Client,
 	config *config.Config,
 	log logger.Logger,
 ) RedisCache {
