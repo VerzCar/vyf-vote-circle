@@ -1,14 +1,11 @@
 FROM golang:1.21 AS build
 
-# Populate the module cache based on the go.{mod,sum} files.
-COPY ./go.mod ./go.sum src/service-app/
-WORKDIR src/service-app
-
 # add workaround to add own repositoriy packages
 COPY ./.netrc /root/.netrc
 
-RUN go list -m github.com/VerzCar/vyf-lib-logger && \
-go list -m github.com/VerzCar/vyf-lib-awsx
+# Populate the module cache based on the go.{mod,sum} files.
+COPY ./go.mod ./go.sum src/service-app/
+WORKDIR src/service-app
 
 # Download all dependencies.
 RUN go mod download
