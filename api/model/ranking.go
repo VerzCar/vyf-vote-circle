@@ -19,6 +19,16 @@ type Ranking struct {
 	UpdatedAt  time.Time `json:"updatedAt" gorm:"autoUpdateTime;"`
 }
 
+type RankingResponse struct {
+	ID         int64     `json:"id"`
+	IdentityID string    `json:"identityId"`
+	Number     int64     `json:"number"`
+	Votes      int64     `json:"votes"`
+	Placement  Placement `json:"placement"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
+}
+
 type RankingsUriRequest struct {
 	CircleID int64 `uri:"circleId" validate:"gt=0"`
 }

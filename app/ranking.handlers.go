@@ -40,10 +40,25 @@ func (s *Server) Rankings() gin.HandlerFunc {
 			return
 		}
 
+		var rankingsResponse []*model.RankingResponse
+
+		for _, ranking := range rankings {
+			rankingResponse := &model.RankingResponse{
+				ID:         ranking.ID,
+				IdentityID: ranking.IdentityID,
+				Number:     ranking.Number,
+				Votes:      ranking.Votes,
+				Placement:  ranking.Placement,
+				CreatedAt:  ranking.CreatedAt,
+				UpdatedAt:  ranking.UpdatedAt,
+			}
+			rankingsResponse = append(rankingsResponse, rankingResponse)
+		}
+
 		response := model.Response{
 			Status: model.ResponseSuccess,
 			Msg:    "",
-			Data:   rankings,
+			Data:   rankingsResponse,
 		}
 
 		ctx.JSON(http.StatusOK, response)
