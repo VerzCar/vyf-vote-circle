@@ -14,6 +14,9 @@ type CircleVoter struct {
 
 	Commitment Commitment `json:"commitment" gorm:"type:commitment;not null;default:OPEN"`
 
+	VotedFor  *string `json:"votedFor" gorm:"type:varchar(50)"`
+	VotedFrom *string `json:"votedFrom" gorm:"type:varchar(50)"`
+
 	CircleID    int64     `json:"circleId" gorm:"not null;"`
 	Circle      *Circle   `json:"circle" gorm:"constraint:OnDelete:RESTRICT"`
 	CircleRefer *int64    `json:"circleRefer"`

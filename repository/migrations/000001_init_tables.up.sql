@@ -40,6 +40,8 @@ create table circle_voters
         constraint circle_voters_pkey
             primary key,
     voter        varchar(50)                           not null,
+    voted_for    varchar(50),
+    voted_from   varchar(50),
     commitment   commitment default 'OPEN'::commitment not null,
     circle_id    bigint
         constraint fk_circle_voters_circle
