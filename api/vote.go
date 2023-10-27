@@ -81,6 +81,13 @@ func (c *voteService) CreateVote(
 		return false, err
 	}
 
+	voterId := authClaims.Subject
+
+	if voterId == voteRequest.Elected {
+		c.log.Errorf("error voter id %s is equal elected id: %s", voterId, voteRequest.Elected)
+		return false, fmt.Errorf("cannot vote for yourself")
+	}
+
 	circle, err := c.storage.CircleById(voteRequest.CircleID)
 
 	if err != nil {
@@ -95,8 +102,6 @@ func (c *voteService) CreateVote(
 		)
 		return false, fmt.Errorf("circle inactive")
 	}
-
-	voterId := authClaims.Subject
 
 	voter, err := c.storage.CircleVoterByCircleId(voteRequest.CircleID, voterId)
 
