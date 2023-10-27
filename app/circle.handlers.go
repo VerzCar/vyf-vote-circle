@@ -39,6 +39,8 @@ func (s *Server) Circle() gin.HandlerFunc {
 				ID:         voter.ID,
 				Voter:      voter.Voter,
 				Commitment: voter.Commitment,
+				VotedFor:   voter.VotedFor,
+				VotedFrom:  voter.VotedFrom,
 				CreatedAt:  voter.CreatedAt,
 				UpdatedAt:  voter.UpdatedAt,
 			}
@@ -144,6 +146,8 @@ func (s *Server) Circles() gin.HandlerFunc {
 					ID:         voter.ID,
 					Voter:      voter.Voter,
 					Commitment: voter.Commitment,
+					VotedFor:   voter.VotedFor,
+					VotedFrom:  voter.VotedFrom,
 					CreatedAt:  voter.CreatedAt,
 					UpdatedAt:  voter.UpdatedAt,
 				}
@@ -214,6 +218,8 @@ func (s *Server) CreateCircle() gin.HandlerFunc {
 				ID:         voter.ID,
 				Voter:      voter.Voter,
 				Commitment: voter.Commitment,
+				VotedFor:   voter.VotedFor,
+				VotedFrom:  voter.VotedFrom,
 				CreatedAt:  voter.CreatedAt,
 				UpdatedAt:  voter.UpdatedAt,
 			}
@@ -281,6 +287,8 @@ func (s *Server) UpdateCircle() gin.HandlerFunc {
 				ID:         voter.ID,
 				Voter:      voter.Voter,
 				Commitment: voter.Commitment,
+				VotedFor:   voter.VotedFor,
+				VotedFrom:  voter.VotedFrom,
 				CreatedAt:  voter.CreatedAt,
 				UpdatedAt:  voter.UpdatedAt,
 			}

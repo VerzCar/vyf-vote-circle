@@ -28,6 +28,8 @@ type CircleVoterResponse struct {
 	ID         int64      `json:"id"`
 	Voter      string     `json:"voter"`
 	Commitment Commitment `json:"commitment"`
+	VotedFor   *string    `json:"votedFor"`
+	VotedFrom  *string    `json:"votedFrom"`
 	CreatedAt  time.Time  `json:"createdAt"`
 	UpdatedAt  time.Time  `json:"updatedAt"`
 }
