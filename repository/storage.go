@@ -25,6 +25,7 @@ type Storage interface {
 	CountCirclesOfUser(userIdentityId string) (int64, error)
 
 	CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
+	UpdateCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
 	CircleVoterByCircleId(circleId int64, voterId string) (*model.CircleVoter, error)
 	IsVoterInCircle(userIdentityId string, circle *model.Circle) (bool, error)
 

@@ -15,6 +15,16 @@ func (s *storage) CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleV
 	return voter, nil
 }
 
+// UpdateCircleVoter update circle voter based on given circle model
+func (s *storage) UpdateCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error) {
+	if err := s.db.Save(voter).Error; err != nil {
+		s.log.Errorf("error updating circle: %s", err)
+		return nil, err
+	}
+
+	return voter, nil
+}
+
 // CircleVoterByCircleId returns the queried circle voter in
 // the circle based on the given circle id
 func (s *storage) CircleVoterByCircleId(circleId int64, voterId string) (*model.CircleVoter, error) {

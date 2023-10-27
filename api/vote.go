@@ -20,6 +20,7 @@ type VoteService interface {
 type VoteRepository interface {
 	CircleById(id int64) (*model.Circle, error)
 	CircleVoterByCircleId(circleId int64, voterId string) (*model.CircleVoter, error)
+	UpdateCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
 	CreateNewVote(
 		voterId int64,
 		electedId int64,
@@ -134,8 +135,24 @@ func (c *voteService) CreateVote(
 		return false, fmt.Errorf("already voted in circle")
 	}
 
-	// TODO put this write block in transaction as the update ranking in the cache could fail
+	// TODO: put this write block in transaction as the update ranking in the cache could fail
 	_, err = c.storage.CreateNewVote(voter.ID, elected.ID, voteRequest.CircleID)
+
+	if err != nil {
+		return false, err
+	}
+
+	// update the voters meta information
+	voter.VotedFor = &elected.Voter
+	_, err = c.storage.UpdateCircleVoter(voter)
+
+	if err != nil {
+		return false, err
+	}
+
+	// update the elected meta information
+	elected.VotedFrom = &voter.Voter
+	_, err = c.storage.UpdateCircleVoter(elected)
 
 	if err != nil {
 		return false, err
