@@ -68,6 +68,8 @@ func run() error {
 
 	validate = validator.New()
 
+	serverEventService := app.NewServerEventService()
+
 	r := router.Setup(envConfig.Environment)
 	server := app.NewServer(
 		r,
@@ -76,6 +78,7 @@ func run() error {
 		rankingService,
 		rankingSubscriptionService,
 		voteService,
+		serverEventService,
 		validate,
 		envConfig,
 		log,

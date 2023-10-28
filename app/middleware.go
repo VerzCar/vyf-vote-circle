@@ -23,7 +23,7 @@ func (s *Server) authGuard(authService awsx.AuthService) gin.HandlerFunc {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
-
+		fmt.Println(accessToken, ctx.Request.Header)
 		token, err := authService.DecodeAccessToken(ctx, accessToken)
 
 		if err != nil {
@@ -33,6 +33,16 @@ func (s *Server) authGuard(authService awsx.AuthService) gin.HandlerFunc {
 		}
 
 		routerContext.SetAuthClaimsContext(ctx, token)
+		ctx.Next()
+	}
+}
+
+func (s *Server) serverSentHeaders() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Writer.Header().Add("Content-Type", "text/event-stream")
+		ctx.Writer.Header().Add("Cache-Control", "no-cache")
+		ctx.Writer.Header().Add("Connection", "keep-alive")
+		ctx.Writer.Header().Add("Transfer-Encoding", "chunked")
 		ctx.Next()
 	}
 }

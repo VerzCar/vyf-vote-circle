@@ -24,10 +24,11 @@ func (s *Server) routes() {
 		// rankings
 		authorized.GET("/rankings/:circleId", s.Rankings())
 
-		// websockets
-		ws := authorized.Group("/ws")
-
-		// socket rankings
-		ws.GET("/rankings", s.RankingsSubscription())
+		// streams
+		stream := authorized.Group("/stream")
+		stream.Use(s.serverSentHeaders())
+		{
+			stream.GET("/rankings/:circleId", s.serverEventService.ServeHTTP(), s.RankingsSubscription())
+		}
 	}
 }

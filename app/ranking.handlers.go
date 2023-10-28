@@ -3,9 +3,8 @@ package app
 import (
 	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
+	"io"
 	"net/http"
-	"time"
 )
 
 func (s *Server) Rankings() gin.HandlerFunc {
@@ -65,24 +64,68 @@ func (s *Server) Rankings() gin.HandlerFunc {
 	}
 }
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-}
-
-// TODO check msg events - not working currently
-
 func (s *Server) RankingsSubscription() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
+		errResponse := model.Response{
+			Status: model.ResponseError,
+			Msg:    "cannot stream rankings",
+			Data:   false,
+		}
+
+		rankingsReq := &model.RankingsUriRequest{}
+
+		err := ctx.ShouldBindUri(rankingsReq)
+
 		if err != nil {
+			s.log.Error(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
 			return
 		}
-		defer conn.Close()
-		for {
-			rankings, _ := s.rankingSubscriptionService.Rankings(ctx.Request.Context(), 4)
-			conn.WriteJSON(rankings)
-			time.Sleep(time.Second)
+
+		if err := s.validate.Struct(rankingsReq); err != nil {
+			s.log.Warn(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
 		}
+
+		v, ok := ctx.Get("clientChan")
+		if !ok {
+			s.log.Error("Did not find client Channel in context")
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
+		clientChan, ok := v.(ClientChan)
+
+		if !ok {
+			s.log.Error("Did not could cast client Channel")
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
+		go func() {
+			for {
+				rankings, err := s.rankingSubscriptionService.Rankings(ctx.Request.Context(), rankingsReq.CircleID)
+
+				if err != nil {
+					s.log.Errorf("service error: %v", err)
+					ctx.JSON(http.StatusInternalServerError, errResponse)
+					return
+				}
+
+				s.serverEventService.MessageSub(rankings)
+			}
+		}()
+
+		ctx.Stream(
+			func(w io.Writer) bool {
+				if msg, ok := <-clientChan; ok {
+					ctx.SSEvent("message", msg)
+					return true
+				}
+				return false
+			},
+		)
+
 	}
 }

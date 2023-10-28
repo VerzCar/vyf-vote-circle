@@ -18,6 +18,7 @@ type Server struct {
 	rankingService             api.RankingService
 	rankingSubscriptionService api.RankingSubscriptionService
 	voteService                api.VoteService
+	serverEventService         ServerEventService
 	validate                   sanitizer.Validator
 	config                     *config.Config
 	log                        logger.Logger
@@ -30,6 +31,7 @@ func NewServer(
 	rankingService api.RankingService,
 	rankingSubscriptionService api.RankingSubscriptionService,
 	voteService api.VoteService,
+	serverEventService ServerEventService,
 	validate sanitizer.Validator,
 	config *config.Config,
 	log logger.Logger,
@@ -41,6 +43,7 @@ func NewServer(
 		rankingService:             rankingService,
 		rankingSubscriptionService: rankingSubscriptionService,
 		voteService:                voteService,
+		serverEventService:         serverEventService,
 		validate:                   validate,
 		config:                     config,
 		log:                        log,
