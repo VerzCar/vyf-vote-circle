@@ -79,13 +79,15 @@ func (s *Server) RankingsSubscription() gin.HandlerFunc {
 
 		if err != nil {
 			s.log.Error(err)
-			ctx.JSON(http.StatusBadRequest, errResponse)
+			ctx.String(http.StatusBadRequest, errResponse.Msg)
+			ctx.AbortWithStatus(http.StatusBadRequest)
 			return
 		}
 
 		if err := s.validate.Struct(rankingsReq); err != nil {
 			s.log.Warn(err)
-			ctx.JSON(http.StatusBadRequest, errResponse)
+			ctx.String(http.StatusBadRequest, errResponse.Msg)
+			ctx.AbortWithStatus(http.StatusBadRequest)
 			return
 		}
 
@@ -93,7 +95,8 @@ func (s *Server) RankingsSubscription() gin.HandlerFunc {
 
 		if err != nil {
 			s.log.Error(err)
-			ctx.JSON(http.StatusBadRequest, errResponse)
+			ctx.String(http.StatusBadRequest, errResponse.Msg)
+			ctx.AbortWithStatus(http.StatusBadRequest)
 			return
 		}
 
@@ -101,7 +104,8 @@ func (s *Server) RankingsSubscription() gin.HandlerFunc {
 
 		if err != nil {
 			s.log.Error(err)
-			ctx.JSON(http.StatusBadRequest, errResponse)
+			ctx.String(http.StatusBadRequest, errResponse.Msg)
+			ctx.AbortWithStatus(http.StatusBadRequest)
 			return
 		}
 
