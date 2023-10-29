@@ -5,7 +5,9 @@ import (
 	"github.com/VerzCar/vyf-lib-awsx"
 	logger "github.com/VerzCar/vyf-lib-logger"
 	"github.com/VerzCar/vyf-vote-circle/api"
+	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/VerzCar/vyf-vote-circle/app/config"
+	"github.com/VerzCar/vyf-vote-circle/app/router/server_event"
 	"github.com/VerzCar/vyf-vote-circle/app/sanitizer"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -18,7 +20,7 @@ type Server struct {
 	rankingService             api.RankingService
 	rankingSubscriptionService api.RankingSubscriptionService
 	voteService                api.VoteService
-	serverEventService         ServerEventService
+	rankingsServerEventService server_event.ServerEventService[[]*model.Ranking]
 	validate                   sanitizer.Validator
 	config                     *config.Config
 	log                        logger.Logger
@@ -31,7 +33,7 @@ func NewServer(
 	rankingService api.RankingService,
 	rankingSubscriptionService api.RankingSubscriptionService,
 	voteService api.VoteService,
-	serverEventService ServerEventService,
+	rankingsServerEventService server_event.ServerEventService[[]*model.Ranking],
 	validate sanitizer.Validator,
 	config *config.Config,
 	log logger.Logger,
@@ -43,7 +45,7 @@ func NewServer(
 		rankingService:             rankingService,
 		rankingSubscriptionService: rankingSubscriptionService,
 		voteService:                voteService,
-		serverEventService:         serverEventService,
+		rankingsServerEventService: rankingsServerEventService,
 		validate:                   validate,
 		config:                     config,
 		log:                        log,

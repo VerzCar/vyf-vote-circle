@@ -23,7 +23,7 @@ func (s *Server) authGuard(authService awsx.AuthService) gin.HandlerFunc {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
-		fmt.Println(accessToken, ctx.Request.Header)
+
 		token, err := authService.DecodeAccessToken(ctx, accessToken)
 
 		if err != nil {

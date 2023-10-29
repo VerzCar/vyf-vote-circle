@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/VerzCar/vyf-vote-circle/api/model"
+	"github.com/VerzCar/vyf-vote-circle/app/router/server_event"
 	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
@@ -88,44 +89,36 @@ func (s *Server) RankingsSubscription() gin.HandlerFunc {
 			return
 		}
 
-		v, ok := ctx.Get("clientChan")
-		if !ok {
-			s.log.Error("Did not find client Channel in context")
+		serverEventChan, err := server_event.ContextToServerEventChan[[]*model.Ranking](ctx)
+
+		if err != nil {
+			s.log.Error(err)
 			ctx.JSON(http.StatusBadRequest, errResponse)
 			return
 		}
 
-		clientChan, ok := v.(ClientChan)
+		rankingsObs, err := s.rankingSubscriptionService.RankingsChan(ctx, rankingsReq.CircleID)
 
-		if !ok {
-			s.log.Error("Did not could cast client Channel")
+		if err != nil {
+			s.log.Error(err)
 			ctx.JSON(http.StatusBadRequest, errResponse)
 			return
 		}
 
 		go func() {
-			for {
-				rankings, err := s.rankingSubscriptionService.Rankings(ctx.Request.Context(), rankingsReq.CircleID)
-
-				if err != nil {
-					s.log.Errorf("service error: %v", err)
-					ctx.JSON(http.StatusInternalServerError, errResponse)
-					return
-				}
-
-				s.serverEventService.MessageSub(rankings)
+			for rankings := range rankingsObs {
+				s.rankingsServerEventService.Publish(rankings)
 			}
 		}()
 
 		ctx.Stream(
 			func(w io.Writer) bool {
-				if msg, ok := <-clientChan; ok {
-					ctx.SSEvent("message", msg)
+				if msg, ok := <-serverEventChan; ok {
+					ctx.SSEvent("rankings", msg)
 					return true
 				}
 				return false
 			},
 		)
-
 	}
 }

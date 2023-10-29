@@ -10,7 +10,7 @@ import (
 )
 
 type RankingSubscriptionService interface {
-	Rankings(
+	RankingsChan(
 		ctx context.Context,
 		circleId int64,
 	) (<-chan []*model.Ranking, error)
@@ -47,7 +47,7 @@ func NewRankingSubscriptionService(
 }
 
 // Rankings as a channel with
-func (s *rankingSubscriptionService) Rankings(
+func (s *rankingSubscriptionService) RankingsChan(
 	ctx context.Context,
 	circleId int64,
 ) (<-chan []*model.Ranking, error) {
@@ -66,12 +66,13 @@ func (s *rankingSubscriptionService) Rankings(
 	}()
 
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	// Keep a reference of the channel so that we can push changes into it when new messages are posted.
 	s.rankingObservers[circleId][observerId] = rankings
-	s.mu.Unlock()
+
 	// This is optional, and this allows newly subscribed clients to get a list of all the rankings that have been
 	// listed so far. Upon subscribing the client will be pushed the rankings once, further changes are handled
-	// in the CreateVote mutation.
+	// in the RankingChangedEvent
 	rankingList, err := s.rankingService.Rankings(ctx, circleId)
 
 	if err == nil {
