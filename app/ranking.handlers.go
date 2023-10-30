@@ -100,7 +100,7 @@ func (s *Server) RankingsSubscription() gin.HandlerFunc {
 			return
 		}
 
-		rankingsObs, err := s.rankingSubscriptionService.RankingsChan(ctx, rankingsReq.CircleID)
+		rankingsObs, err := s.rankingSubscriptionService.RankingsChan(ctx.Request.Context(), rankingsReq.CircleID)
 
 		if err != nil {
 			s.log.Error(err)
