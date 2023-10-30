@@ -14,7 +14,10 @@ type RankingSubscriptionService interface {
 		ctx context.Context,
 		circleId int64,
 	) (<-chan []*model.Ranking, error)
-	RankingChangedEvent(circleId int64)
+	RankingChangedEvent(
+		ctx context.Context,
+		circleId int64,
+	)
 }
 
 type rankingSubscriptionService struct {
@@ -85,9 +88,9 @@ func (s *rankingSubscriptionService) RankingsChan(
 // RankingChangedEvent update the changed rankings for the circle.
 // Pushes the new list to the observables.
 func (s *rankingSubscriptionService) RankingChangedEvent(
+	ctx context.Context,
 	circleId int64,
 ) {
-	ctx := context.Background()
 	rankingList, err := s.rankingService.Rankings(ctx, circleId)
 
 	if err == nil {

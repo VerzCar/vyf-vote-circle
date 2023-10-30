@@ -44,7 +44,10 @@ type VoteCache interface {
 }
 
 type VoteSubscription interface {
-	RankingChangedEvent(circleId int64)
+	RankingChangedEvent(
+		ctx context.Context,
+		circleId int64,
+	)
 }
 
 type voteService struct {
@@ -170,7 +173,7 @@ func (c *voteService) CreateVote(
 		return false, err
 	}
 
-	c.subscription.RankingChangedEvent(voteRequest.CircleID)
+	c.subscription.RankingChangedEvent(ctx, voteRequest.CircleID)
 
 	return true, nil
 }
