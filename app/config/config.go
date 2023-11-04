@@ -25,6 +25,14 @@ type Config struct {
 			AwsDefaultRegion string
 			ClientSecret     string
 		}
+		S3 struct {
+			AccessKeyId     string
+			AccessKeySecret string
+			Region          string
+			BucketName      string
+			UploadTimeout   int
+			DefaultBaseURL  string
+		}
 	}
 
 	Hosts struct {
@@ -147,6 +155,12 @@ func (c *Config) checkEnvironment() {
 		c.Aws.Auth.ClientId = os.Getenv("AWS_AUTH_CLIENT_ID")
 		c.Aws.Auth.UserPoolId = os.Getenv("AWS_AUTH_USER_POOL_ID")
 		c.Aws.Auth.ClientSecret = os.Getenv("AWS_AUTH_CLIENT_SECRET")
+
+		c.Aws.S3.AccessKeyId = os.Getenv("AWS_S3_ACCESS_KEY")
+		c.Aws.S3.AccessKeySecret = os.Getenv("AWS_S3_ACCESS_SECRET_KEY")
+		c.Aws.S3.Region = os.Getenv("AWS_S3_REGION")
+		c.Aws.S3.BucketName = os.Getenv("AWS_S3_BUCKET_NAME")
+		c.Aws.S3.DefaultBaseURL = os.Getenv("AWS_S3_DEFAULT_BASE_URL")
 
 		c.Db.Host = os.Getenv("DB_HOST")
 		c.Db.Name = os.Getenv("DB_NAME")

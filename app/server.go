@@ -14,6 +14,7 @@ import (
 type Server struct {
 	router                     *gin.Engine
 	authService                awsx.AuthService
+	extStorageService          awsx.S3Service
 	circleService              api.CircleService
 	rankingService             api.RankingService
 	rankingSubscriptionService api.RankingSubscriptionService
@@ -26,6 +27,7 @@ type Server struct {
 func NewServer(
 	router *gin.Engine,
 	authService awsx.AuthService,
+	extStorageService awsx.S3Service,
 	circleService api.CircleService,
 	rankingService api.RankingService,
 	rankingSubscriptionService api.RankingSubscriptionService,
@@ -37,6 +39,7 @@ func NewServer(
 	server := &Server{
 		router:                     router,
 		authService:                authService,
+		extStorageService:          extStorageService,
 		circleService:              circleService,
 		rankingService:             rankingService,
 		rankingSubscriptionService: rankingSubscriptionService,

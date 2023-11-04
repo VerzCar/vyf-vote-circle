@@ -23,5 +23,9 @@ func (s *Server) routes() {
 
 		// rankings
 		authorized.GET("/rankings/:circleId", s.Rankings())
+
+		// Upload group
+		upload := authorized.Group("/upload")
+		upload.PUT("/circle-img", s.UploadCircleImage())
 	}
 }

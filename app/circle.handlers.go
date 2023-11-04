@@ -1,8 +1,12 @@
 package app
 
 import (
+	"fmt"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
+	routerContext "github.com/VerzCar/vyf-vote-circle/app/router/ctx"
+	"github.com/VerzCar/vyf-vote-circle/utils"
 	"github.com/gin-gonic/gin"
+	"io"
 	"net/http"
 )
 
@@ -337,6 +341,95 @@ func (s *Server) AddToGlobalCircle() gin.HandlerFunc {
 			Status: model.ResponseSuccess,
 			Msg:    "Added to global circle",
 			Data:   nil,
+		}
+
+		ctx.JSON(http.StatusOK, response)
+	}
+}
+
+func (s *Server) UploadCircleImage() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		errResponse := model.Response{
+			Status: model.ResponseError,
+			Msg:    "cannot upload file",
+			Data:   nil,
+		}
+
+		authClaims, err := routerContext.ContextToAuthClaims(ctx.Request.Context())
+
+		if err != nil {
+			s.log.Errorf("error getting auth claims: %s", err)
+			ctx.JSON(http.StatusUnauthorized, errResponse)
+			return
+		}
+
+		multiPartFile, err := ctx.FormFile("circleImageFile")
+
+		if err != nil {
+			s.log.Errorf("service error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, errResponse)
+			return
+		}
+
+		contentFile, err := multiPartFile.Open()
+		if err != nil {
+			s.log.Errorf("service error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, errResponse)
+			return
+		}
+
+		defer contentFile.Close()
+
+		bytes, err := io.ReadAll(contentFile)
+		if err != nil {
+			s.log.Errorf("service error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, errResponse)
+			return
+		}
+
+		mimeType := http.DetectContentType(bytes)
+
+		if !utils.IsImageMimeType(mimeType) {
+			s.log.Errorf("file type is wrong type: %s", mimeType)
+			errResponse.Msg = "file type is not an image"
+			ctx.JSON(http.StatusNotAcceptable, errResponse)
+			return
+		}
+
+		filePath := fmt.Sprintf("profile/image/%s/%s", authClaims.Subject, "avatar")
+
+		_, _ = contentFile.Seek(0, 0)
+
+		_, err = s.extStorageService.Upload(
+			ctx.Request.Context(),
+			filePath,
+			contentFile,
+		)
+
+		if err != nil {
+			s.log.Errorf("service error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, errResponse)
+			return
+		}
+
+		imageEndpoint := fmt.Sprintf("%s/%s", s.extStorageService.ObjectEndpoint(), filePath)
+
+		updateCircleReq := &model.CircleUpdateRequest{
+			ImageSrc: &imageEndpoint,
+		}
+
+		circle, err := s.circleService.UpdateCircle(ctx.Request.Context(), updateCircleReq)
+
+		if err != nil {
+			s.log.Errorf("service error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, errResponse)
+			return
+		}
+
+		response := model.Response{
+			Status: model.ResponseSuccess,
+			Msg:    "",
+			Data:   circle.ImageSrc,
 		}
 
 		ctx.JSON(http.StatusOK, response)

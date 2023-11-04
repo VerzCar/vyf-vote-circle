@@ -17,6 +17,13 @@ aws:
     userPoolId: poolId
     awsDefaultRegion: eu-central-1
     clientSecret: secret
+  s3:
+    accessKeyId: keyId
+    accessKeySecret: secret
+    region: eu-central-1
+    bucketName: bucket
+    uploadTimeout: 100
+    defaultBaseURL: url
 
 # Database
 db:
