@@ -5,13 +5,12 @@ import (
 	"github.com/VerzCar/vyf-lib-awsx"
 	logger "github.com/VerzCar/vyf-lib-logger"
 	"github.com/VerzCar/vyf-vote-circle/api"
-	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/VerzCar/vyf-vote-circle/app"
 	"github.com/VerzCar/vyf-vote-circle/app/cache"
 	"github.com/VerzCar/vyf-vote-circle/app/config"
 	"github.com/VerzCar/vyf-vote-circle/app/database"
+	"github.com/VerzCar/vyf-vote-circle/app/pubsub"
 	"github.com/VerzCar/vyf-vote-circle/app/router"
-	"github.com/VerzCar/vyf-vote-circle/app/router/server_event"
 	"github.com/VerzCar/vyf-vote-circle/repository"
 	"github.com/VerzCar/vyf-vote-circle/utils"
 	"github.com/go-playground/validator/v10"
@@ -62,16 +61,23 @@ func run() error {
 		return err
 	}
 
+	// initialize pub sub service
+	pubSubService := pubsub.Connect(log, envConfig)
+
 	// initialize api services
 	circleService := api.NewCircleService(storage, envConfig, log)
 	rankingService := api.NewRankingService(storage, redis, envConfig, log)
-	rankingSubscriptionService := api.NewRankingSubscriptionService(storage, redis, rankingService, envConfig, log)
+	rankingSubscriptionService := api.NewRankingSubscriptionService(
+		storage,
+		redis,
+		rankingService,
+		pubSubService,
+		envConfig,
+		log,
+	)
 	voteService := api.NewVoteService(storage, redis, rankingSubscriptionService, envConfig, log)
 
 	validate = validator.New()
-
-	// event services
-	rankingsServerEventService := server_event.NewServerEventService[[]*model.Ranking]()
 
 	r := router.Setup(envConfig.Environment)
 	server := app.NewServer(
@@ -81,7 +87,6 @@ func run() error {
 		rankingService,
 		rankingSubscriptionService,
 		voteService,
-		rankingsServerEventService,
 		validate,
 		envConfig,
 		log,

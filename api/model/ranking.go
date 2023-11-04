@@ -25,6 +25,7 @@ type RankingResponse struct {
 	Number     int64     `json:"number"`
 	Votes      int64     `json:"votes"`
 	Placement  Placement `json:"placement"`
+	CircleID   int64     `json:"circleId"`
 	CreatedAt  time.Time `json:"createdAt"`
 	UpdatedAt  time.Time `json:"updatedAt"`
 }
@@ -37,10 +38,6 @@ type RankingScore struct {
 	VoteCount      int64
 	UserIdentityId string
 }
-
-type RankingListObservable chan []*Ranking
-type RankingListObservableMap map[string]RankingListObservable
-type RankingObservers map[int64]RankingListObservableMap
 
 func (s RankingScore) MarshalBinary() ([]byte, error) {
 	return json.Marshal(s)

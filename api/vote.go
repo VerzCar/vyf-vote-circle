@@ -35,19 +35,20 @@ type VoteRepository interface {
 }
 
 type VoteCache interface {
-	UpdateRanking(
+	UpsertRanking(
 		ctx context.Context,
 		circleId int64,
 		identityId string,
 		votes int64,
-	) error
+	) (*model.RankingResponse, error)
 }
 
 type VoteSubscription interface {
 	RankingChangedEvent(
 		ctx context.Context,
 		circleId int64,
-	)
+		ranking *model.RankingResponse,
+	) error
 }
 
 type voteService struct {
@@ -167,13 +168,13 @@ func (c *voteService) CreateVote(
 		return false, err
 	}
 
-	err = c.cache.UpdateRanking(ctx, voteRequest.CircleID, elected.Voter, voteCount)
+	updatedRanking, err := c.cache.UpsertRanking(ctx, voteRequest.CircleID, elected.Voter, voteCount)
 
 	if err != nil {
 		return false, err
 	}
 
-	c.subscription.RankingChangedEvent(ctx, voteRequest.CircleID)
+	_ = c.subscription.RankingChangedEvent(ctx, voteRequest.CircleID, updatedRanking)
 
 	return true, nil
 }

@@ -59,6 +59,10 @@ type Config struct {
 		Password string
 	}
 
+	Ably struct {
+		Apikey string
+	}
+
 	Security struct {
 		Cors struct {
 			Origins []string

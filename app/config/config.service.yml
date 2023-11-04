@@ -41,6 +41,10 @@ redis:
   timeout: 60
   password: pwd
 
+# ably service
+ably:
+  apikey: key
+
 # Security
 security:
   secrets:

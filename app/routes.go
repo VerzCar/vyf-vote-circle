@@ -23,12 +23,5 @@ func (s *Server) routes() {
 
 		// rankings
 		authorized.GET("/rankings/:circleId", s.Rankings())
-
-		// streams
-		stream := authorized.Group("/stream")
-		stream.Use(s.serverSentHeaders())
-		{
-			stream.GET("/rankings/:circleId", s.rankingsServerEventService.ServeHTTP(), s.RankingsSubscription())
-		}
 	}
 }

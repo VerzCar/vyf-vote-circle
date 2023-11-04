@@ -2,110 +2,72 @@ package api
 
 import (
 	"context"
+	"fmt"
 	logger "github.com/VerzCar/vyf-lib-logger"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/VerzCar/vyf-vote-circle/app/config"
-	"github.com/google/uuid"
-	"sync"
+	"github.com/ably/ably-go/ably"
 )
 
 type RankingSubscriptionService interface {
-	RankingsChan(
-		ctx context.Context,
-		circleId int64,
-	) (<-chan []*model.Ranking, error)
 	RankingChangedEvent(
 		ctx context.Context,
 		circleId int64,
-	)
+		ranking *model.RankingResponse,
+	) error
 }
 
 type rankingSubscriptionService struct {
-	storage          RankingRepository
-	cache            RankingCache
-	rankingObservers model.RankingObservers
-	mu               sync.Mutex
-	rankingService   RankingService
-	config           *config.Config
-	log              logger.Logger
+	storage        RankingRepository
+	cache          RankingCache
+	rankingService RankingService
+	pubSubService  *ably.Realtime
+	config         *config.Config
+	log            logger.Logger
 }
 
 func NewRankingSubscriptionService(
 	circleRepo RankingRepository,
 	cache RankingCache,
 	rankingService RankingService,
+	pubSubService *ably.Realtime,
 	config *config.Config,
 	log logger.Logger,
 ) RankingSubscriptionService {
-	rankingObservers := make(model.RankingObservers)
-
 	return &rankingSubscriptionService{
-		storage:          circleRepo,
-		cache:            cache,
-		rankingObservers: rankingObservers,
-		rankingService:   rankingService,
-		config:           config,
-		log:              log,
+		storage:        circleRepo,
+		cache:          cache,
+		rankingService: rankingService,
+		pubSubService:  pubSubService,
+		config:         config,
+		log:            log,
 	}
 }
 
-// Rankings as a channel with
-func (s *rankingSubscriptionService) RankingsChan(
-	ctx context.Context,
-	circleId int64,
-) (<-chan []*model.Ranking, error) {
-	s.initRankingListObservableMap(circleId)
-	observerId := uuid.New().String()
-	rankings := make(model.RankingListObservable, 1)
-
-	// Start a goroutine to allow for cleaning up subscriptions that are disconnected.
-	// This go routine will only get past Done() when a client terminates the subscription. This allows us
-	// to only then remove the reference from the list of ChatObservers since it is no longer needed.
-	go func() {
-		<-ctx.Done()
-		s.mu.Lock()
-		delete(s.rankingObservers[circleId], observerId)
-		s.mu.Unlock()
-	}()
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	// Keep a reference of the channel so that we can push changes into it when new messages are posted.
-	s.rankingObservers[circleId][observerId] = rankings
-
-	// This is optional, and this allows newly subscribed clients to get a list of all the rankings that have been
-	// listed so far. Upon subscribing the client will be pushed the rankings once, further changes are handled
-	// in the RankingChangedEvent
-	rankingList, err := s.rankingService.Rankings(ctx, circleId)
-
-	if err == nil {
-		s.rankingObservers[circleId][observerId] <- rankingList
-	}
-
-	return rankings, nil
-}
-
-// RankingChangedEvent update the changed rankings for the circle.
-// Pushes the new list to the observables.
+// Will notify all clients of changed ranking of certain circle.
+// It will open the channel for the circle and send the updated ranking as
+// message to all subscribed clients.
 func (s *rankingSubscriptionService) RankingChangedEvent(
 	ctx context.Context,
 	circleId int64,
-) {
-	rankingList, err := s.rankingService.Rankings(ctx, circleId)
+	ranking *model.RankingResponse,
+) error {
+	channelName := fmt.Sprintf("circle-%d:rankings", circleId)
+	msgName := "ranking changed"
 
-	if err == nil {
-		s.mu.Lock()
-		for _, observer := range s.rankingObservers[circleId] {
-			observer <- rankingList
-		}
-		s.mu.Unlock()
-	}
-}
+	channel := s.pubSubService.Channels.Get(channelName)
 
-func (s *rankingSubscriptionService) initRankingListObservableMap(
-	circleId int64,
-) {
-	if s.rankingObservers[circleId] == nil {
-		s.rankingObservers[circleId] = make(model.RankingListObservableMap)
+	err := channel.Publish(ctx, msgName, ranking)
+
+	if err != nil {
+		s.log.Errorf(
+			"could not publish message to channel: %s with message name: %s cause: %s",
+			channelName,
+			msgName,
+			err,
+		)
+		return err
 	}
+
+	return nil
 }

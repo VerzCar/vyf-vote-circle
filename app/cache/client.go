@@ -14,4 +14,6 @@ type Client interface {
 	ZAdd(ctx context.Context, key string, members ...*redis.Z) *redis.IntCmd
 	ZRevRangeWithScores(ctx context.Context, key string, start int64, stop int64) *redis.ZSliceCmd
 	ZScore(ctx context.Context, key string, member string) *redis.FloatCmd
+	ZCount(ctx context.Context, key string, min string, max string) *redis.IntCmd
+	Pipelined(ctx context.Context, fn func(redis.Pipeliner) error) ([]redis.Cmder, error)
 }

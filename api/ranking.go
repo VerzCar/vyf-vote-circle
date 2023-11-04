@@ -13,7 +13,7 @@ type RankingService interface {
 	Rankings(
 		ctx context.Context,
 		circleId int64,
-	) ([]*model.Ranking, error)
+	) ([]*model.RankingResponse, error)
 }
 
 type RankingRepository interface {
@@ -25,7 +25,7 @@ type RankingCache interface {
 	RankingList(
 		ctx context.Context,
 		circleId int64,
-	) ([]*model.Ranking, error)
+	) ([]*model.RankingResponse, error)
 	ExistsRankingListForCircle(
 		ctx context.Context,
 		circleId int64,
@@ -62,11 +62,11 @@ func NewRankingService(
 // It returns always the ranking list from the cache.
 // It first checks whether some votes already exists for this circle in the cache
 // otherwise it will build up the cache with the votes for this circle.
-// If the circle has"nt any votes, an empty list will be returned.
+// If the circle hasn't any votes, an empty list will be returned.
 func (c *rankingService) Rankings(
 	ctx context.Context,
 	circleId int64,
-) ([]*model.Ranking, error) {
+) ([]*model.RankingResponse, error) {
 	_, err := routerContext.ContextToAuthClaims(ctx)
 
 	if err != nil {
@@ -89,7 +89,7 @@ func (c *rankingService) Rankings(
 		}
 
 		if isEmpty {
-			return make([]*model.Ranking, 0), nil
+			return make([]*model.RankingResponse, 0), nil
 		}
 	}
 

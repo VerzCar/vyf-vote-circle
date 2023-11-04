@@ -11,16 +11,16 @@ import (
 )
 
 type RedisCache interface {
-	UpdateRanking(
+	UpsertRanking(
 		ctx context.Context,
 		circleId int64,
 		identityId string,
 		votes int64,
-	) error
+	) (*model.RankingResponse, error)
 	RankingList(
 		ctx context.Context,
 		circleId int64,
-	) ([]*model.Ranking, error)
+	) ([]*model.RankingResponse, error)
 	ExistsRankingListForCircle(
 		ctx context.Context,
 		circleId int64,

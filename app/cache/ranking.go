@@ -8,39 +8,91 @@ import (
 	"time"
 )
 
-func (c *redisCache) UpdateRanking(
+func (c *redisCache) UpsertRanking(
 	ctx context.Context,
 	circleId int64,
 	identityId string,
 	votes int64,
-) error {
+) (*model.RankingResponse, error) {
 	rankingScore := &model.RankingScore{
 		VoteCount:      votes,
 		UserIdentityId: identityId,
 	}
 
-	circleRankingKey := circleRankingKey(circleId)
+	key := circleRankingKey(circleId)
 
-	err := c.setRankingScore(ctx, circleRankingKey, rankingScore)
+	var rankingPlacementNumber int64
+
+	_, err := c.redis.Pipelined(
+		ctx, func(pipe redis.Pipeliner) error {
+			err := pipeSetRankingScore(ctx, pipe, key, rankingScore)
+
+			if err != nil {
+				c.log.Errorf(
+					"error setting ranking score: for circle key %s with ranking score %v: %s",
+					key,
+					rankingScore,
+					err,
+				)
+				return err
+			}
+
+			score, err := pipeRankingScore(ctx, pipe, key, rankingScore.UserIdentityId)
+
+			if err != nil {
+				c.log.Errorf(
+					"error getting ranking score for voter %s: for circle key %s: %s",
+					rankingScore.UserIdentityId,
+					key,
+					err,
+				)
+				return err
+			}
+
+			rankingPlacementNumber, err = pipeRankingPlacementNumber(
+				ctx,
+				pipe,
+				key,
+				strconv.FormatInt(score, 10),
+				"",
+			)
+
+			if err != nil {
+				c.log.Errorf(
+					"error getting ranking score for voter %s: for circle key %s: %s",
+					rankingScore.UserIdentityId,
+					key,
+					err,
+				)
+				return err
+			}
+			return nil
+		},
+	)
 
 	if err != nil {
 		c.log.Errorf(
-			"error setting ranking score: for circle key %s with ranking score %v: %s",
-			circleRankingKey,
-			rankingScore,
+			"could not update ranking in transaction: %s",
 			err,
 		)
-		return err
+		return nil, err
 	}
 
-	return nil
+	ranking := populateRanking(
+		0,
+		circleId,
+		rankingScore,
+		rankingPlacementNumber+1,
+	)
+
+	return ranking, nil
 }
 
 // RankingList of the current cached ranking for the circle
 func (c *redisCache) RankingList(
 	ctx context.Context,
 	circleId int64,
-) ([]*model.Ranking, error) {
+) ([]*model.RankingResponse, error) {
 	circleRankingKey := circleRankingKey(circleId)
 
 	rankingScores, err := c.rankingScores(ctx, circleRankingKey)
@@ -54,7 +106,7 @@ func (c *redisCache) RankingList(
 		return nil, err
 	}
 
-	var rankingList []*model.Ranking
+	var rankingList []*model.RankingResponse
 	placementNumber := int64(0)
 	var voteCount int64
 
@@ -66,8 +118,8 @@ func (c *redisCache) RankingList(
 		rankingList = append(
 			rankingList,
 			populateRanking(
-				circleId,
 				int64(index)+1,
+				circleId,
 				rankingScore,
 				placementNumber,
 			),
@@ -117,7 +169,7 @@ func (c *redisCache) BuildRankingList(
 			return err
 		}
 
-		err = c.UpdateRanking(ctx, circleId, identityId, score+1)
+		_, err = c.UpsertRanking(ctx, circleId, identityId, score+1)
 
 		if err != nil {
 			return err
@@ -127,17 +179,7 @@ func (c *redisCache) BuildRankingList(
 	return nil
 }
 
-// setRankingScore sets the ranking score for the given key in cache
-func (c *redisCache) setRankingScore(ctx context.Context, key string, rankingScore *model.RankingScore) error {
-	members := &redis.Z{
-		Score:  float64(rankingScore.VoteCount),
-		Member: rankingScore.UserIdentityId,
-	}
-
-	return c.redis.ZAdd(ctx, key, members).Err()
-}
-
-// rankingScores of the given key as a list
+// Ranking scores of the given key as a list
 func (c *redisCache) rankingScores(
 	ctx context.Context,
 	key string,
@@ -162,7 +204,7 @@ func (c *redisCache) rankingScores(
 	}
 }
 
-// rankingScore of the given key and member.
+// Ranking score of the given key and member.
 // Returns 0 if the key or member does not exist
 func (c *redisCache) rankingScore(
 	ctx context.Context,
@@ -181,17 +223,74 @@ func (c *redisCache) rankingScore(
 	}
 }
 
+// Sets the ranking score for the given key in cache
+func pipeSetRankingScore(
+	ctx context.Context,
+	pipe redis.Pipeliner,
+	key string,
+	rankingScore *model.RankingScore,
+) error {
+	members := &redis.Z{
+		Score:  float64(rankingScore.VoteCount),
+		Member: rankingScore.UserIdentityId,
+	}
+
+	return pipe.ZAdd(ctx, key, members).Err()
+}
+
+// Ranking score of the given key and member.
+// Returns 0 if the key or member does not exist
+func pipeRankingScore(
+	ctx context.Context,
+	pipe redis.Pipeliner,
+	key string,
+	member string,
+) (int64, error) {
+	result := pipe.ZScore(ctx, key, member)
+
+	switch {
+	case result.Err() == redis.Nil:
+		return 0, nil
+	case result.Err() != nil:
+		return 0, result.Err()
+	default:
+		return int64(result.Val()), nil
+	}
+}
+
+// Identifies the current index (placement)
+// of the given score that the member is.
+// Returns 0 if the key or member does not exist
+func pipeRankingPlacementNumber(
+	ctx context.Context,
+	pipe redis.Pipeliner,
+	key string,
+	min string,
+	max string,
+) (int64, error) {
+	result := pipe.ZCount(ctx, key, min, max)
+
+	switch {
+	case result.Err() == redis.Nil:
+		return 0, nil
+	case result.Err() != nil:
+		return 0, result.Err()
+	default:
+		return result.Val(), nil
+	}
+}
+
 func circleRankingKey(id int64) string {
 	return "circle:" + strconv.FormatInt(id, 10) + ":ranking"
 }
 
 func populateRanking(
-	circleId int64,
 	rankingId int64,
+	circleId int64,
 	rankingScore *model.RankingScore,
 	placementNumber int64,
-) *model.Ranking {
-	return &model.Ranking{
+) *model.RankingResponse {
+	return &model.RankingResponse{
 		ID:         rankingId,
 		IdentityID: rankingScore.UserIdentityId,
 		Number:     placementNumber,
