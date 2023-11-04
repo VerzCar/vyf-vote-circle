@@ -12,7 +12,7 @@ func Connect(log logger.Logger, conf *config.Config) *ably.Realtime {
 
 	client, err := ably.NewRealtime(
 		ably.WithKey(conf.Ably.Apikey),
-		ably.WithClientID("vote-circle-service"),
+		ably.WithClientID(conf.Ably.ClientId),
 	)
 
 	if err != nil {

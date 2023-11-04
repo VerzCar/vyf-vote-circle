@@ -60,7 +60,8 @@ type Config struct {
 	}
 
 	Ably struct {
-		Apikey string
+		Apikey   string
+		ClientId string
 	}
 
 	Security struct {
@@ -159,6 +160,8 @@ func (c *Config) checkEnvironment() {
 		redisDb, _ := strconv.ParseUint(os.Getenv("REDIS_DB"), 16, 16)
 		c.Redis.Db = uint16(redisDb)
 		c.Redis.Password = os.Getenv("REDIS_PASSWORD")
+
+		c.Ably.Apikey = os.Getenv("ABLY_API_KEY")
 
 		c.Port = os.Getenv("PORT")
 

@@ -44,6 +44,7 @@ redis:
 # ably service
 ably:
   apikey: key
+  clientId: vote-circle-service
 
 # Security
 security:
