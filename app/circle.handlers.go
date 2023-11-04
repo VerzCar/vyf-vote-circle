@@ -3,9 +3,12 @@ package app
 import (
 	"fmt"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
-	routerContext "github.com/VerzCar/vyf-vote-circle/app/router/ctx"
 	"github.com/VerzCar/vyf-vote-circle/utils"
 	"github.com/gin-gonic/gin"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"net/http"
 )
@@ -355,11 +358,13 @@ func (s *Server) UploadCircleImage() gin.HandlerFunc {
 			Data:   nil,
 		}
 
-		authClaims, err := routerContext.ContextToAuthClaims(ctx.Request.Context())
+		circleReq := &model.CircleUriRequest{}
+
+		err := ctx.ShouldBindUri(circleReq)
 
 		if err != nil {
-			s.log.Errorf("error getting auth claims: %s", err)
-			ctx.JSON(http.StatusUnauthorized, errResponse)
+			s.log.Error(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
 			return
 		}
 
@@ -396,14 +401,18 @@ func (s *Server) UploadCircleImage() gin.HandlerFunc {
 			return
 		}
 
-		filePath := fmt.Sprintf("profile/image/%s/%s", authClaims.Subject, "avatar")
-
 		_, _ = contentFile.Seek(0, 0)
+
+		circleImage, _, err := image.Decode(contentFile)
+
+		st := utils.Resize(circleImage, image.Point{X: 200, Y: 200})
+
+		filePath := fmt.Sprintf("circle/image/%d/%s", circleReq.CircleID, "main")
 
 		_, err = s.extStorageService.Upload(
 			ctx.Request.Context(),
 			filePath,
-			contentFile,
+			st,
 		)
 
 		if err != nil {

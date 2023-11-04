@@ -26,6 +26,6 @@ func (s *Server) routes() {
 
 		// Upload group
 		upload := authorized.Group("/upload")
-		upload.PUT("/circle-img", s.UploadCircleImage())
+		upload.PUT("/circle-img/:circleId", s.UploadCircleImage())
 	}
 }
