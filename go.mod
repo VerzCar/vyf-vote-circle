@@ -62,6 +62,7 @@ require (
 	github.com/ably/ably-go v1.2.14
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/rs/cors/wrapper/gin v0.0.0-20230905230807-20a76bd635d3
+	golang.org/x/image v0.13.0
 )
 
 require (

@@ -1,15 +1,8 @@
 package app
 
 import (
-	"fmt"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
-	"github.com/VerzCar/vyf-vote-circle/utils"
 	"github.com/gin-gonic/gin"
-	"image"
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
-	"io"
 	"net/http"
 )
 
@@ -376,58 +369,7 @@ func (s *Server) UploadCircleImage() gin.HandlerFunc {
 			return
 		}
 
-		contentFile, err := multiPartFile.Open()
-		if err != nil {
-			s.log.Errorf("service error: %v", err)
-			ctx.JSON(http.StatusInternalServerError, errResponse)
-			return
-		}
-
-		defer contentFile.Close()
-
-		bytes, err := io.ReadAll(contentFile)
-		if err != nil {
-			s.log.Errorf("service error: %v", err)
-			ctx.JSON(http.StatusInternalServerError, errResponse)
-			return
-		}
-
-		mimeType := http.DetectContentType(bytes)
-
-		if !utils.IsImageMimeType(mimeType) {
-			s.log.Errorf("file type is wrong type: %s", mimeType)
-			errResponse.Msg = "file type is not an image"
-			ctx.JSON(http.StatusNotAcceptable, errResponse)
-			return
-		}
-
-		_, _ = contentFile.Seek(0, 0)
-
-		circleImage, _, err := image.Decode(contentFile)
-
-		st := utils.Resize(circleImage, image.Point{X: 200, Y: 200})
-
-		filePath := fmt.Sprintf("circle/image/%d/%s", circleReq.CircleID, "main")
-
-		_, err = s.extStorageService.Upload(
-			ctx.Request.Context(),
-			filePath,
-			st,
-		)
-
-		if err != nil {
-			s.log.Errorf("service error: %v", err)
-			ctx.JSON(http.StatusInternalServerError, errResponse)
-			return
-		}
-
-		imageEndpoint := fmt.Sprintf("%s/%s", s.extStorageService.ObjectEndpoint(), filePath)
-
-		updateCircleReq := &model.CircleUpdateRequest{
-			ImageSrc: &imageEndpoint,
-		}
-
-		circle, err := s.circleService.UpdateCircle(ctx.Request.Context(), updateCircleReq)
+		imageSrc, err := s.circleUploadService.UploadImage(ctx.Request.Context(), multiPartFile, circleReq.CircleID)
 
 		if err != nil {
 			s.log.Errorf("service error: %v", err)
@@ -438,7 +380,7 @@ func (s *Server) UploadCircleImage() gin.HandlerFunc {
 		response := model.Response{
 			Status: model.ResponseSuccess,
 			Msg:    "",
-			Data:   circle.ImageSrc,
+			Data:   imageSrc,
 		}
 
 		ctx.JSON(http.StatusOK, response)

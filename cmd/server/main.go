@@ -80,6 +80,7 @@ func run() error {
 
 	// initialize api services
 	circleService := api.NewCircleService(storage, envConfig, log)
+	circleUploadService := api.NewCircleUploadService(circleService, s3Service, envConfig, log)
 	rankingService := api.NewRankingService(storage, redis, envConfig, log)
 	rankingSubscriptionService := api.NewRankingSubscriptionService(
 		storage,
@@ -97,8 +98,8 @@ func run() error {
 	server := app.NewServer(
 		r,
 		authService,
-		s3Service,
 		circleService,
+		circleUploadService,
 		rankingService,
 		rankingSubscriptionService,
 		voteService,
