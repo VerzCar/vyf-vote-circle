@@ -112,6 +112,7 @@ func (c *circleUploadService) UploadImage(
 	imageEndpoint := fmt.Sprintf("%s/%s", c.extStorageService.ObjectEndpoint(), filePath)
 
 	updateCircleReq := &model.CircleUpdateRequest{
+		ID:       circleId,
 		ImageSrc: &imageEndpoint,
 	}
 
