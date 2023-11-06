@@ -35,6 +35,10 @@ type CircleUriRequest struct {
 	CircleID int64 `uri:"circleId"`
 }
 
+type CircleByUriRequest struct {
+	Name string `uri:"name" validate:"lte=40"`
+}
+
 type CircleResponse struct {
 	ID          int64                  `json:"id"`
 	Name        string                 `json:"name"`
@@ -65,6 +69,22 @@ type CircleCreateRequest struct {
 	Voters      []*CircleVoterRequest `json:"voters"`
 	Private     *bool                 `json:"private,omitempty" validate:"omitempty"`
 	ValidUntil  *time.Time            `json:"validUntil,omitempty" validate:"omitempty"`
+}
+
+type CirclePaginated struct {
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	ImageSrc    string `json:"imageSrc"`
+	Active      bool   `json:"active"`
+}
+
+type CirclePaginatedResponse struct {
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	ImageSrc    string `json:"imageSrc"`
+	Active      bool   `json:"active"`
 }
 
 // db hooks with checks

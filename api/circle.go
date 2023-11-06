@@ -19,6 +19,10 @@ type CircleService interface {
 	Circles(
 		ctx context.Context,
 	) ([]*model.Circle, error)
+	CirclesFiltered(
+		ctx context.Context,
+		name *string,
+	) ([]*model.CirclePaginated, error)
 	UpdateCircle(
 		ctx context.Context,
 		circleUpdateRequest *model.CircleUpdateRequest,
@@ -39,6 +43,7 @@ type CircleService interface {
 type CircleRepository interface {
 	CircleById(id int64) (*model.Circle, error)
 	Circles(userIdentityId string) ([]*model.Circle, error)
+	CirclesFiltered(name string) ([]*model.CirclePaginated, error)
 	UpdateCircle(circle *model.Circle) (*model.Circle, error)
 	CreateNewCircle(circle *model.Circle) (*model.Circle, error)
 	CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
@@ -120,6 +125,19 @@ func (c *circleService) Circles(
 		{
 			return nil, nil
 		}
+	}
+
+	return circles, nil
+}
+
+func (c *circleService) CirclesFiltered(
+	ctx context.Context,
+	name *string,
+) ([]*model.CirclePaginated, error) {
+	circles, err := c.storage.CirclesFiltered(*name)
+
+	if err != nil {
+		return nil, err
 	}
 
 	return circles, nil

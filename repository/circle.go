@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/VerzCar/vyf-vote-circle/app/database"
 	"gorm.io/gorm"
@@ -25,7 +26,7 @@ func (s *storage) CircleById(id int64) (*model.Circle, error) {
 	return circle, nil
 }
 
-// Circles gets all the circles that have been create from the user
+// Circles gets all the circles that have been created from the user
 func (s *storage) Circles(userIdentityId string) ([]*model.Circle, error) {
 	var circles []*model.Circle
 	err := s.db.Preload(clause.Associations).
@@ -41,6 +42,51 @@ func (s *storage) Circles(userIdentityId string) ([]*model.Circle, error) {
 		return nil, err
 	case database.RecordNotFound(err):
 		s.log.Infof("circles with user id %s not found: %s", userIdentityId, err)
+		return nil, err
+	}
+
+	return circles, nil
+}
+
+// CirclesFiltered gets all circles that matches the filter
+func (s *storage) CirclesFiltered(name string) ([]*model.CirclePaginated, error) {
+	var circles []*model.CirclePaginated
+
+	err := s.db.Model(&model.Circle{}).
+		Select("circles.id, circles.name, circles.description, circles.image_src, circles.active").
+		Limit(100).
+		Order("updated_at desc").
+		Where("name LIKE ?", fmt.Sprintf("%%%s%%", name)).
+		Find(&circles).
+		Error
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		s.log.Errorf("error reading circles: %s", err)
+		return nil, err
+	case database.RecordNotFound(err):
+		s.log.Infof("circles not found: %s", err)
+		return nil, err
+	}
+
+	return circles, nil
+}
+
+// NearestCircles evaluates all the nearest circles to the user (geolocation)
+func (s *storage) NearestCircles() ([]*model.Circle, error) {
+	var circles []*model.Circle
+	err := s.db.Preload(clause.Associations).
+		Limit(100).
+		Order("updated_at desc").
+		Find(&circles).
+		Error
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		s.log.Errorf("error reading nearest circles: %s", err)
+		return nil, err
+	case database.RecordNotFound(err):
+		s.log.Infof("nearest circles not found: %s", err)
 		return nil, err
 	}
 

@@ -179,6 +179,61 @@ func (s *Server) Circles() gin.HandlerFunc {
 	}
 }
 
+func (s *Server) CirclesByName() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		errResponse := model.Response{
+			Status: model.ResponseError,
+			Msg:    "cannot find circles with name",
+			Data:   nil,
+		}
+
+		circleUriReq := &model.CircleByUriRequest{}
+
+		err := ctx.ShouldBindUri(circleUriReq)
+
+		if err != nil {
+			s.log.Error(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
+		if err := s.validate.Struct(circleUriReq); err != nil {
+			s.log.Warn(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
+		circles, err := s.circleService.CirclesFiltered(ctx.Request.Context(), &circleUriReq.Name)
+
+		if err != nil {
+			s.log.Errorf("service error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, errResponse)
+			return
+		}
+
+		var paginatedUsersResponse []*model.CirclePaginatedResponse
+
+		for _, circle := range circles {
+			c := &model.CirclePaginatedResponse{
+				ID:          circle.ID,
+				Name:        circle.Name,
+				Description: circle.Description,
+				ImageSrc:    circle.ImageSrc,
+				Active:      circle.Active,
+			}
+			paginatedUsersResponse = append(paginatedUsersResponse, c)
+		}
+
+		response := model.Response{
+			Status: model.ResponseSuccess,
+			Msg:    "",
+			Data:   paginatedUsersResponse,
+		}
+
+		ctx.JSON(http.StatusOK, response)
+	}
+}
+
 func (s *Server) CreateCircle() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		errResponse := model.Response{
