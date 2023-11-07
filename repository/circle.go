@@ -54,9 +54,9 @@ func (s *storage) CirclesFiltered(name string) ([]*model.CirclePaginated, error)
 
 	err := s.db.Model(&model.Circle{}).
 		Select("circles.id, circles.name, circles.description, circles.image_src, circles.active").
+		Where("name LIKE ?", fmt.Sprintf("%%%s%%", name)).
 		Limit(100).
 		Order("updated_at desc").
-		Where("name LIKE ?", fmt.Sprintf("%%%s%%", name)).
 		Find(&circles).
 		Error
 
@@ -72,12 +72,20 @@ func (s *storage) CirclesFiltered(name string) ([]*model.CirclePaginated, error)
 	return circles, nil
 }
 
-// NearestCircles evaluates all the nearest circles to the user (geolocation)
-func (s *storage) NearestCircles() ([]*model.Circle, error) {
-	var circles []*model.Circle
-	err := s.db.Preload(clause.Associations).
+// CirclesOfInterest evaluates all the circles that the user is involved (is a voter)
+// and filters out the ones that belongs to the user.
+func (s *storage) CirclesOfInterest(userIdentityId string) ([]*model.CirclePaginated, error) {
+	var circles []*model.CirclePaginated
+
+	err := s.db.Model(&model.Circle{}).
+		Select("circles.id, circles.name, circles.description, circles.image_src, circles.active").
+		Joins("left join circle_voters on circles.id = circle_voters.circle_id").
+		Where("circle_voters.voter = ?", userIdentityId).
+		Where(
+			s.db.Where("circles.created_from <> ?", userIdentityId),
+		).
 		Limit(100).
-		Order("updated_at desc").
+		Order("circles.updated_at desc").
 		Find(&circles).
 		Error
 

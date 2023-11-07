@@ -23,6 +23,9 @@ type CircleService interface {
 		ctx context.Context,
 		name *string,
 	) ([]*model.CirclePaginated, error)
+	CirclesOfInterest(
+		ctx context.Context,
+	) ([]*model.CirclePaginated, error)
 	UpdateCircle(
 		ctx context.Context,
 		circleUpdateRequest *model.CircleUpdateRequest,
@@ -44,6 +47,7 @@ type CircleRepository interface {
 	CircleById(id int64) (*model.Circle, error)
 	Circles(userIdentityId string) ([]*model.Circle, error)
 	CirclesFiltered(name string) ([]*model.CirclePaginated, error)
+	CirclesOfInterest(userIdentityId string) ([]*model.CirclePaginated, error)
 	UpdateCircle(circle *model.Circle) (*model.Circle, error)
 	CreateNewCircle(circle *model.Circle) (*model.Circle, error)
 	CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
@@ -135,6 +139,25 @@ func (c *circleService) CirclesFiltered(
 	name *string,
 ) ([]*model.CirclePaginated, error) {
 	circles, err := c.storage.CirclesFiltered(*name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return circles, nil
+}
+
+func (c *circleService) CirclesOfInterest(
+	ctx context.Context,
+) ([]*model.CirclePaginated, error) {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return nil, err
+	}
+
+	circles, err := c.storage.CirclesOfInterest(authClaims.Subject)
 
 	if err != nil {
 		return nil, err
@@ -286,7 +309,8 @@ func (c *circleService) CreateCircle(
 		return nil, err
 	}
 
-	var circleVoters = c.createCircleVoterList(authClaims.Subject, circleCreateRequest.Voters)
+	circleVoters := c.createCircleVoterList(authClaims.Subject, circleCreateRequest.Voters)
+
 	newCircle.Voters = circleVoters
 
 	circle, err := c.storage.CreateNewCircle(newCircle)
@@ -359,7 +383,7 @@ func (c *circleService) AddToGlobalCircle(
 		CircleRefer: &circle.ID,
 		Commitment:  model.CommitmentCommitted,
 	}
-	circleVoter, err = c.storage.CreateNewCircleVoter(circleVoter)
+	_, err = c.storage.CreateNewCircleVoter(circleVoter)
 
 	if err != nil {
 		c.log.Errorf("error adding voter to global circle: %s", err)

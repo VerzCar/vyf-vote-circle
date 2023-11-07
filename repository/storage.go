@@ -21,7 +21,7 @@ type Storage interface {
 	CircleById(id int64) (*model.Circle, error)
 	Circles(userIdentityId string) ([]*model.Circle, error)
 	CirclesFiltered(name string) ([]*model.CirclePaginated, error)
-	NearestCircles() ([]*model.Circle, error)
+	CirclesOfInterest(userIdentityId string) ([]*model.CirclePaginated, error)
 	UpdateCircle(circle *model.Circle) (*model.Circle, error)
 	CreateNewCircle(circle *model.Circle) (*model.Circle, error)
 	CountCirclesOfUser(userIdentityId string) (int64, error)
