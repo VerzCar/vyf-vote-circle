@@ -236,6 +236,10 @@ func (c *circleService) UpdateCircle(
 		circle.ImageSrc = *circleUpdateRequest.ImageSrc
 	}
 
+	if circleUpdateRequest.Description != nil {
+		circle.Description = *circleUpdateRequest.Description
+	}
+
 	if circleUpdateRequest.Voters != nil {
 		var circleVoters []*model.CircleVoter
 		for _, voter := range circleUpdateRequest.Voters {
