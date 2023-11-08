@@ -289,6 +289,10 @@ func (c *circleService) CreateCircle(
 		newCircle.Private = *circleCreateRequest.Private
 	}
 
+	if circleCreateRequest.Description != nil {
+		newCircle.Description = *circleCreateRequest.Description
+	}
+
 	// check if new valid until time is given and is in the future from now on
 	if circleCreateRequest.ValidUntil != nil {
 		currentTime := time.Now()
