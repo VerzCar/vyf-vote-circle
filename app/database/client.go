@@ -14,4 +14,5 @@ type Client interface {
 	Where(query interface{}, args ...interface{}) (tx *gorm.DB)
 	Save(value interface{}) (tx *gorm.DB)
 	Transaction(fc func(tx *gorm.DB) error, opts ...*sql.TxOptions) (err error)
+	ScanRows(rows *sql.Rows, dest interface{}) error
 }

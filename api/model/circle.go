@@ -76,6 +76,7 @@ type CirclePaginated struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	ImageSrc    string `json:"imageSrc"`
+	VotersCount int64  `json:"votersCount"`
 	Active      bool   `json:"active"`
 }
 
@@ -84,6 +85,7 @@ type CirclePaginatedResponse struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	ImageSrc    string `json:"imageSrc"`
+	VotersCount *int64 `json:"votersCount"`
 	Active      bool   `json:"active"`
 }
 

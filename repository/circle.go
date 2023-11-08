@@ -77,17 +77,29 @@ func (s *storage) CirclesFiltered(name string) ([]*model.CirclePaginated, error)
 func (s *storage) CirclesOfInterest(userIdentityId string) ([]*model.CirclePaginated, error) {
 	var circles []*model.CirclePaginated
 
-	err := s.db.Model(&model.Circle{}).
-		Select("circles.id, circles.name, circles.description, circles.image_src, circles.active").
-		Joins("left join circle_voters on circles.id = circle_voters.circle_id").
-		Where("circle_voters.voter = ?", userIdentityId).
-		Where(
-			s.db.Where("circles.created_from <> ?", userIdentityId),
-		).
-		Limit(100).
-		Order("circles.updated_at desc").
-		Find(&circles).
-		Error
+	err := s.db.Model(&model.Circle{}).Raw(
+		`WITH cte AS (SELECT circle_voters.circle_id,
+                    count(1) as voters_count
+             from circle_voters
+             group by circle_voters.circle_id)
+
+		SELECT circles.id,
+			   circles.name,
+			   circles.description,
+			   circles.image_src,
+			   voters_count,
+			   circles.active
+		FROM circles
+				 left join circle_voters on circles.id = circle_voters.circle_id
+				 INNER JOIN cte USING (circle_id)
+		WHERE circle_voters.voter = ?
+		  AND (circles.created_from <> ?)
+		ORDER BY circles.updated_at desc
+		LIMIT ?;`,
+		userIdentityId,
+		userIdentityId,
+		100,
+	).Scan(&circles).Error
 
 	switch {
 	case err != nil && !database.RecordNotFound(err):

@@ -258,6 +258,7 @@ func (s *Server) CirclesOfInterest() gin.HandlerFunc {
 				Name:        circle.Name,
 				Description: circle.Description,
 				ImageSrc:    circle.ImageSrc,
+				VotersCount: &circle.VotersCount,
 				Active:      circle.Active,
 			}
 			paginatedUsersResponse = append(paginatedUsersResponse, c)
