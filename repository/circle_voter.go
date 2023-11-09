@@ -65,3 +65,43 @@ func (s *storage) IsVoterInCircle(
 
 	return count > 0, nil
 }
+
+// CircleVotersFiltered gets all the voters for the given circle id that matches the filter
+// If no filter is provided all circle voters for the circle will be returned.
+func (s *storage) CircleVotersFiltered(
+	circleId int64,
+	userIdentityId string,
+	filterBy *model.CircleVotersFilterBy,
+) ([]*model.CircleVoter, error) {
+	var circleVoters []*model.CircleVoter
+
+	tx := s.db.Model(&model.CircleVoter{}).
+		Where(&model.CircleVoter{CircleID: circleId}).
+		Limit(100).
+		Order("updated_at desc")
+
+	if filterBy.Commitment != nil {
+		tx.Where(&model.CircleVoter{Commitment: *filterBy.Commitment})
+	}
+
+	if filterBy.HasBeenVoted {
+		tx.Where("voted_from IS NOT NULL")
+	}
+
+	if !filterBy.ShouldContainUser {
+		tx.Not(&model.CircleVoter{Voter: userIdentityId})
+	}
+
+	err := tx.Find(&circleVoters).Error
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		s.log.Errorf("error reading circle voters: %s", err)
+		return nil, err
+	case database.RecordNotFound(err):
+		s.log.Infof("circle voters not found: %s", err)
+		return nil, err
+	}
+
+	return circleVoters, nil
+}

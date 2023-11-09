@@ -34,8 +34,23 @@ type CircleVoterResponse struct {
 	UpdatedAt  time.Time  `json:"updatedAt"`
 }
 
+type CircleVotersResponse struct {
+	Voters    []*CircleVoterResponse `json:"voters"`
+	UserVoter *CircleVoterResponse   `json:"userVoter"`
+}
+
 type CircleVoterRequest struct {
 	Voter string `json:"voter" validate:"gt=0,lte=50"`
+}
+
+type CircleVotersFilterBy struct {
+	Commitment        *Commitment `json:"commitment,omitempty" validate:"omitempty,gt=0,lte=12"`
+	HasBeenVoted      bool        `json:"hasBeenVoted"`
+	ShouldContainUser bool        `json:"shouldContainUser"`
+}
+
+type CircleVotersRequest struct {
+	Filter CircleVotersFilterBy `json:"filter,omitempty"`
 }
 
 type Commitment string

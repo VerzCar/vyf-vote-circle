@@ -40,15 +40,14 @@ type CircleByUriRequest struct {
 }
 
 type CircleResponse struct {
-	ID          int64                  `json:"id"`
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	ImageSrc    string                 `json:"imageSrc"`
-	Voters      []*CircleVoterResponse `json:"voters"`
-	Private     bool                   `json:"private"`
-	Active      bool                   `json:"active"`
-	CreatedFrom string                 `json:"createdFrom"`
-	ValidUntil  *time.Time             `json:"validUntil"`
+	ID          int64      `json:"id"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	ImageSrc    string     `json:"imageSrc"`
+	Private     bool       `json:"private"`
+	Active      bool       `json:"active"`
+	CreatedFrom string     `json:"createdFrom"`
+	ValidUntil  *time.Time `json:"validUntil"`
 }
 
 type CircleUpdateRequest struct {

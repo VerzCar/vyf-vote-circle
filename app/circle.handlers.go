@@ -32,27 +32,11 @@ func (s *Server) Circle() gin.HandlerFunc {
 			return
 		}
 
-		var voters []*model.CircleVoterResponse
-
-		for _, voter := range circle.Voters {
-			voterResponse := &model.CircleVoterResponse{
-				ID:         voter.ID,
-				Voter:      voter.Voter,
-				Commitment: voter.Commitment,
-				VotedFor:   voter.VotedFor,
-				VotedFrom:  voter.VotedFrom,
-				CreatedAt:  voter.CreatedAt,
-				UpdatedAt:  voter.UpdatedAt,
-			}
-			voters = append(voters, voterResponse)
-		}
-
 		circleResponse := &model.CircleResponse{
 			ID:          circle.ID,
 			Name:        circle.Name,
 			Description: circle.Description,
 			ImageSrc:    circle.ImageSrc,
-			Voters:      voters,
 			Private:     circle.Private,
 			Active:      circle.Active,
 			CreatedFrom: circle.CreatedFrom,
@@ -139,27 +123,11 @@ func (s *Server) Circles() gin.HandlerFunc {
 		var circlesResponse []*model.CircleResponse
 
 		for _, circle := range circles {
-			var voters []*model.CircleVoterResponse
-
-			for _, voter := range circle.Voters {
-				voterResponse := &model.CircleVoterResponse{
-					ID:         voter.ID,
-					Voter:      voter.Voter,
-					Commitment: voter.Commitment,
-					VotedFor:   voter.VotedFor,
-					VotedFrom:  voter.VotedFrom,
-					CreatedAt:  voter.CreatedAt,
-					UpdatedAt:  voter.UpdatedAt,
-				}
-				voters = append(voters, voterResponse)
-			}
-
 			circleResponse := &model.CircleResponse{
 				ID:          circle.ID,
 				Name:        circle.Name,
 				Description: circle.Description,
 				ImageSrc:    circle.ImageSrc,
-				Voters:      voters,
 				Private:     circle.Private,
 				Active:      circle.Active,
 				CreatedFrom: circle.CreatedFrom,
@@ -306,27 +274,11 @@ func (s *Server) CreateCircle() gin.HandlerFunc {
 			return
 		}
 
-		var voters []*model.CircleVoterResponse
-
-		for _, voter := range circle.Voters {
-			voterResponse := &model.CircleVoterResponse{
-				ID:         voter.ID,
-				Voter:      voter.Voter,
-				Commitment: voter.Commitment,
-				VotedFor:   voter.VotedFor,
-				VotedFrom:  voter.VotedFrom,
-				CreatedAt:  voter.CreatedAt,
-				UpdatedAt:  voter.UpdatedAt,
-			}
-			voters = append(voters, voterResponse)
-		}
-
 		circleResponse := &model.CircleResponse{
 			ID:          circle.ID,
 			Name:        circle.Name,
 			Description: circle.Description,
 			ImageSrc:    circle.ImageSrc,
-			Voters:      voters,
 			Private:     circle.Private,
 			Active:      circle.Active,
 			CreatedFrom: circle.CreatedFrom,
@@ -375,27 +327,11 @@ func (s *Server) UpdateCircle() gin.HandlerFunc {
 			return
 		}
 
-		var voters []*model.CircleVoterResponse
-
-		for _, voter := range circle.Voters {
-			voterResponse := &model.CircleVoterResponse{
-				ID:         voter.ID,
-				Voter:      voter.Voter,
-				Commitment: voter.Commitment,
-				VotedFor:   voter.VotedFor,
-				VotedFrom:  voter.VotedFrom,
-				CreatedAt:  voter.CreatedAt,
-				UpdatedAt:  voter.UpdatedAt,
-			}
-			voters = append(voters, voterResponse)
-		}
-
 		circleResponse := &model.CircleResponse{
 			ID:          circle.ID,
 			Name:        circle.Name,
 			Description: circle.Description,
 			ImageSrc:    circle.ImageSrc,
-			Voters:      voters,
 			Private:     circle.Private,
 			Active:      circle.Active,
 			CreatedFrom: circle.CreatedFrom,

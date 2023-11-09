@@ -11,8 +11,9 @@ import (
 // CircleById gets the circle by id
 func (s *storage) CircleById(id int64) (*model.Circle, error) {
 	circle := &model.Circle{}
-	err := s.db.Preload(clause.Associations).
-		Where(&model.Circle{ID: id}).First(circle).Error
+	err := s.db.Where(&model.Circle{ID: id}).
+		First(circle).
+		Error
 
 	switch {
 	case err != nil && !database.RecordNotFound(err):
@@ -26,11 +27,11 @@ func (s *storage) CircleById(id int64) (*model.Circle, error) {
 	return circle, nil
 }
 
-// Circles gets all the circles that have been created from the user
+// Circles gets all the active circles that have been created from the user
 func (s *storage) Circles(userIdentityId string) ([]*model.Circle, error) {
 	var circles []*model.Circle
-	err := s.db.Preload(clause.Associations).
-		Where(&model.Circle{CreatedFrom: userIdentityId}).
+	err := s.db.Where(&model.Circle{CreatedFrom: userIdentityId}).
+		Not(&model.Circle{Active: false}).
 		Limit(int(s.config.Circle.MaxAmountPerUser)).
 		Order("updated_at desc").
 		Find(&circles).
