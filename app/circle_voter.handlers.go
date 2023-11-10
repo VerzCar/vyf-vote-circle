@@ -26,7 +26,7 @@ func (s *Server) CircleVoters() gin.HandlerFunc {
 
 		circleVotersReq := &model.CircleVotersRequest{}
 
-		err = ctx.ShouldBindJSON(circleVotersReq)
+		err = ctx.ShouldBind(circleVotersReq)
 
 		if err != nil {
 			s.log.Error(err)
@@ -40,10 +40,16 @@ func (s *Server) CircleVoters() gin.HandlerFunc {
 			return
 		}
 
+		filterBy := &model.CircleVotersFilterBy{
+			Commitment:        circleVotersReq.Commitment,
+			HasBeenVoted:      circleVotersReq.HasBeenVoted,
+			ShouldContainUser: circleVotersReq.ShouldContainUser,
+		}
+
 		voters, userVoter, err := s.circleVoterService.CircleVotersFiltered(
 			ctx.Request.Context(),
 			circleReq.CircleID,
-			&circleVotersReq.Filter,
+			filterBy,
 		)
 
 		if err != nil {

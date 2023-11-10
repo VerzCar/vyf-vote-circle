@@ -44,13 +44,13 @@ type CircleVoterRequest struct {
 }
 
 type CircleVotersFilterBy struct {
-	Commitment        *Commitment `json:"commitment,omitempty" validate:"omitempty,gt=0,lte=12"`
-	HasBeenVoted      bool        `json:"hasBeenVoted"`
-	ShouldContainUser bool        `json:"shouldContainUser"`
+	Commitment        *Commitment `form:"commitment,omitempty" validate:"omitempty,gt=0,lte=12"`
+	HasBeenVoted      bool        `form:"hasBeenVoted"`
+	ShouldContainUser bool        `form:"shouldContainUser"`
 }
 
 type CircleVotersRequest struct {
-	Filter CircleVotersFilterBy `json:"filter,omitempty"`
+	CircleVotersFilterBy
 }
 
 type Commitment string
