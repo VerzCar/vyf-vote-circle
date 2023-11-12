@@ -85,7 +85,11 @@ func (s *storage) CircleVotersFiltered(
 	}
 
 	if filterBy.HasBeenVoted != nil {
-		tx.Where("voted_from IS NOT NULL")
+		if *filterBy.HasBeenVoted {
+			tx.Where("voted_from IS NOT NULL")
+		} else {
+			tx.Where("voted_from IS NULL")
+		}
 	}
 
 	if shouldContainUser := filterBy.ShouldContainUser != nil; !shouldContainUser {
