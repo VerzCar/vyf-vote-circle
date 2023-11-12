@@ -45,8 +45,8 @@ type CircleVoterRequest struct {
 
 type CircleVotersFilterBy struct {
 	Commitment        *Commitment `form:"commitment,omitempty" validate:"omitempty,gt=0,lte=12"`
-	HasBeenVoted      bool        `form:"hasBeenVoted"`
-	ShouldContainUser bool        `form:"shouldContainUser"`
+	HasBeenVoted      *bool       `form:"hasBeenVoted,omitempty"`
+	ShouldContainUser *bool       `form:"shouldContainUser,omitempty"`
 }
 
 type CircleVotersRequest struct {

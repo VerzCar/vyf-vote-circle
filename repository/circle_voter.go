@@ -84,11 +84,11 @@ func (s *storage) CircleVotersFiltered(
 		tx.Where(&model.CircleVoter{Commitment: *filterBy.Commitment})
 	}
 
-	if filterBy.HasBeenVoted {
+	if filterBy.HasBeenVoted != nil {
 		tx.Where("voted_from IS NOT NULL")
 	}
 
-	if !filterBy.ShouldContainUser {
+	if shouldContainUser := filterBy.ShouldContainUser != nil; !shouldContainUser {
 		tx.Not(&model.CircleVoter{Voter: userIdentityId})
 	}
 
