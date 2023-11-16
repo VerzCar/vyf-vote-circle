@@ -29,6 +29,9 @@ func (s *Server) routes() {
 		// rankings
 		authorized.GET("/rankings/:circleId", s.Rankings())
 
+		// ably token
+		authorized.GET("/token/ably", s.TokenAbly())
+
 		// Upload group
 		upload := authorized.Group("/upload")
 		upload.PUT("/circle-img/:circleId", s.UploadCircleImage())
