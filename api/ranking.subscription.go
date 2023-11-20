@@ -53,7 +53,7 @@ func (s *rankingSubscriptionService) RankingChangedEvent(
 	ranking *model.RankingResponse,
 ) error {
 	channelName := fmt.Sprintf("circle-%d:rankings", circleId)
-	msgName := "ranking changed"
+	msgName := "ranking-changed"
 
 	channel := s.pubSubService.Channels.Get(channelName)
 

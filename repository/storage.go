@@ -36,6 +36,7 @@ type Storage interface {
 		filterBy *model.CircleVotersFilterBy,
 	) ([]*model.CircleVoter, error)
 
+	CreateNewRanking(ranking *model.Ranking) (*model.Ranking, error)
 	RankingsByCircleId(circleId int64) ([]*model.Ranking, error)
 
 	CreateNewVote(

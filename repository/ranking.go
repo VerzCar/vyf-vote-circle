@@ -5,6 +5,16 @@ import (
 	"github.com/VerzCar/vyf-vote-circle/app/database"
 )
 
+// CreateNewRanking based on given model.Ranking model
+func (s *storage) CreateNewRanking(ranking *model.Ranking) (*model.Ranking, error) {
+	if err := s.db.Create(ranking).Error; err != nil {
+		s.log.Infof("error creating ranking: %s", err)
+		return nil, err
+	}
+
+	return ranking, nil
+}
+
 // RankingsByCircleId gets all rankings by the given circle id
 func (s *storage) RankingsByCircleId(circleId int64) ([]*model.Ranking, error) {
 	var rankings []*model.Ranking
