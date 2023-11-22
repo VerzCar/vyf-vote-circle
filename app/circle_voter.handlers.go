@@ -97,3 +97,59 @@ func (s *Server) CircleVoters() gin.HandlerFunc {
 		ctx.JSON(http.StatusOK, response)
 	}
 }
+
+func (s *Server) CircleVoterCommitment() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		errResponse := model.Response{
+			Status: model.ResponseError,
+			Msg:    "cannot set commitment for voter",
+			Data:   nil,
+		}
+
+		circleReq := &model.CircleUriRequest{}
+
+		err := ctx.ShouldBindUri(circleReq)
+
+		if err != nil {
+			s.log.Error(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
+		circleVoterCommitmentReq := &model.CircleVoterCommitmentRequest{}
+
+		err = ctx.ShouldBindJSON(circleVoterCommitmentReq)
+
+		if err != nil {
+			s.log.Error(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
+		if err := s.validate.Struct(circleVoterCommitmentReq); err != nil {
+			s.log.Warn(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
+		commitment, err := s.circleVoterService.CircleVoterCommitment(
+			ctx.Request.Context(),
+			circleReq.CircleID,
+			circleVoterCommitmentReq.Commitment,
+		)
+
+		if err != nil {
+			s.log.Errorf("service error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, errResponse)
+			return
+		}
+
+		response := model.Response{
+			Status: model.ResponseSuccess,
+			Msg:    "",
+			Data:   commitment,
+		}
+
+		ctx.JSON(http.StatusOK, response)
+	}
+}

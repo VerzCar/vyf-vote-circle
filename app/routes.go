@@ -22,6 +22,7 @@ func (s *Server) routes() {
 
 		// circle voters
 		authorized.GET("/circle-voters/:circleId", s.CircleVoters())
+		authorized.POST("/circle-voters/:circleId/commitment", s.CircleVoterCommitment())
 
 		// votes
 		authorized.POST("/vote", s.CreateVote())

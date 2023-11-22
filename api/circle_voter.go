@@ -14,6 +14,11 @@ type CircleVoterService interface {
 		circleId int64,
 		filterBy *model.CircleVotersFilterBy,
 	) ([]*model.CircleVoter, *model.CircleVoter, error)
+	CircleVoterCommitment(
+		ctx context.Context,
+		circleId int64,
+		commitment model.Commitment,
+	) (*model.Commitment, error)
 }
 
 type CircleVoterRepository interface {
@@ -23,6 +28,7 @@ type CircleVoterRepository interface {
 		filterBy *model.CircleVotersFilterBy,
 	) ([]*model.CircleVoter, error)
 	CircleVoterByCircleId(circleId int64, voterId string) (*model.CircleVoter, error)
+	UpdateCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
 }
 
 type circleVoterService struct {
@@ -68,4 +74,33 @@ func (c *circleVoterService) CircleVotersFiltered(
 	}
 
 	return voters, voter, nil
+}
+
+func (c *circleVoterService) CircleVoterCommitment(
+	ctx context.Context,
+	circleId int64,
+	commitment model.Commitment,
+) (*model.Commitment, error) {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return nil, err
+	}
+
+	voter, err := c.storage.CircleVoterByCircleId(circleId, authClaims.Subject)
+
+	if err != nil {
+		c.log.Errorf("error voter id %s not in circle: %s", authClaims.Subject, err)
+		return nil, err
+	}
+
+	voter.Commitment = commitment
+	_, err = c.storage.UpdateCircleVoter(voter)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &voter.Commitment, nil
 }

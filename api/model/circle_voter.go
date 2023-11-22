@@ -43,6 +43,10 @@ type CircleVoterRequest struct {
 	Voter string `json:"voter" validate:"gt=0,lte=50"`
 }
 
+type CircleVoterCommitmentRequest struct {
+	Commitment Commitment `json:"commitment" validate:"gt=0,lte=20"`
+}
+
 type CircleVotersFilterBy struct {
 	Commitment        *Commitment `form:"commitment,omitempty" validate:"omitempty,gt=0,lte=12"`
 	HasBeenVoted      *bool       `form:"hasBeenVoted,omitempty"`
