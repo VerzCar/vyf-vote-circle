@@ -58,7 +58,7 @@ func (s *Server) CircleVoters() gin.HandlerFunc {
 			return
 		}
 
-		var votersRes []*model.CircleVoterResponse
+		votersRes := make([]*model.CircleVoterResponse, 0)
 
 		for _, voter := range voters {
 			voterResponse := &model.CircleVoterResponse{

@@ -120,7 +120,7 @@ func (s *Server) Circles() gin.HandlerFunc {
 			return
 		}
 
-		var circlesResponse []*model.CircleResponse
+		circlesResponse := make([]*model.CircleResponse, 0)
 
 		for _, circle := range circles {
 			circleResponse := &model.CircleResponse{
@@ -179,7 +179,7 @@ func (s *Server) CirclesByName() gin.HandlerFunc {
 			return
 		}
 
-		var paginatedUsersResponse []*model.CirclePaginatedResponse
+		paginatedUsersResponse := make([]*model.CirclePaginatedResponse, 0)
 
 		for _, circle := range circles {
 			c := &model.CirclePaginatedResponse{
@@ -218,7 +218,7 @@ func (s *Server) CirclesOfInterest() gin.HandlerFunc {
 			return
 		}
 
-		var paginatedUsersResponse []*model.CirclePaginatedResponse
+		paginatedUsersResponse := make([]*model.CirclePaginatedResponse, 0)
 
 		for _, circle := range circles {
 			c := &model.CirclePaginatedResponse{
