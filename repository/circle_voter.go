@@ -47,19 +47,19 @@ func (s *storage) CircleVoterByCircleId(circleId int64, voterId string) (*model.
 // IsVoterInCircle determines if the user exists in the circle voters list
 func (s *storage) IsVoterInCircle(
 	userIdentityId string,
-	circle *model.Circle,
+	circleId int64,
 ) (bool, error) {
 	var count int64
 	err := s.db.Model(&model.CircleVoter{}).
-		Where(&model.CircleVoter{Voter: userIdentityId, CircleID: circle.ID}).
+		Where(&model.CircleVoter{Voter: userIdentityId, CircleID: circleId}).
 		Count(&count).Error
 
 	switch {
 	case err != nil && !database.RecordNotFound(err):
-		s.log.Errorf("error reading circle voter id %d by circle id %d: %s", userIdentityId, circle.ID, err)
+		s.log.Errorf("error reading circle voter id %d by circle id %d: %s", userIdentityId, circleId, err)
 		return false, err
 	case database.RecordNotFound(err):
-		s.log.Infof("voter with id %d in circle id %d not found: %s", userIdentityId, circle.ID, err)
+		s.log.Infof("voter with id %d in circle id %d not found: %s", userIdentityId, circleId, err)
 		return false, err
 	}
 

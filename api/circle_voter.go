@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	logger "github.com/VerzCar/vyf-lib-logger"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/VerzCar/vyf-vote-circle/app/config"
@@ -19,6 +20,10 @@ type CircleVoterService interface {
 		circleId int64,
 		commitment model.Commitment,
 	) (*model.Commitment, error)
+	CircleVoterJoinCircle(
+		ctx context.Context,
+		circleId int64,
+	) error
 }
 
 type CircleVoterRepository interface {
@@ -27,8 +32,11 @@ type CircleVoterRepository interface {
 		userIdentityId string,
 		filterBy *model.CircleVotersFilterBy,
 	) ([]*model.CircleVoter, error)
+	CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
 	CircleVoterByCircleId(circleId int64, voterId string) (*model.CircleVoter, error)
 	UpdateCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
+	IsVoterInCircle(userIdentityId string, circleId int64) (bool, error)
+	CircleById(id int64) (*model.Circle, error)
 }
 
 type circleVoterService struct {
@@ -103,4 +111,53 @@ func (c *circleVoterService) CircleVoterCommitment(
 	}
 
 	return &voter.Commitment, nil
+}
+
+func (c *circleVoterService) CircleVoterJoinCircle(
+	ctx context.Context,
+	circleId int64,
+) error {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return err
+	}
+
+	circle, err := c.storage.CircleById(circleId)
+
+	if err != nil {
+		return err
+	}
+
+	if circle.Private {
+		err = fmt.Errorf("user cannot join private circle")
+		return err
+	}
+
+	isVoterInCircle, err := c.storage.IsVoterInCircle(authClaims.Subject, circleId)
+
+	if err != nil {
+		return err
+	}
+
+	if isVoterInCircle {
+		err = fmt.Errorf("user is already as voter in the circle")
+		return err
+	}
+
+	circleVoter := &model.CircleVoter{
+		Voter:       authClaims.Subject,
+		Circle:      circle,
+		CircleRefer: &circle.ID,
+		Commitment:  model.CommitmentCommitted,
+	}
+	_, err = c.storage.CreateNewCircleVoter(circleVoter)
+
+	if err != nil {
+		c.log.Errorf("error adding voter to circle id %d: %s", circleId, err)
+		return err
+	}
+
+	return nil
 }

@@ -51,7 +51,7 @@ type CircleRepository interface {
 	UpdateCircle(circle *model.Circle) (*model.Circle, error)
 	CreateNewCircle(circle *model.Circle) (*model.Circle, error)
 	CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
-	IsVoterInCircle(userIdentityId string, circle *model.Circle) (bool, error)
+	IsVoterInCircle(userIdentityId string, circleId int64) (bool, error)
 	CountCirclesOfUser(userIdentityId string) (int64, error)
 }
 
@@ -378,7 +378,7 @@ func (c *circleService) AddToGlobalCircle(
 		return err
 	}
 
-	isVoterInCircle, err := c.storage.IsVoterInCircle(authClaims.Subject, circle)
+	isVoterInCircle, err := c.storage.IsVoterInCircle(authClaims.Subject, circle.ID)
 
 	if err != nil {
 		return err
@@ -416,7 +416,7 @@ func (c *circleService) eligibleToBeInCircle(
 		return true, nil
 	}
 
-	return c.storage.IsVoterInCircle(userIdentityId, circle)
+	return c.storage.IsVoterInCircle(userIdentityId, circle.ID)
 }
 
 // inactivateCircle of the given circle and updates it in the database to an
