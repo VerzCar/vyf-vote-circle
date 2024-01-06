@@ -228,10 +228,6 @@ func (c *circleService) UpdateCircle(
 		circle.Name = *circleUpdateRequest.Name
 	}
 
-	if circleUpdateRequest.Private != nil {
-		circle.Private = *circleUpdateRequest.Private
-	}
-
 	if circleUpdateRequest.ImageSrc != nil {
 		circle.ImageSrc = *circleUpdateRequest.ImageSrc
 	}
@@ -240,7 +236,8 @@ func (c *circleService) UpdateCircle(
 		circle.Description = *circleUpdateRequest.Description
 	}
 
-	if circleUpdateRequest.Voters != nil {
+	// can only update voters if the circle is private
+	if circleUpdateRequest.Voters != nil && circle.Private {
 		var circleVoters []*model.CircleVoter
 		for _, voter := range circleUpdateRequest.Voters {
 			circleVoter := &model.CircleVoter{

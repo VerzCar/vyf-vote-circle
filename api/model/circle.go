@@ -56,7 +56,6 @@ type CircleUpdateRequest struct {
 	Description *string               `json:"description,omitempty" validate:"omitempty,gt=0,lte=1200"`
 	ImageSrc    *string               `json:"imageSrc,omitempty" validate:"omitempty,url"`
 	Voters      []*CircleVoterRequest `json:"voters,omitempty"`
-	Private     *bool                 `json:"private,omitempty" validate:"omitempty"`
 	Delete      *bool                 `json:"delete,omitempty" validate:"omitempty"`
 	ValidUntil  *time.Time            `json:"validUntil,omitempty" validate:"omitempty"`
 }
