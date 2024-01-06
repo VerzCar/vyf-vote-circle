@@ -308,6 +308,9 @@ func (c *circleService) CreateCircle(
 
 		circleVoters := c.createCircleVoterList(authClaims.Subject, circleCreateRequest.Voters)
 		newCircle.Voters = circleVoters
+	} else {
+		circleVoters := c.createCircleVoterListForCreator(authClaims.Subject)
+		newCircle.Voters = circleVoters
 	}
 
 	if circleCreateRequest.Description != nil {
@@ -458,6 +461,22 @@ func (c *circleService) createCircleVoterList(
 		}
 		circleVoters = append(circleVoters, circleVoter)
 	}
+
+	return circleVoters
+}
+
+// creates a circle voter list that contains only the
+// creator fo the circle
+func (c *circleService) createCircleVoterListForCreator(
+	createdFrom string,
+) []*model.CircleVoter {
+	var circleVoters []*model.CircleVoter
+
+	circleVoter := &model.CircleVoter{
+		Voter: createdFrom,
+	}
+
+	circleVoters = append(circleVoters, circleVoter)
 
 	return circleVoters
 }
