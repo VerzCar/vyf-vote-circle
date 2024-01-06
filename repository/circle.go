@@ -138,16 +138,18 @@ func (s *storage) CreateNewCircle(circle *model.Circle) (*model.Circle, error) {
 
 			circleVoters := circle.Voters
 
-			for _, voter := range circleVoters {
-				voter.CircleID = circle.ID
-				voter.CircleRefer = &circle.ID
-			}
+			if len(circleVoters) > 0 {
+				for _, voter := range circleVoters {
+					voter.CircleID = circle.ID
+					voter.CircleRefer = &circle.ID
+				}
 
-			err = tx.Model(&model.CircleVoter{}).Create(circleVoters).Error
+				err = tx.Model(&model.CircleVoter{}).Create(circleVoters).Error
 
-			if err != nil {
-				s.log.Error("error creating circle voters entry: %s", err)
-				return err
+				if err != nil {
+					s.log.Error("error creating circle voters entry: %s", err)
+					return err
+				}
 			}
 
 			circle.Voters = circleVoters

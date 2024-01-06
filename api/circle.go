@@ -284,6 +284,11 @@ func (c *circleService) CreateCircle(
 		return nil, err
 	}
 
+	if len(circleCreateRequest.Voters) > c.config.Circle.MaxVoters {
+		err = fmt.Errorf("circle has more than %d allowed voters", c.config.Circle.MaxVoters)
+		return nil, err
+	}
+
 	newCircle := &model.Circle{
 		Name:        circleCreateRequest.Name,
 		CreatedFrom: authClaims.Subject,
@@ -291,6 +296,21 @@ func (c *circleService) CreateCircle(
 
 	if circleCreateRequest.Private != nil {
 		newCircle.Private = *circleCreateRequest.Private
+	}
+
+	if newCircle.Private && len(circleCreateRequest.Voters) <= 0 {
+		err = fmt.Errorf("circle must contain at least one voter if private")
+		return nil, err
+	}
+
+	if len(circleCreateRequest.Voters) > 0 {
+		if !newCircle.Private {
+			err = fmt.Errorf("circle must be private to add voters")
+			return nil, err
+		}
+
+		circleVoters := c.createCircleVoterList(authClaims.Subject, circleCreateRequest.Voters)
+		newCircle.Voters = circleVoters
 	}
 
 	if circleCreateRequest.Description != nil {
@@ -306,20 +326,6 @@ func (c *circleService) CreateCircle(
 		}
 		newCircle.ValidUntil = circleCreateRequest.ValidUntil
 	}
-
-	if len(circleCreateRequest.Voters) <= 0 {
-		err = fmt.Errorf("voters for circle are not given")
-		return nil, err
-	}
-
-	if len(circleCreateRequest.Voters) > c.config.Circle.MaxVoters {
-		err = fmt.Errorf("circle has more than %d allowed voters", c.config.Circle.MaxVoters)
-		return nil, err
-	}
-
-	circleVoters := c.createCircleVoterList(authClaims.Subject, circleCreateRequest.Voters)
-
-	newCircle.Voters = circleVoters
 
 	circle, err := c.storage.CreateNewCircle(newCircle)
 

@@ -65,7 +65,7 @@ type CircleCreateRequest struct {
 	Name        string                `json:"name" validate:"gt=0,lte=40"`
 	Description *string               `json:"description,omitempty" validate:"omitempty,gt=0,lte=1200"`
 	ImageSrc    *string               `json:"imageSrc,omitempty" validate:"omitempty,url"`
-	Voters      []*CircleVoterRequest `json:"voters"`
+	Voters      []*CircleVoterRequest `json:"voters,omitempty"`
 	Private     *bool                 `json:"private,omitempty" validate:"omitempty"`
 	ValidUntil  *time.Time            `json:"validUntil,omitempty" validate:"omitempty"`
 }
