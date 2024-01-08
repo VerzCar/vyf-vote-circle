@@ -53,7 +53,7 @@ type CircleResponse struct {
 type CircleUpdateRequest struct {
 	ID          int64                 `json:"id" validate:"gt=0"`
 	Name        *string               `json:"name,omitempty" validate:"omitempty,gt=0,lte=40"`
-	Description *string               `json:"description,omitempty" validate:"omitempty,gt=0,lte=1200"`
+	Description *string               `json:"description,omitempty" validate:"omitempty,lte=1200"`
 	ImageSrc    *string               `json:"imageSrc,omitempty" validate:"omitempty,url"`
 	Voters      []*CircleVoterRequest `json:"voters,omitempty"`
 	Delete      *bool                 `json:"delete,omitempty" validate:"omitempty"`
