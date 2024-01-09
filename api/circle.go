@@ -34,6 +34,10 @@ type CircleService interface {
 		ctx context.Context,
 		circleCreateRequest *model.CircleCreateRequest,
 	) (*model.Circle, error)
+	DeleteCircle(
+		ctx context.Context,
+		circleId int64,
+	) error
 	EligibleToBeInCircle(
 		ctx context.Context,
 		circleId int64,
@@ -334,6 +338,50 @@ func (c *circleService) CreateCircle(
 	}
 
 	return circle, nil
+}
+
+func (c *circleService) DeleteCircle(
+	ctx context.Context,
+	circleId int64,
+) error {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return err
+	}
+
+	userId := authClaims.Subject
+
+	circle, err := c.storage.CircleById(circleId)
+
+	if err != nil {
+		return err
+	}
+
+	// checks whether user is eligible to delete this circle
+	if circle.CreatedFrom != userId {
+		c.log.Infof("user is not eligible to delete circle: user %s, circle ID %d", userId, circle.ID)
+		err = fmt.Errorf("user is not eligible to delete circle")
+		return err
+	}
+
+	// if circle is not active anymore, it can't be updated
+	if !circle.Active {
+		c.log.Infof("user try to delete inactive circle: user %s, circle ID %d", userId, circle.ID)
+		err = fmt.Errorf("circle is not active")
+		return err
+	}
+
+	circle.Active = false
+
+	_, err = c.storage.UpdateCircle(circle)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // EligibleToBeInCircle checks whether the user is allowed to be in the circle.

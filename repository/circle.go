@@ -11,7 +11,7 @@ import (
 // CircleById gets the circle by id
 func (s *storage) CircleById(id int64) (*model.Circle, error) {
 	circle := &model.Circle{}
-	err := s.db.Where(&model.Circle{ID: id}).
+	err := s.db.Where(&model.Circle{ID: id, Active: true}).
 		First(circle).
 		Error
 
@@ -30,8 +30,7 @@ func (s *storage) CircleById(id int64) (*model.Circle, error) {
 // Circles gets all the active circles that have been created from the user
 func (s *storage) Circles(userIdentityId string) ([]*model.Circle, error) {
 	var circles []*model.Circle
-	err := s.db.Where(&model.Circle{CreatedFrom: userIdentityId}).
-		Not(&model.Circle{Active: false}).
+	err := s.db.Where(&model.Circle{CreatedFrom: userIdentityId, Active: true}).
 		Limit(int(s.config.Circle.MaxAmountPerUser)).
 		Order("updated_at desc").
 		Find(&circles).
@@ -49,13 +48,14 @@ func (s *storage) Circles(userIdentityId string) ([]*model.Circle, error) {
 	return circles, nil
 }
 
-// CirclesFiltered gets all circles that matches the filter
+// CirclesFiltered gets all active circles that matches the filter
 func (s *storage) CirclesFiltered(name string) ([]*model.CirclePaginated, error) {
 	var circles []*model.CirclePaginated
 
 	err := s.db.Model(&model.Circle{}).
 		Select("circles.id, circles.name, circles.description, circles.image_src, circles.active").
 		Where("name LIKE ?", fmt.Sprintf("%%%s%%", name)).
+		Where(&model.Circle{Active: true}).
 		Limit(100).
 		Order("updated_at desc").
 		Find(&circles).
@@ -95,10 +95,12 @@ func (s *storage) CirclesOfInterest(userIdentityId string) ([]*model.CirclePagin
 				 INNER JOIN cte USING (circle_id)
 		WHERE circle_voters.voter = ?
 		  AND (circles.created_from <> ?)
+		  AND circles.active = ?
 		ORDER BY circles.updated_at desc
 		LIMIT ?;`,
 		userIdentityId,
 		userIdentityId,
+		true,
 		100,
 	).Scan(&circles).Error
 
@@ -171,7 +173,7 @@ func (s *storage) CountCirclesOfUser(
 ) (int64, error) {
 	var count int64
 	err := s.db.Model(&model.Circle{}).
-		Where(&model.Circle{CreatedFrom: userIdentityId}).
+		Where(&model.Circle{CreatedFrom: userIdentityId, Active: true}).
 		Count(&count).Error
 
 	switch {
