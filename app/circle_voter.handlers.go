@@ -172,7 +172,7 @@ func (s *Server) CircleVoterJoinCircle() gin.HandlerFunc {
 			return
 		}
 
-		err = s.circleVoterService.CircleVoterJoinCircle(
+		voter, err := s.circleVoterService.CircleVoterJoinCircle(
 			ctx.Request.Context(),
 			circleReq.CircleID,
 		)
@@ -183,10 +183,20 @@ func (s *Server) CircleVoterJoinCircle() gin.HandlerFunc {
 			return
 		}
 
+		voterRes := &model.CircleVoterResponse{
+			ID:         voter.ID,
+			Voter:      voter.Voter,
+			Commitment: voter.Commitment,
+			VotedFor:   voter.VotedFor,
+			VotedFrom:  voter.VotedFrom,
+			CreatedAt:  voter.CreatedAt,
+			UpdatedAt:  voter.UpdatedAt,
+		}
+
 		response := model.Response{
 			Status: model.ResponseSuccess,
 			Msg:    "",
-			Data:   "joined",
+			Data:   voterRes,
 		}
 
 		ctx.JSON(http.StatusOK, response)

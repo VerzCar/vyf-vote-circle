@@ -23,7 +23,7 @@ type CircleVoterService interface {
 	CircleVoterJoinCircle(
 		ctx context.Context,
 		circleId int64,
-	) error
+	) (*model.CircleVoter, error)
 }
 
 type CircleVoterRepository interface {
@@ -116,34 +116,34 @@ func (c *circleVoterService) CircleVoterCommitment(
 func (c *circleVoterService) CircleVoterJoinCircle(
 	ctx context.Context,
 	circleId int64,
-) error {
+) (*model.CircleVoter, error) {
 	authClaims, err := routerContext.ContextToAuthClaims(ctx)
 
 	if err != nil {
 		c.log.Errorf("error getting auth claims: %s", err)
-		return err
+		return nil, err
 	}
 
 	circle, err := c.storage.CircleById(circleId)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if circle.Private {
 		err = fmt.Errorf("user cannot join private circle")
-		return err
+		return nil, err
 	}
 
 	isVoterInCircle, err := c.storage.IsVoterInCircle(authClaims.Subject, circleId)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if isVoterInCircle {
 		err = fmt.Errorf("user is already as voter in the circle")
-		return err
+		return nil, err
 	}
 
 	circleVoter := &model.CircleVoter{
@@ -152,12 +152,12 @@ func (c *circleVoterService) CircleVoterJoinCircle(
 		CircleRefer: &circle.ID,
 		Commitment:  model.CommitmentCommitted,
 	}
-	_, err = c.storage.CreateNewCircleVoter(circleVoter)
+	voter, err := c.storage.CreateNewCircleVoter(circleVoter)
 
 	if err != nil {
 		c.log.Errorf("error adding voter to circle id %d: %s", circleId, err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return voter, nil
 }
