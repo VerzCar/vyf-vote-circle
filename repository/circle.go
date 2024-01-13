@@ -84,20 +84,27 @@ func (s *storage) CirclesOfInterest(userIdentityId string) ([]*model.CirclePagin
              from circle_voters
              group by circle_voters.circle_id)
 
-		SELECT circles.id,
-			   circles.name,
-			   circles.description,
-			   circles.image_src,
-			   voters_count,
-			   circles.active
-		FROM circles
-				 left join circle_voters on circles.id = circle_voters.circle_id
-				 INNER JOIN cte USING (circle_id)
-		WHERE circle_voters.voter = ?
-		  AND (circles.created_from <> ?)
-		  AND circles.active = ?
-		ORDER BY circles.updated_at desc
-		LIMIT ?;`,
+			SELECT *
+			FROM (SELECT Distinct ON (circles.id) circles.id,
+												  circles.name,
+												  circles.description,
+												  circles.image_src,
+												  voters_count,
+												  circles.active,
+												  circles.created_at,
+												  circles.updated_at
+            FROM circles
+                 left join circle_voters on circles.id = circle_voters.circle_id
+					   INNER JOIN cte USING (circle_id)
+			  WHERE ((circles.private = ? AND circle_voters.voter = ?)
+				  OR (circles.private = ? AND circle_voters.voter <> ?))
+				AND circles.created_from <> ?
+				AND circles.active = ?
+			  LIMIT ?) circles_of_interest
+            ORDER BY updated_at desc;`,
+		true,
+		userIdentityId,
+		false,
 		userIdentityId,
 		userIdentityId,
 		true,
