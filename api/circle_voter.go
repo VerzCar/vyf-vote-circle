@@ -6,6 +6,7 @@ import (
 	logger "github.com/VerzCar/vyf-lib-logger"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/VerzCar/vyf-vote-circle/app/config"
+	"github.com/VerzCar/vyf-vote-circle/app/database"
 	routerContext "github.com/VerzCar/vyf-vote-circle/app/router/ctx"
 )
 
@@ -77,7 +78,11 @@ func (c *circleVoterService) CircleVotersFiltered(
 
 	voter, err := c.storage.CircleVoterByCircleId(circleId, authClaims.Subject)
 
-	if err != nil {
+	if database.RecordNotFound(err) {
+		return voters, nil, nil
+	}
+
+	if err != nil && !database.RecordNotFound(err) {
 		return nil, nil, err
 	}
 

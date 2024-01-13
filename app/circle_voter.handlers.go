@@ -73,14 +73,18 @@ func (s *Server) CircleVoters() gin.HandlerFunc {
 			votersRes = append(votersRes, voterResponse)
 		}
 
-		userVoterRes := &model.CircleVoterResponse{
-			ID:         userVoter.ID,
-			Voter:      userVoter.Voter,
-			Commitment: userVoter.Commitment,
-			VotedFor:   userVoter.VotedFor,
-			VotedFrom:  userVoter.VotedFrom,
-			CreatedAt:  userVoter.CreatedAt,
-			UpdatedAt:  userVoter.UpdatedAt,
+		var userVoterRes *model.CircleVoterResponse
+
+		if userVoter != nil {
+			userVoterRes = &model.CircleVoterResponse{
+				ID:         userVoter.ID,
+				Voter:      userVoter.Voter,
+				Commitment: userVoter.Commitment,
+				VotedFor:   userVoter.VotedFor,
+				VotedFrom:  userVoter.VotedFrom,
+				CreatedAt:  userVoter.CreatedAt,
+				UpdatedAt:  userVoter.UpdatedAt,
+			}
 		}
 
 		circleVotersRes := &model.CircleVotersResponse{
