@@ -70,12 +70,14 @@ type CircleCreateRequest struct {
 }
 
 type CirclePaginated struct {
-	ID          int64  `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	ImageSrc    string `json:"imageSrc"`
-	VotersCount int64  `json:"votersCount"`
-	Active      bool   `json:"active"`
+	ID          int64     `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	ImageSrc    string    `json:"imageSrc"`
+	VotersCount int64     `json:"votersCount"`
+	Active      bool      `json:"active"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 type CirclePaginatedResponse struct {

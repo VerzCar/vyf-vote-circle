@@ -53,7 +53,7 @@ func (s *storage) CirclesFiltered(name string) ([]*model.CirclePaginated, error)
 	var circles []*model.CirclePaginated
 
 	err := s.db.Model(&model.Circle{}).
-		Select("circles.id, circles.name, circles.description, circles.image_src, circles.active").
+		Select("circles.id, circles.name, circles.description, circles.image_src, circles.active, circles.created_at, circles.updated_at").
 		Where("name LIKE ?", fmt.Sprintf("%%%s%%", name)).
 		Where(&model.Circle{Active: true}).
 		Limit(100).
