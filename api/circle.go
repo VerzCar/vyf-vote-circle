@@ -285,11 +285,6 @@ func (c *circleService) CreateCircle(
 		return nil, err
 	}
 
-	if len(circleCreateRequest.Voters) > c.config.Circle.MaxVoters {
-		err = fmt.Errorf("circle has more than %d allowed voters", c.config.Circle.MaxVoters)
-		return nil, err
-	}
-
 	newCircle := &model.Circle{
 		Name:        circleCreateRequest.Name,
 		CreatedFrom: authClaims.Subject,
@@ -304,16 +299,18 @@ func (c *circleService) CreateCircle(
 		return nil, err
 	}
 
+	if newCircle.Private && len(circleCreateRequest.Voters) > c.config.Circle.MaxVoters {
+		err = fmt.Errorf("circle has more than %d allowed voters", c.config.Circle.MaxVoters)
+		return nil, err
+	}
+
 	if len(circleCreateRequest.Voters) > 0 {
 		if !newCircle.Private {
 			err = fmt.Errorf("circle must be private to add voters")
 			return nil, err
 		}
 
-		circleVoters := c.createCircleVoterList(authClaims.Subject, circleCreateRequest.Voters)
-		newCircle.Voters = circleVoters
-	} else {
-		circleVoters := c.createCircleVoterListForCreator(authClaims.Subject)
+		circleVoters := c.createCircleVoterList(circleCreateRequest.Voters)
 		newCircle.Voters = circleVoters
 	}
 
@@ -485,16 +482,14 @@ func (c *circleService) inactivateCircle(
 	return nil
 }
 
-// createCircleVoterList based on the given createdFrom and the
+// createCircleVoterList based on the
 // circleVoterInputs. It removes all the duplicates from the
-// circleVoterInputs and add the createdFrom id to the list.
+// circleVoterInputs list.
 func (c *circleService) createCircleVoterList(
-	createdFrom string,
 	circleVoterInputs []*model.CircleVoterRequest,
 ) []*model.CircleVoter {
 	var voterIdList []string
 
-	voterIdList = append(voterIdList, createdFrom)
 	for _, voter := range circleVoterInputs {
 		voterIdList = append(voterIdList, voter.Voter)
 	}
@@ -509,22 +504,6 @@ func (c *circleService) createCircleVoterList(
 		}
 		circleVoters = append(circleVoters, circleVoter)
 	}
-
-	return circleVoters
-}
-
-// creates a circle voter list that contains only the
-// creator fo the circle
-func (c *circleService) createCircleVoterListForCreator(
-	createdFrom string,
-) []*model.CircleVoter {
-	var circleVoters []*model.CircleVoter
-
-	circleVoter := &model.CircleVoter{
-		Voter: createdFrom,
-	}
-
-	circleVoters = append(circleVoters, circleVoter)
 
 	return circleVoters
 }
