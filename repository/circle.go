@@ -76,40 +76,32 @@ func (s *storage) CirclesFiltered(name string) ([]*model.CirclePaginated, error)
 // CirclesOfInterest evaluates all the circles that the user is involved (is a voter)
 // and filters out the ones that belongs to the user.
 func (s *storage) CirclesOfInterest(userIdentityId string) ([]*model.CirclePaginated, error) {
-	var circles []*model.CirclePaginated
-
-	err := s.db.Model(&model.Circle{}).Raw(
-		`WITH cte AS (SELECT circle_voters.circle_id,
-                    count(1) as voters_count
-             from circle_voters
-             group by circle_voters.circle_id)
-
-			SELECT *
+	rows, err := s.db.Model(&model.Circle{}).Raw(
+		`SELECT *
 			FROM (SELECT Distinct ON (circles.id) circles.id,
 												  circles.name,
 												  circles.description,
 												  circles.image_src,
-												  voters_count,
 												  circles.active,
 												  circles.created_at,
 												  circles.updated_at
             FROM circles
-                 left join circle_voters on circles.id = circle_voters.circle_id
-					   INNER JOIN cte USING (circle_id)
-			  WHERE ((circles.private = ? AND circle_voters.voter = ?)
-				  OR (circles.private = ? AND circle_voters.voter <> ?))
-				AND circles.created_from <> ?
-				AND circles.active = ?
+                 left join circle_voters voters on circles.id = voters.circle_id
+			  WHERE circles.active = ?
+                 AND circles.created_from <> ?
+                 AND (voters.circle_id IS NULL
+	               OR ((circles.private = ? AND voters.voter = ?)
+	               OR (circles.private = ? AND voters.voter <> ?)))
 			  LIMIT ?) circles_of_interest
             ORDER BY updated_at desc;`,
 		true,
 		userIdentityId,
+		true,
+		userIdentityId,
 		false,
 		userIdentityId,
-		userIdentityId,
-		true,
 		100,
-	).Scan(&circles).Error
+	).Rows()
 
 	switch {
 	case err != nil && !database.RecordNotFound(err):
@@ -118,6 +110,50 @@ func (s *storage) CirclesOfInterest(userIdentityId string) ([]*model.CirclePagin
 	case database.RecordNotFound(err):
 		s.log.Infof("nearest circles not found: %s", err)
 		return nil, err
+	}
+
+	circles := make([]*model.CirclePaginated, 0)
+
+	defer rows.Close()
+	for rows.Next() {
+		circle := &model.CirclePaginated{}
+		err := rows.Scan(
+			&circle.ID,
+			&circle.Name,
+			&circle.Description,
+			&circle.ImageSrc,
+			&circle.Active,
+			&circle.CreatedAt,
+			&circle.UpdatedAt,
+		)
+
+		switch {
+		case err != nil && !database.RecordNotFound(err):
+			s.log.Errorf("error reading nearest circles: %s", err)
+			return nil, err
+		case database.RecordNotFound(err):
+			s.log.Infof("nearest circles not found: %s", err)
+			return nil, err
+		}
+
+		err = s.db.Model(&model.Circle{}).Raw(
+			`	SELECT count(1) as voters_count
+	             from circle_voters
+	             WHERE circle_id = ?
+	             group by circle_voters.circle_id;`,
+			circle.ID,
+		).Scan(&circle.VotersCount).Error
+
+		switch {
+		case err != nil && !database.RecordNotFound(err):
+			s.log.Errorf("error reading count of voters for circles: %s", err)
+			return nil, err
+		case database.RecordNotFound(err):
+			s.log.Infof("counts of voters for circle not found: %s", err)
+			return nil, err
+		}
+
+		circles = append(circles, circle)
 	}
 
 	return circles, nil
