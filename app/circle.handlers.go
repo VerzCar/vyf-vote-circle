@@ -179,7 +179,7 @@ func (s *Server) CirclesByName() gin.HandlerFunc {
 			return
 		}
 
-		paginatedUsersResponse := make([]*model.CirclePaginatedResponse, 0)
+		paginatedCirclesResponse := make([]*model.CirclePaginatedResponse, 0)
 
 		for _, circle := range circles {
 			c := &model.CirclePaginatedResponse{
@@ -189,13 +189,13 @@ func (s *Server) CirclesByName() gin.HandlerFunc {
 				ImageSrc:    circle.ImageSrc,
 				Active:      circle.Active,
 			}
-			paginatedUsersResponse = append(paginatedUsersResponse, c)
+			paginatedCirclesResponse = append(paginatedCirclesResponse, c)
 		}
 
 		response := model.Response{
 			Status: model.ResponseSuccess,
 			Msg:    "",
-			Data:   paginatedUsersResponse,
+			Data:   paginatedCirclesResponse,
 		}
 
 		ctx.JSON(http.StatusOK, response)
@@ -218,24 +218,25 @@ func (s *Server) CirclesOfInterest() gin.HandlerFunc {
 			return
 		}
 
-		paginatedUsersResponse := make([]*model.CirclePaginatedResponse, 0)
+		paginatedCirclesResponse := make([]*model.CirclePaginatedResponse, 0)
 
 		for _, circle := range circles {
 			c := &model.CirclePaginatedResponse{
-				ID:          circle.ID,
-				Name:        circle.Name,
-				Description: circle.Description,
-				ImageSrc:    circle.ImageSrc,
-				VotersCount: &circle.VotersCount,
-				Active:      circle.Active,
+				ID:              circle.ID,
+				Name:            circle.Name,
+				Description:     circle.Description,
+				ImageSrc:        circle.ImageSrc,
+				VotersCount:     &circle.VotersCount,
+				CandidatesCount: &circle.CandidatesCount,
+				Active:          circle.Active,
 			}
-			paginatedUsersResponse = append(paginatedUsersResponse, c)
+			paginatedCirclesResponse = append(paginatedCirclesResponse, c)
 		}
 
 		response := model.Response{
 			Status: model.ResponseSuccess,
 			Msg:    "",
-			Data:   paginatedUsersResponse,
+			Data:   paginatedCirclesResponse,
 		}
 
 		ctx.JSON(http.StatusOK, response)

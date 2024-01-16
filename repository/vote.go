@@ -12,10 +12,10 @@ func (s *storage) CreateNewVote(
 	circleId int64,
 ) (*model.Vote, error) {
 	vote := &model.Vote{
-		VoterRefer:   voterId,
-		ElectedRefer: electedId,
-		CircleID:     circleId,
-		CircleRefer:  &circleId,
+		VoterRefer:     voterId,
+		CandidateRefer: electedId,
+		CircleID:       circleId,
+		CircleRefer:    &circleId,
 	}
 	if err := s.db.Create(vote).Error; err != nil {
 		s.log.Infof("error creating vote in circle %d: %s", circleId, err)
@@ -28,7 +28,7 @@ func (s *storage) CreateNewVote(
 // ElectedVoterCountsByCircleId gets the number of votes for the elected id
 func (s *storage) ElectedVoterCountsByCircleId(circleId int64, electedId int64) (int64, error) {
 	var votes []*model.Vote
-	err := s.db.Where(&model.Vote{CircleID: circleId, CircleRefer: &circleId, ElectedRefer: electedId}).
+	err := s.db.Where(&model.Vote{CircleID: circleId, CircleRefer: &circleId, CandidateRefer: electedId}).
 		Find(&votes).Error
 
 	switch {
@@ -52,10 +52,10 @@ func (s *storage) VoterElectedByCircleId(
 	vote := &model.Vote{}
 	err := s.db.Where(
 		&model.Vote{
-			VoterRefer:   voterId,
-			ElectedRefer: electedId,
-			CircleID:     circleId,
-			CircleRefer:  &circleId,
+			VoterRefer:     voterId,
+			CandidateRefer: electedId,
+			CircleID:       circleId,
+			CircleRefer:    &circleId,
 		},
 	).First(vote).Error
 

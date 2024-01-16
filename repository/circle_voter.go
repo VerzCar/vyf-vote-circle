@@ -18,7 +18,7 @@ func (s *storage) CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleV
 // UpdateCircleVoter update circle voter based on given circle model
 func (s *storage) UpdateCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error) {
 	if err := s.db.Save(voter).Error; err != nil {
-		s.log.Errorf("error updating circle: %s", err)
+		s.log.Errorf("error updating voter: %s", err)
 		return nil, err
 	}
 
@@ -80,15 +80,11 @@ func (s *storage) CircleVotersFiltered(
 		Limit(100).
 		Order("updated_at desc")
 
-	if filterBy.Commitment != nil {
-		tx.Where(&model.CircleVoter{Commitment: *filterBy.Commitment})
-	}
-
 	if filterBy.HasBeenVoted != nil {
 		if *filterBy.HasBeenVoted {
-			tx.Where("voted_from IS NOT NULL")
+			tx.Where("voted_for IS NOT NULL")
 		} else {
-			tx.Where("voted_from IS NULL")
+			tx.Where("voted_for IS NULL")
 		}
 	}
 

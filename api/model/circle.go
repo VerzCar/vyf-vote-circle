@@ -17,6 +17,8 @@ type Circle struct {
 	Votes []*Vote `json:"votes" gorm:"foreignKey:CircleRefer;constraint:OnDelete:CASCADE;"`
 	// Voters that the circle contains, 0 or more.
 	Voters []*CircleVoter `json:"voters" gorm:"foreignKey:CircleRefer;constraint:OnDelete:CASCADE;"`
+	// Voters that the circle contains, 0 or more.
+	Candidates []*CircleCandidate `json:"candidate" gorm:"foreignKey:CircleRefer;constraint:OnDelete:CASCADE;"`
 	// Private indicates if this Circle should be private and thus visible only to the users
 	// that are eligible.
 	Private bool `json:"private" gorm:"not null;default:false;"`
@@ -61,32 +63,35 @@ type CircleUpdateRequest struct {
 }
 
 type CircleCreateRequest struct {
-	Name        string                `json:"name" validate:"gt=0,lte=40"`
-	Description *string               `json:"description,omitempty" validate:"omitempty,gt=0,lte=1200"`
-	ImageSrc    *string               `json:"imageSrc,omitempty" validate:"omitempty,url"`
-	Voters      []*CircleVoterRequest `json:"voters,omitempty"`
-	Private     *bool                 `json:"private,omitempty" validate:"omitempty"`
-	ValidUntil  *time.Time            `json:"validUntil,omitempty" validate:"omitempty"`
+	Name        string                    `json:"name" validate:"gt=0,lte=40"`
+	Description *string                   `json:"description,omitempty" validate:"omitempty,gt=0,lte=1200"`
+	ImageSrc    *string                   `json:"imageSrc,omitempty" validate:"omitempty,url"`
+	Voters      []*CircleVoterRequest     `json:"voters,omitempty"`
+	Candidates  []*CircleCandidateRequest `json:"candidates,omitempty"`
+	Private     *bool                     `json:"private,omitempty" validate:"omitempty"`
+	ValidUntil  *time.Time                `json:"validUntil,omitempty" validate:"omitempty"`
 }
 
 type CirclePaginated struct {
-	ID          int64     `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	ImageSrc    string    `json:"imageSrc"`
-	VotersCount int64     `json:"votersCount"`
-	Active      bool      `json:"active"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID              int64     `json:"id"`
+	Name            string    `json:"name"`
+	Description     string    `json:"description"`
+	ImageSrc        string    `json:"imageSrc"`
+	VotersCount     int64     `json:"votersCount"`
+	CandidatesCount int64     `json:"candidatesCount"`
+	Active          bool      `json:"active"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UpdatedAt       time.Time `json:"updatedAt"`
 }
 
 type CirclePaginatedResponse struct {
-	ID          int64  `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	ImageSrc    string `json:"imageSrc"`
-	VotersCount *int64 `json:"votersCount"`
-	Active      bool   `json:"active"`
+	ID              int64  `json:"id"`
+	Name            string `json:"name"`
+	Description     string `json:"description"`
+	ImageSrc        string `json:"imageSrc"`
+	VotersCount     *int64 `json:"votersCount"`
+	CandidatesCount *int64 `json:"candidatesCount"`
+	Active          bool   `json:"active"`
 }
 
 // db hooks with checks

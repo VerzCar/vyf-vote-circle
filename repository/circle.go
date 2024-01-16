@@ -87,14 +87,22 @@ func (s *storage) CirclesOfInterest(userIdentityId string) ([]*model.CirclePagin
 												  circles.updated_at
             FROM circles
                  left join circle_voters voters on circles.id = voters.circle_id
+                 left join circle_candidates candidates on circles.id = candidates.circle_id
 			  WHERE circles.active = ?
                  AND circles.created_from <> ?
                  AND (voters.circle_id IS NULL
 	               OR ((circles.private = ? AND voters.voter = ?)
 	               OR (circles.private = ? AND voters.voter <> ?)))
+			     OR (candidates.circle_id IS NULL
+	               OR ((circles.private = ? AND candidates.candidate = ?)
+	               OR (circles.private = ? AND candidates.candidate <> ?)))
 			  LIMIT ?) circles_of_interest
             ORDER BY updated_at desc;`,
 		true,
+		userIdentityId,
+		true,
+		userIdentityId,
+		false,
 		userIdentityId,
 		true,
 		userIdentityId,
@@ -153,6 +161,23 @@ func (s *storage) CirclesOfInterest(userIdentityId string) ([]*model.CirclePagin
 			return nil, err
 		}
 
+		err = s.db.Model(&model.Circle{}).Raw(
+			`	SELECT count(1) as candidates_count
+	             from circle_candidates
+	             WHERE circle_id = ?
+	             group by circle_candidates.circle_id;`,
+			circle.ID,
+		).Scan(&circle.CandidatesCount).Error
+
+		switch {
+		case err != nil && !database.RecordNotFound(err):
+			s.log.Errorf("error reading count of candidates for circles: %s", err)
+			return nil, err
+		case database.RecordNotFound(err):
+			s.log.Infof("counts of candidates for circle not found: %s", err)
+			return nil, err
+		}
+
 		circles = append(circles, circle)
 	}
 
@@ -198,6 +223,24 @@ func (s *storage) CreateNewCircle(circle *model.Circle) (*model.Circle, error) {
 			}
 
 			circle.Voters = circleVoters
+
+			circleCandidates := circle.Candidates
+
+			if len(circleCandidates) > 0 {
+				for _, candidate := range circleCandidates {
+					candidate.CircleID = circle.ID
+					candidate.CircleRefer = &circle.ID
+				}
+
+				err = tx.Model(&model.CircleCandidate{}).Create(circleCandidates).Error
+
+				if err != nil {
+					s.log.Error("error creating circle candidates entry: %s", err)
+					return err
+				}
+			}
+
+			circle.Candidates = circleCandidates
 			return nil
 		},
 	)

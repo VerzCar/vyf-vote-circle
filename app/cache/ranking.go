@@ -156,7 +156,7 @@ func (c *redisCache) BuildRankingList(
 	circleRankingKey := circleRankingKey(circleId)
 
 	for _, vote := range votes {
-		identityId := vote.Elected.Voter
+		identityId := vote.Candidate.Candidate
 		score, err := c.rankingScore(ctx, circleRankingKey, identityId)
 
 		if err != nil {

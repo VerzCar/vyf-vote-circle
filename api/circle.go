@@ -56,6 +56,10 @@ type CircleRepository interface {
 	CreateNewCircle(circle *model.Circle) (*model.Circle, error)
 	CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
 	IsVoterInCircle(userIdentityId string, circleId int64) (bool, error)
+	IsCandidateInCircle(
+		userIdentityId string,
+		circleId int64,
+	) (bool, error)
 	CountCirclesOfUser(userIdentityId string) (int64, error)
 }
 
@@ -240,19 +244,20 @@ func (c *circleService) UpdateCircle(
 		circle.Description = *circleUpdateRequest.Description
 	}
 
+	// TODO: check update of voters
 	// can only update voters if the circle is private
-	if circleUpdateRequest.Voters != nil && circle.Private {
-		var circleVoters []*model.CircleVoter
-		for _, voter := range circleUpdateRequest.Voters {
-			circleVoter := &model.CircleVoter{
-				Voter:       voter.Voter,
-				Circle:      circle,
-				CircleRefer: &circle.ID,
-			}
-			circleVoters = append(circleVoters, circleVoter)
-		}
-		circle.Voters = circleVoters
-	}
+	//if circleUpdateRequest.Voters != nil && circle.Private {
+	//	var circleVoters []*model.CircleVoter
+	//	for _, voter := range circleUpdateRequest.Voters {
+	//		circleVoter := &model.CircleVoter{
+	//			Voter:       voter.Voter,
+	//			Circle:      circle,
+	//			CircleRefer: &circle.ID,
+	//		}
+	//		circleVoters = append(circleVoters, circleVoter)
+	//	}
+	//	circle.Voters = circleVoters
+	//}
 
 	circle, err = c.storage.UpdateCircle(circle)
 
@@ -304,6 +309,16 @@ func (c *circleService) CreateCircle(
 		return nil, err
 	}
 
+	if newCircle.Private && len(circleCreateRequest.Candidates) <= 0 {
+		err = fmt.Errorf("circle must contain at least one candidate if private")
+		return nil, err
+	}
+
+	if newCircle.Private && len(circleCreateRequest.Candidates) > c.config.Circle.MaxVoters {
+		err = fmt.Errorf("circle has more than %d allowed candidates", c.config.Circle.MaxVoters)
+		return nil, err
+	}
+
 	if len(circleCreateRequest.Voters) > 0 {
 		if !newCircle.Private {
 			err = fmt.Errorf("circle must be private to add voters")
@@ -312,6 +327,16 @@ func (c *circleService) CreateCircle(
 
 		circleVoters := c.createCircleVoterList(circleCreateRequest.Voters)
 		newCircle.Voters = circleVoters
+	}
+
+	if len(circleCreateRequest.Candidates) > 0 {
+		if !newCircle.Private {
+			err = fmt.Errorf("circle must be private to add candidates")
+			return nil, err
+		}
+
+		circleCandidates := c.createCircleCandidateList(circleCreateRequest.Candidates)
+		newCircle.Candidates = circleCandidates
 	}
 
 	if circleCreateRequest.Description != nil {
@@ -452,6 +477,8 @@ func (c *circleService) AddToGlobalCircle(
 	return nil
 }
 
+// determines, when the circle is private, if the user is eligible to be
+// in the circle
 func (c *circleService) eligibleToBeInCircle(
 	userIdentityId string,
 	circle *model.Circle,
@@ -464,7 +491,17 @@ func (c *circleService) eligibleToBeInCircle(
 		return true, nil
 	}
 
-	return c.storage.IsVoterInCircle(userIdentityId, circle.ID)
+	ok, err := c.storage.IsVoterInCircle(userIdentityId, circle.ID)
+
+	if err != nil && !database.RecordNotFound(err) {
+		return false, err
+	}
+
+	if ok {
+		return true, nil
+	}
+
+	return c.storage.IsCandidateInCircle(userIdentityId, circle.ID)
 }
 
 // inactivateCircle of the given circle and updates it in the database to an
@@ -482,7 +519,7 @@ func (c *circleService) inactivateCircle(
 	return nil
 }
 
-// createCircleVoterList based on the
+// based on the
 // circleVoterInputs. It removes all the duplicates from the
 // circleVoterInputs list.
 func (c *circleService) createCircleVoterList(
@@ -506,6 +543,32 @@ func (c *circleService) createCircleVoterList(
 	}
 
 	return circleVoters
+}
+
+// based on the
+// circleCandidatesInputs. It removes all the duplicates from the
+// circleCandidatesInputs list.
+func (c *circleService) createCircleCandidateList(
+	circleCandidatesInputs []*model.CircleCandidateRequest,
+) []*model.CircleCandidate {
+	var candidateIdList []string
+
+	for _, candidate := range circleCandidatesInputs {
+		candidateIdList = append(candidateIdList, candidate.Candidate)
+	}
+
+	candidateIdList = removeDuplicateStr(candidateIdList)
+
+	var circleCandidates []*model.CircleCandidate
+	// add the given voters to the circle voters
+	for _, candidate := range candidateIdList {
+		circleCandidate := &model.CircleCandidate{
+			Candidate: candidate,
+		}
+		circleCandidates = append(circleCandidates, circleCandidate)
+	}
+
+	return circleCandidates
 }
 
 func removeDuplicateStr(strSlice []string) []string {

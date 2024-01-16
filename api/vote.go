@@ -155,12 +155,13 @@ func (c *voteService) CreateVote(
 	}
 
 	// update the elected meta information
-	elected.VotedFrom = &voter.Voter
-	_, err = c.storage.UpdateCircleVoter(elected)
-
-	if err != nil {
-		return false, err
-	}
+	// TODO: change with candidate model
+	//elected.VotedFrom = &voter.Voter
+	//_, err = c.storage.UpdateCircleVoter(elected)
+	//
+	//if err != nil {
+	//	return false, err
+	//}
 
 	voteCount, err := c.storage.ElectedVoterCountsByCircleId(voteRequest.CircleID, elected.ID)
 

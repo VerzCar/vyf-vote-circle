@@ -40,9 +40,8 @@ create table circle_voters
         constraint circle_voters_pkey
             primary key,
     voter        varchar(50)                           not null,
-    voted_for    varchar(50),
-    voted_from   varchar(50),
     commitment   commitment default 'OPEN'::commitment not null,
+    voted_for    varchar(50),
     circle_id    bigint
         constraint fk_circle_voters_circle
             references circles
@@ -55,32 +54,49 @@ create table circle_voters
     updated_at   timestamp with time zone
 );
 
-create index idx_circle_voters_id
-    on circle_voters (id);
+create table circle_candidates
+(
+    id           bigserial
+        constraint circle_candidates_pkey
+            primary key,
+    candidate    varchar(50)                           not null,
+    commitment   commitment default 'OPEN'::commitment not null,
+    voted_from   varchar(50),
+    circle_id    bigint
+        constraint fk_circle_candidates_circle
+            references circles
+            on delete restrict,
+    circle_refer bigint
+        constraint fk_circles_circle_candidates
+            references circles
+            on delete restrict,
+    created_at   timestamp with time zone,
+    updated_at   timestamp with time zone
+);
 
 create table votes
 (
-    id            bigserial
+    id              bigserial
         constraint votes_pkey
             primary key,
-    voter_refer   bigint
+    voter_refer     bigint
         constraint fk_votes_voter_refer
             references circle_voters
             on delete restrict,
-    elected_refer bigint
-        constraint fk_votes_elected_refer
-            references circle_voters
+    candidate_refer bigint
+        constraint fk_votes_candidate_refer
+            references circle_candidates
             on delete restrict,
-    circle_id     bigint
+    circle_id       bigint
         constraint fk_votes_circle
             references circles
             on delete restrict,
-    circle_refer  bigint
+    circle_refer    bigint
         constraint fk_circles_votes
             references circles
             on delete restrict,
-    created_at    timestamp with time zone,
-    updated_at    timestamp with time zone
+    created_at      timestamp with time zone,
+    updated_at      timestamp with time zone
 );
 
 create index idx_votes_id

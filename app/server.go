@@ -20,6 +20,7 @@ type Server struct {
 	rankingSubscriptionService api.RankingSubscriptionService
 	voteService                api.VoteService
 	circleVoterService         api.CircleVoterService
+	circleCandidateService     api.CircleCandidateService
 	tokenService               api.TokenService
 	validate                   sanitizer.Validator
 	config                     *config.Config
@@ -35,6 +36,7 @@ func NewServer(
 	rankingSubscriptionService api.RankingSubscriptionService,
 	voteService api.VoteService,
 	circleVoterService api.CircleVoterService,
+	circleCandidateService api.CircleCandidateService,
 	tokenService api.TokenService,
 	validate sanitizer.Validator,
 	config *config.Config,
@@ -49,6 +51,7 @@ func NewServer(
 		rankingSubscriptionService: rankingSubscriptionService,
 		voteService:                voteService,
 		circleVoterService:         circleVoterService,
+		circleCandidateService:     circleCandidateService,
 		tokenService:               tokenService,
 		validate:                   validate,
 		config:                     config,
