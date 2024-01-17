@@ -16,10 +16,10 @@ func ResizeImage(src image.Image, dstSize image.Point) *image.RGBA {
 	return dst
 }
 
-// CalculatedImageSize of the image based on the given max size
-// if the image is smaller than the max size no calculation will be made
-// otherwise the newly size will be determined keeping the aspect ratio
-// of the original image. The calculated indicates if a calculation of the size has been made.
+// CalculatedImageSize calculates the new size of an image based on the maximum size specified
+// If the image is smaller or equal to the maximum size, it returns an empty rectangle and false
+// Otherwise, it calculates the scale factors using the calcScaleFactors function and then calculates the new width and height
+// Finally, it returns a rectangle with the new size and true
 func CalculatedImageSize(src image.Image, maxSize image.Point) (size image.Rectangle, calculated bool) {
 	srcSize := src.Bounds().Size()
 
@@ -48,6 +48,14 @@ func CalculatedImageSize(src image.Image, maxSize image.Point) (size image.Recta
 	return dstRect, true
 }
 
+// calcScaleFactors calculates the scale factors for resizing an image
+// based on the desired width, height, and the original width and height
+// If the desired width is 0, the scaleX factor is set to 1.0.
+// If the desired height is 0, the scaleY factor is set to 1.0.
+// If both the desired width and height are 0, the scaleX and scaleY factors are both set to 1.0.
+// If both the desired width and height are non-zero, the scaleX factor is calculated as the ratio of
+// the original width to the desired width, and the scaleY factor is calculated as the ratio of
+// the original height to the desired height.
 func calcScaleFactors(width, height uint, oldWidth, oldHeight float64) (scaleX, scaleY float64) {
 	if width == 0 {
 		if height == 0 {

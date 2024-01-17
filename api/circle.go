@@ -142,6 +142,15 @@ func (c *circleService) Circles(
 	return circles, nil
 }
 
+// CirclesFiltered takes a name parameter and returns a list of circles that
+// match the given name, filtered from the authenticated user's circles. If there
+// are no matching circles, the return value will be empty.
+// Parameters:
+// - ctx: The context.Context object for the request.
+// - name: A pointer to a string representing the name to filter the circles by.
+// Returns:
+// - []*model.CirclePaginated: A list of circles that match the given name.
+// - error: An error if any occurred during the execution.
 func (c *circleService) CirclesFiltered(
 	ctx context.Context,
 	name *string,
@@ -155,6 +164,8 @@ func (c *circleService) CirclesFiltered(
 	return circles, nil
 }
 
+// CirclesOfInterest determines all the circles of interest for the authenticated user and returns them as a list.
+// If the user doesn't have any circles of interest, the return value will be empty.
 func (c *circleService) CirclesOfInterest(
 	ctx context.Context,
 ) ([]*model.CirclePaginated, error) {
@@ -362,6 +373,13 @@ func (c *circleService) CreateCircle(
 	return circle, nil
 }
 
+// DeleteCircle deletes a circle identified by the given circleId.
+// It first validates the user's authentication claims to ensure they have the necessary permissions.
+// If the user is not eligible to delete the circle, it returns an error with an appropriate message.
+// If the circle is not active anymore, it returns an error indicating that the circle is not active.
+// If there are no errors, it updates the circle's active field to false, indicating that it is deleted.
+// It then updates the circle in the storage. If any error occurs during the update, it returns the error.
+// If the update is successful, it returns nil.
 func (c *circleService) DeleteCircle(
 	ctx context.Context,
 	circleId int64,

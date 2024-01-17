@@ -89,6 +89,12 @@ func (c *circleCandidateService) CircleCandidatesFiltered(
 	return candidates, candidate, nil
 }
 
+// CircleCandidateCommitment updates the commitment of a circle candidate.
+// It takes the following parameters:
+// - ctx: the context.Context
+// - circleId: the ID of the circle
+// - commitment: the new commitment value
+// It returns the updated commitment and an error if any.
 func (c *circleCandidateService) CircleCandidateCommitment(
 	ctx context.Context,
 	circleId int64,

@@ -53,75 +53,101 @@ func (c *circleUploadService) UploadImage(
 	multiPartFile *multipart.FileHeader,
 	circleId int64,
 ) (string, error) {
-	contentFile, err := multiPartFile.Open()
 
+	// Open and validate file
+	contentFile, err := c.openAndValidateFile(multiPartFile)
 	if err != nil {
-		c.log.Errorf("error opening multipart file: %s", err)
 		return "", err
 	}
-
 	defer contentFile.Close()
 
-	err = c.detectMimeType(contentFile)
-
+	// Resize image if needed
+	imageForUpload, err := c.resizeImageIfNeeded(contentFile)
 	if err != nil {
 		return "", err
 	}
 
-	decodedImage, _, err := image.Decode(contentFile)
-
-	size, calculated := utils.CalculatedImageSize(decodedImage, image.Point{X: 600, Y: 400})
-
-	circleImage := decodedImage
-
-	if calculated {
-		circleImage = utils.ResizeImage(decodedImage, size.Max)
-	}
-
-	tempImageFile, err := os.CreateTemp("", "circle-image")
-
+	// Load the image to the temporary file
+	tempImageFile, err := c.loadTempImageFile(imageForUpload)
 	if err != nil {
-		c.log.Errorf("error creating temp file: %s", err)
 		return "", err
 	}
-
 	defer os.Remove(tempImageFile.Name())
 
-	err = png.Encode(tempImageFile, circleImage)
-
+	imageEndpoint, err := c.uploadFile(ctx, imageForUpload, circleId, tempImageFile)
 	if err != nil {
-		c.log.Errorf("error encoding image file to png: %s", err)
 		return "", err
 	}
 
-	_, _ = tempImageFile.Seek(0, 0)
+	return imageEndpoint, nil
+}
 
+func (c *circleUploadService) openAndValidateFile(multiPartFile *multipart.FileHeader) (
+	contentFile multipart.File,
+	err error,
+) {
+	contentFile, err = multiPartFile.Open()
+	if err != nil {
+		c.log.Errorf("error opening multipart file: %s", err)
+		return
+	}
+
+	err = c.detectMimeType(contentFile)
+	return
+}
+
+func (c *circleUploadService) resizeImageIfNeeded(contentFile multipart.File) (resizableImage image.Image, err error) {
+	resizableImage, _, err = image.Decode(contentFile)
+	if err != nil {
+		return
+	}
+
+	size, calculated := utils.CalculatedImageSize(resizableImage, image.Point{X: 600, Y: 400})
+	if calculated {
+		resizableImage = utils.ResizeImage(resizableImage, size.Max)
+	}
+	return
+}
+
+func (c *circleUploadService) loadTempImageFile(circleImage image.Image) (*os.File, error) {
+	tempImageFile, err := os.CreateTemp("", "circle-image")
+	if err != nil {
+		c.log.Errorf("error creating temp file: %s", err)
+		return nil, err
+	}
+
+	err = png.Encode(tempImageFile, circleImage)
+	if err != nil {
+		c.log.Errorf("error encoding image file to png: %s", err)
+		return nil, err
+	}
+
+	_, err = tempImageFile.Seek(0, 0)
+	return tempImageFile, err
+}
+
+func (c *circleUploadService) uploadFile(
+	ctx context.Context,
+	circleImage image.Image,
+	circleId int64,
+	tempImageFile *os.File,
+) (string, error) {
 	filePath := fmt.Sprintf("circle/image/%d/%s", circleId, "main.png")
-
-	_, err = c.extStorageService.Upload(
-		ctx,
-		filePath,
-		tempImageFile,
-	)
-
+	_, err := c.extStorageService.Upload(ctx, filePath, tempImageFile)
 	if err != nil {
 		c.log.Errorf("error uploading file to external storage service: %s", err)
 		return "", err
 	}
 
 	imageEndpoint := fmt.Sprintf("%s/%s", c.extStorageService.ObjectEndpoint(), filePath)
-
 	updateCircleReq := &model.CircleUpdateRequest{
 		ID:       circleId,
 		ImageSrc: &imageEndpoint,
 	}
-
 	_, err = c.circleService.UpdateCircle(ctx, updateCircleReq)
-
 	if err != nil {
 		return "", err
 	}
-
 	return imageEndpoint, nil
 }
 
