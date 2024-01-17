@@ -89,24 +89,18 @@ func (s *storage) CirclesOfInterest(userIdentityId string) ([]*model.CirclePagin
                  left join circle_voters voters on circles.id = voters.circle_id
                  left join circle_candidates candidates on circles.id = candidates.circle_id
 			  WHERE circles.active = ?
-                 AND circles.created_from <> ?
-                 AND ((voters.circle_id IS NULL
-	               OR ((circles.private = ? AND voters.voter = ?)
-	               OR (circles.private = ? AND voters.voter <> ?)))
-			     OR (candidates.circle_id IS NULL
-	               OR ((circles.private = ? AND candidates.candidate = ?)
-	               OR (circles.private = ? AND candidates.candidate <> ?))))
+				AND circles.created_from <> ?
+				AND (circles.private = ?
+				  OR circles.private = ? AND voters.voter = ?
+				  OR circles.private = ? AND candidates.candidate = ?)
 			  LIMIT ?) circles_of_interest
             ORDER BY updated_at desc;`,
 		true,
 		userIdentityId,
+		false,
 		true,
 		userIdentityId,
-		false,
-		userIdentityId,
 		true,
-		userIdentityId,
-		false,
 		userIdentityId,
 		100,
 	).Rows()
