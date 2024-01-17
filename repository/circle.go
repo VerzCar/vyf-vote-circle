@@ -90,12 +90,12 @@ func (s *storage) CirclesOfInterest(userIdentityId string) ([]*model.CirclePagin
                  left join circle_candidates candidates on circles.id = candidates.circle_id
 			  WHERE circles.active = ?
                  AND circles.created_from <> ?
-                 AND (voters.circle_id IS NULL
+                 AND ((voters.circle_id IS NULL
 	               OR ((circles.private = ? AND voters.voter = ?)
 	               OR (circles.private = ? AND voters.voter <> ?)))
 			     OR (candidates.circle_id IS NULL
 	               OR ((circles.private = ? AND candidates.candidate = ?)
-	               OR (circles.private = ? AND candidates.candidate <> ?)))
+	               OR (circles.private = ? AND candidates.candidate <> ?))))
 			  LIMIT ?) circles_of_interest
             ORDER BY updated_at desc;`,
 		true,
