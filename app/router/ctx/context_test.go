@@ -2,33 +2,79 @@ package ctx
 
 import (
 	"context"
+	"github.com/VerzCar/vyf-lib-awsx"
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 )
 
-func TestSetGinContext(t *testing.T) {
-	req := &http.Request{}
-	parentGinContext := &gin.Context{
-		Request: req,
+func TestSetAuthClaimsContext(t *testing.T) {
+	tests := []struct {
+		name string
+		val  interface{}
+	}{
+		{
+			name: "Set valid auth claims",
+			val:  &awsx.JWTToken{Issuer: "testIssuer"},
+		},
+		{
+			name: "Set nil auth claims",
+			val:  nil,
+		},
 	}
-	SetGinContext(parentGinContext)
 
-	ginContext := parentGinContext.Request.Context().Value(ginContextKey)
-	require.NotNil(t, ginContext)
+	for _, tt := range tests {
+		t.Run(
+			tt.name, func(t *testing.T) {
+				ctx := &gin.Context{
+					Request: &http.Request{},
+				}
+				SetAuthClaimsContext(ctx, tt.val)
 
-	_, ok := ginContext.(*gin.Context)
-
-	require.True(t, ok)
+				got := ctx.Request.Context().Value(authClaimsContextKey)
+				assert.Equal(t, tt.val, got)
+			},
+		)
+	}
 }
 
-func TestContextToGinContext(t *testing.T) {
-	ctx := context.Background()
-	parentGinContext := &gin.Context{}
-	testContext := context.WithValue(ctx, ginContextKey, parentGinContext)
-	ginCtx, err := ContextToGinContext(testContext)
+func TestContextToAuthClaims(t *testing.T) {
+	tests := []struct {
+		name    string
+		val     interface{}
+		wantErr bool
+	}{
+		{
+			name:    "Get valid auth claims",
+			val:     &awsx.JWTToken{Issuer: "testIssuer"},
+			wantErr: false,
+		},
+		{
+			name:    "Get nil auth claims",
+			val:     nil,
+			wantErr: true,
+		},
+		{
+			name:    "Get invalid auth claims",
+			val:     "invalid",
+			wantErr: true,
+		},
+	}
 
-	require.Nil(t, err)
-	require.Empty(t, ginCtx.Params.ByName("example"))
+	for _, tt := range tests {
+		t.Run(
+			tt.name, func(t *testing.T) {
+				ctx := context.WithValue(context.Background(), authClaimsContextKey, tt.val)
+
+				got, err := ContextToAuthClaims(ctx)
+				if tt.wantErr {
+					assert.Error(t, err)
+				} else {
+					assert.NoError(t, err)
+					assert.Equal(t, tt.val, got)
+				}
+			},
+		)
+	}
 }
