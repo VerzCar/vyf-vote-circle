@@ -8,6 +8,7 @@ import (
 	"github.com/VerzCar/vyf-vote-circle/app/config"
 	"github.com/VerzCar/vyf-vote-circle/app/database"
 	routerContext "github.com/VerzCar/vyf-vote-circle/app/router/ctx"
+	"strings"
 	"time"
 )
 
@@ -244,7 +245,7 @@ func (c *circleService) UpdateCircle(
 	}
 
 	if circleUpdateRequest.Name != nil {
-		circle.Name = *circleUpdateRequest.Name
+		circle.Name = strings.TrimSpace(*circleUpdateRequest.Name)
 	}
 
 	if circleUpdateRequest.ImageSrc != nil {
@@ -252,7 +253,7 @@ func (c *circleService) UpdateCircle(
 	}
 
 	if circleUpdateRequest.Description != nil {
-		circle.Description = *circleUpdateRequest.Description
+		circle.Description = strings.TrimSpace(*circleUpdateRequest.Description)
 	}
 
 	// TODO: check update of voters
@@ -302,7 +303,7 @@ func (c *circleService) CreateCircle(
 	}
 
 	newCircle := &model.Circle{
-		Name:        circleCreateRequest.Name,
+		Name:        strings.TrimSpace(circleCreateRequest.Name),
 		CreatedFrom: authClaims.Subject,
 	}
 
@@ -351,7 +352,7 @@ func (c *circleService) CreateCircle(
 	}
 
 	if circleCreateRequest.Description != nil {
-		newCircle.Description = *circleCreateRequest.Description
+		newCircle.Description = strings.TrimSpace(*circleCreateRequest.Description)
 	}
 
 	// check if new valid until time is given and is in the future from now on
