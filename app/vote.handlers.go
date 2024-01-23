@@ -40,7 +40,7 @@ func (s *Server) CreateVote() gin.HandlerFunc {
 			return
 		}
 
-		result, err := s.voteService.CreateVote(ctx.Request.Context(), voteCreateReq)
+		result, err := s.voteService.CreateVote(ctx.Request.Context(), circleReq.CircleID, voteCreateReq)
 
 		if err != nil {
 			s.log.Errorf("service error: %v", err)
