@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"fmt"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/go-redis/redis/v8"
 	"strconv"
@@ -79,7 +80,6 @@ func (c *redisCache) UpsertRanking(
 	}
 
 	ranking := populateRanking(
-		0,
 		circleId,
 		rankingScore,
 		rankingPlacementNumber+1,
@@ -106,11 +106,11 @@ func (c *redisCache) RankingList(
 		return nil, err
 	}
 
-	var rankingList []*model.RankingResponse
+	rankingList := make([]*model.RankingResponse, 0)
 	placementNumber := int64(0)
 	var voteCount int64
 
-	for index, rankingScore := range rankingScores {
+	for _, rankingScore := range rankingScores {
 		if voteCount != rankingScore.VoteCount {
 			voteCount = rankingScore.VoteCount
 			placementNumber++
@@ -118,7 +118,6 @@ func (c *redisCache) RankingList(
 		rankingList = append(
 			rankingList,
 			populateRanking(
-				int64(index)+1,
 				circleId,
 				rankingScore,
 				placementNumber,
@@ -285,13 +284,13 @@ func circleRankingKey(id int64) string {
 }
 
 func populateRanking(
-	rankingId int64,
 	circleId int64,
 	rankingScore *model.RankingScore,
 	placementNumber int64,
 ) *model.RankingResponse {
 	return &model.RankingResponse{
-		ID:         rankingId,
+		ID:         0,
+		EventID:    fmt.Sprintf("%d#%s", circleId, rankingScore.UserIdentityId),
 		IdentityID: rankingScore.UserIdentityId,
 		Number:     placementNumber,
 		Votes:      rankingScore.VoteCount,

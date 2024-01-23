@@ -13,21 +13,27 @@ import (
 type VoteService interface {
 	CreateVote(
 		ctx context.Context,
-		voteInput *model.VoteCreateRequest,
+		circleId int64,
+		voteReq *model.VoteCreateRequest,
 	) (bool, error)
 }
 
 type VoteRepository interface {
 	CircleById(id int64) (*model.Circle, error)
 	CircleVoterByCircleId(circleId int64, voterId string) (*model.CircleVoter, error)
+	CircleCandidateByCircleId(
+		circleId int64,
+		candidateId string,
+	) (*model.CircleCandidate, error)
 	UpdateCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
+	UpdateCircleCandidate(candidate *model.CircleCandidate) (*model.CircleCandidate, error)
 	CreateNewVote(
 		voterId int64,
-		electedId int64,
+		candidateId int64,
 		circleId int64,
 	) (*model.Vote, error)
 	ElectedVoterCountsByCircleId(circleId int64, electedId int64) (int64, error)
-	VoterElectedByCircleId(
+	VoterCandidateByCircleId(
 		circleId int64,
 		voterId int64,
 		electedId int64,
@@ -77,7 +83,8 @@ func NewVoteService(
 
 func (c *voteService) CreateVote(
 	ctx context.Context,
-	voteRequest *model.VoteCreateRequest,
+	circleId int64,
+	voteReq *model.VoteCreateRequest,
 ) (bool, error) {
 	authClaims, err := routerContext.ContextToAuthClaims(ctx)
 
@@ -88,12 +95,12 @@ func (c *voteService) CreateVote(
 
 	voterId := authClaims.Subject
 
-	if voterId == voteRequest.Elected {
-		c.log.Errorf("error voter id %s is equal elected id: %s", voterId, voteRequest.Elected)
+	if voterId == voteReq.CandidateID {
+		c.log.Errorf("error voter id %s is equal candidate id: %s", voterId, voteReq.CandidateID)
 		return false, fmt.Errorf("cannot vote for yourself")
 	}
 
-	circle, err := c.storage.CircleById(voteRequest.CircleID)
+	circle, err := c.storage.CircleById(circleId)
 
 	if err != nil {
 		return false, err
@@ -102,80 +109,79 @@ func (c *voteService) CreateVote(
 	if !circle.Active {
 		c.log.Infof(
 			"tried to vote for an inactive circle with circle id %d and subject %s",
-			voteRequest.CircleID,
+			circleId,
 			authClaims.Subject,
 		)
 		return false, fmt.Errorf("circle inactive")
 	}
 
-	voter, err := c.storage.CircleVoterByCircleId(voteRequest.CircleID, voterId)
+	voter, err := c.storage.CircleVoterByCircleId(circleId, voterId)
 
 	if err != nil {
 		c.log.Errorf("error voter id %s not in circle: %s", voterId, err)
 		return false, err
 	}
 
-	elected, err := c.storage.CircleVoterByCircleId(voteRequest.CircleID, voteRequest.Elected)
+	candidate, err := c.storage.CircleCandidateByCircleId(circleId, voteReq.CandidateID)
 
 	if err != nil {
-		c.log.Errorf("error elected id %s not in circle: %s", voteRequest.Elected, err)
+		c.log.Errorf("error candidate id %s not in circle: %s", voteReq.CandidateID, err)
 		return false, err
 	}
 
 	// validate if voter already elected once - if so throw an error
-	_, err = c.storage.VoterElectedByCircleId(voteRequest.CircleID, voter.ID, elected.ID)
+	_, err = c.storage.VoterCandidateByCircleId(circleId, voter.ID, candidate.ID)
 
 	if err != nil && !database.RecordNotFound(err) {
-		c.log.Errorf("error getting voter %d for elected %d not in circle: %s", voter.ID, elected.ID, err)
+		c.log.Errorf("error getting voter %d for candidate %d not in circle: %s", voter.ID, candidate.ID, err)
 		return false, err
 	}
 	if err == nil {
 		c.log.Errorf(
-			"failure voter %s for elected %s already voted in circle: %d",
+			"voter %s for candidate %s already voted in circle: %d",
 			voter.Voter,
-			elected.Voter,
-			voteRequest.CircleID,
+			candidate.Candidate,
+			circleId,
 		)
 		return false, fmt.Errorf("already voted in circle")
 	}
 
 	// TODO: put this write block in transaction as the update ranking in the cache could fail
-	_, err = c.storage.CreateNewVote(voter.ID, elected.ID, voteRequest.CircleID)
+	_, err = c.storage.CreateNewVote(voter.ID, candidate.ID, circleId)
 
 	if err != nil {
 		return false, err
 	}
 
 	// update the voters meta information
-	voter.VotedFor = &elected.Voter
+	voter.VotedFor = &candidate.Candidate
 	_, err = c.storage.UpdateCircleVoter(voter)
 
 	if err != nil {
 		return false, err
 	}
 
-	// update the elected meta information
-	// TODO: change with candidate model
-	//elected.VotedFrom = &voter.Voter
-	//_, err = c.storage.UpdateCircleVoter(elected)
-	//
-	//if err != nil {
-	//	return false, err
-	//}
-
-	voteCount, err := c.storage.ElectedVoterCountsByCircleId(voteRequest.CircleID, elected.ID)
+	// update the candidate meta information
+	candidate.VotedFrom = &voter.Voter
+	_, err = c.storage.UpdateCircleCandidate(candidate)
 
 	if err != nil {
 		return false, err
 	}
 
-	updatedRanking, err := c.cache.UpsertRanking(ctx, voteRequest.CircleID, elected.Voter, voteCount)
+	voteCount, err := c.storage.ElectedVoterCountsByCircleId(circleId, candidate.ID)
 
 	if err != nil {
 		return false, err
 	}
 
-	_ = c.subscription.RankingChangedEvent(ctx, voteRequest.CircleID, updatedRanking)
+	updatedRanking, err := c.cache.UpsertRanking(ctx, circleId, candidate.Candidate, voteCount)
+
+	if err != nil {
+		return false, err
+	}
+
+	_ = c.subscription.RankingChangedEvent(ctx, circleId, updatedRanking)
 
 	return true, nil
 }

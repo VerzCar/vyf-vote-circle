@@ -8,12 +8,12 @@ import (
 // CreateNewVote creates a new vote for the circle
 func (s *storage) CreateNewVote(
 	voterId int64,
-	electedId int64,
+	candidateId int64,
 	circleId int64,
 ) (*model.Vote, error) {
 	vote := &model.Vote{
 		VoterRefer:     voterId,
-		CandidateRefer: electedId,
+		CandidateRefer: candidateId,
 		CircleID:       circleId,
 		CircleRefer:    &circleId,
 	}
@@ -43,17 +43,17 @@ func (s *storage) ElectedVoterCountsByCircleId(circleId int64, electedId int64) 
 	return int64(len(votes)), nil
 }
 
-// VoterElectedByCircleId query the given voter and elected id for the circle id and get the first result
-func (s *storage) VoterElectedByCircleId(
+// Query the given voter and candidate id for the circle id and get the first result
+func (s *storage) VoterCandidateByCircleId(
 	circleId int64,
 	voterId int64,
-	electedId int64,
+	candidateId int64,
 ) (*model.Vote, error) {
 	vote := &model.Vote{}
 	err := s.db.Where(
 		&model.Vote{
 			VoterRefer:     voterId,
-			CandidateRefer: electedId,
+			CandidateRefer: candidateId,
 			CircleID:       circleId,
 			CircleRefer:    &circleId,
 		},
@@ -62,18 +62,18 @@ func (s *storage) VoterElectedByCircleId(
 	switch {
 	case err != nil && !database.RecordNotFound(err):
 		s.log.Errorf(
-			"error reading vote for voter %d and elected %d by circle id %d: %s",
+			"error reading vote for voter %d and candidate %d by circle id %d: %s",
 			voterId,
-			electedId,
+			candidateId,
 			circleId,
 			err,
 		)
 		return nil, err
 	case database.RecordNotFound(err):
 		s.log.Infof(
-			"voter %s and elected %s by circle id %d not found: %s",
+			"voter %d and candidate %d by circle id %d not found: %s",
 			voterId,
-			electedId,
+			candidateId,
 			circleId,
 			err,
 		)

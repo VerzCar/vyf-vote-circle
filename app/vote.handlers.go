@@ -14,9 +14,19 @@ func (s *Server) CreateVote() gin.HandlerFunc {
 			Data:   false,
 		}
 
+		circleReq := &model.CircleUriRequest{}
+
+		err := ctx.ShouldBindUri(circleReq)
+
+		if err != nil {
+			s.log.Error(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
 		voteCreateReq := &model.VoteCreateRequest{}
 
-		err := ctx.ShouldBindJSON(voteCreateReq)
+		err = ctx.ShouldBindJSON(voteCreateReq)
 
 		if err != nil {
 			s.log.Error(err)

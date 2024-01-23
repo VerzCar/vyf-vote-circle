@@ -19,7 +19,7 @@ func TestVoteService_Vote(t *testing.T) {
 
 	ctxMock := putUserIntoContext(mockUser.Elon)
 	voteInput := &model.VoteCreateRequest{
-		Elected: "test1",
+		CandidateID: "test1",
 	}
 	circleId := int64(1)
 

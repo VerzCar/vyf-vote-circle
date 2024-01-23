@@ -21,6 +21,7 @@ type Ranking struct {
 
 type RankingResponse struct {
 	ID         int64     `json:"id"`
+	EventID    string    `json:"eventId"`
 	IdentityID string    `json:"identityId"`
 	Number     int64     `json:"number"`
 	Votes      int64     `json:"votes"`
