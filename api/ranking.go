@@ -19,6 +19,8 @@ type RankingService interface {
 type RankingRepository interface {
 	RankingsByCircleId(circleId int64) ([]*model.Ranking, error)
 	Votes(circleId int64) ([]*model.Vote, error)
+	CountsVotesOfCandidateByCircleId(circleId int64, candidateId int64) (int64, error)
+	RankingByCircleId(circleId int64, identityId string) (*model.Ranking, error)
 }
 
 type RankingCache interface {
@@ -33,7 +35,7 @@ type RankingCache interface {
 	BuildRankingList(
 		ctx context.Context,
 		circleId int64,
-		votes []*model.Vote,
+		rankingCacheItems []*model.RankingCacheItem,
 	) error
 }
 
@@ -123,7 +125,32 @@ func (c *rankingService) buildRankingList(
 		}
 	default:
 		{
-			err := c.cache.BuildRankingList(ctx, circleId, votes)
+			var rankingCacheItems []*model.RankingCacheItem
+			for _, vote := range votes {
+				voteCount, err := c.storage.CountsVotesOfCandidateByCircleId(circleId, vote.Candidate.ID)
+
+				if err != nil {
+					c.log.Errorf("error getting vote count for candidate id %d: %s", vote.Candidate.ID, err)
+					return false, err
+				}
+
+				ranking, err := c.storage.RankingByCircleId(circleId, vote.Candidate.Candidate)
+
+				if err != nil {
+					c.log.Errorf("error creating new ranking: %s", err)
+					return false, err
+				}
+
+				rankingCacheItem := &model.RankingCacheItem{
+					Candidate: &vote.Candidate,
+					Ranking:   ranking,
+					VoteCount: voteCount,
+				}
+				rankingCacheItems = append(rankingCacheItems, rankingCacheItem)
+			}
+
+			err := c.cache.BuildRankingList(ctx, circleId, rankingCacheItems)
+
 			return false, err
 		}
 	}

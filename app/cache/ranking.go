@@ -130,6 +130,19 @@ func (c *redisCache) RankingList(
 	var voteCount int64
 
 	for _, rankingScore := range rankingScores {
+		rankingUserCandidateKey := circleUserCandidateKey(circleId, rankingScore.UserIdentityId)
+		rankingUserCandidate, err := c.rankingUserCandidate(ctx, rankingUserCandidateKey)
+
+		if err != nil {
+			c.log.Errorf(
+				"error getting ranking user %s candidate: for circle key %s: %s",
+				rankingScore.UserIdentityId,
+				circleRankingKey,
+				err,
+			)
+			return nil, err
+		}
+
 		if voteCount != rankingScore.VoteCount {
 			voteCount = rankingScore.VoteCount
 			placementNumber++
@@ -138,13 +151,13 @@ func (c *redisCache) RankingList(
 		rankingList = append(
 			rankingList,
 			populateRanking(
+				rankingUserCandidate.RankingID,
 				circleId,
-				0,
-				0,
+				rankingUserCandidate.CandidateID,
 				rankingScore,
 				placementNumber,
-				time.Now(),
-				time.Now(),
+				rankingUserCandidate.CreatedAt,
+				rankingUserCandidate.UpdatedAt,
 			),
 		)
 	}
@@ -174,29 +187,14 @@ func (c *redisCache) ExistsRankingListForCircle(
 func (c *redisCache) BuildRankingList(
 	ctx context.Context,
 	circleId int64,
-	votes []*model.Vote,
+	rankingCacheItems []*model.RankingCacheItem,
 ) error {
-	circleRankingKey := circleRankingKey(circleId)
-
-	for _, vote := range votes {
-		identityId := vote.Candidate.Candidate
-		_, err := c.rankingScore(ctx, circleRankingKey, identityId)
+	for _, item := range rankingCacheItems {
+		_, err := c.UpsertRanking(ctx, circleId, item.Candidate, item.Ranking, item.VoteCount)
 
 		if err != nil {
-			c.log.Errorf(
-				"error getting ranking score for voter %s: for circle key %s: %s",
-				identityId,
-				circleRankingKey,
-				err,
-			)
 			return err
 		}
-
-		//_, err = c.UpsertRanking(ctx, circleId, identityId, 0, score+1)
-		//
-		//if err != nil {
-		//	return err
-		//}
 	}
 
 	return nil
@@ -244,6 +242,21 @@ func (c *redisCache) rankingScore(
 	default:
 		return int64(result.Val()), nil
 	}
+}
+
+func (c *redisCache) rankingUserCandidate(
+	ctx context.Context,
+	key string,
+) (*model.RankingUserCandidate, error) {
+	var userCandidate model.RankingUserCandidate
+
+	err := c.redis.HGetAll(ctx, key).Scan(&userCandidate)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &userCandidate, nil
 }
 
 // Sets the ranking score for the given key in cache

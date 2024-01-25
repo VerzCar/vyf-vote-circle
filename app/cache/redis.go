@@ -30,7 +30,7 @@ type RedisCache interface {
 	BuildRankingList(
 		ctx context.Context,
 		circleId int64,
-		votes []*model.Vote,
+		rankingCacheItems []*model.RankingCacheItem,
 	) error
 }
 

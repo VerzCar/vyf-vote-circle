@@ -43,8 +43,14 @@ type RankingScore struct {
 type RankingUserCandidate struct {
 	CandidateID int64     `redis:"candidateId"`
 	RankingID   int64     `redis:"rankingId"`
-	CreatedAt   time.Time `redis:"createdAt"`
-	UpdatedAt   time.Time `redis:"updatedAt"`
+	CreatedAt   time.Time `redis:"time"`
+	UpdatedAt   time.Time `redis:"time"`
+}
+
+type RankingCacheItem struct {
+	Ranking   *Ranking
+	Candidate *CircleCandidate
+	VoteCount int64
 }
 
 func (s RankingScore) MarshalBinary() ([]byte, error) {

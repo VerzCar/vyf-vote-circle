@@ -32,3 +32,20 @@ func (s *storage) RankingsByCircleId(circleId int64) ([]*model.Ranking, error) {
 
 	return rankings, nil
 }
+
+func (s *storage) RankingByCircleId(circleId int64, identityId string) (*model.Ranking, error) {
+	ranking := &model.Ranking{}
+	err := s.db.Where(&model.Ranking{IdentityID: identityId, CircleID: circleId}).
+		First(ranking).Error
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		s.log.Errorf("error reading ranking by circle id %d for user %s: %s", circleId, identityId, err)
+		return nil, err
+	case database.RecordNotFound(err):
+		s.log.Infof("ranking for user %s in circle %d not found: %s", identityId, circleId, err)
+		return nil, err
+	}
+
+	return ranking, nil
+}

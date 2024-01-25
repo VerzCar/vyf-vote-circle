@@ -3,6 +3,7 @@ package repository
 import (
 	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/VerzCar/vyf-vote-circle/app/database"
+	"gorm.io/gorm/clause"
 )
 
 // CreateNewVote creates a new vote for the circle
@@ -87,7 +88,8 @@ func (s *storage) VoterCandidateByCircleId(
 // Votes gets all votes for the given circle id
 func (s *storage) Votes(circleId int64) ([]*model.Vote, error) {
 	var votes []*model.Vote
-	err := s.db.Where(&model.Vote{CircleID: circleId, CircleRefer: &circleId}).Find(&votes).Error
+	err := s.db.Preload(clause.Associations).
+		Where(&model.Vote{CircleID: circleId, CircleRefer: &circleId}).Find(&votes).Error
 
 	switch {
 	case err != nil && !database.RecordNotFound(err):
