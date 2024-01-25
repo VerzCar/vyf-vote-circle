@@ -39,6 +39,8 @@ type VoteRepository interface {
 		electedId int64,
 	) (*model.Vote, error)
 	CreateNewRanking(ranking *model.Ranking) (*model.Ranking, error)
+	UpdateRanking(ranking *model.Ranking) (*model.Ranking, error)
+	RankingByCircleId(circleId int64, identityId string) (*model.Ranking, error)
 }
 
 type VoteCache interface {
@@ -161,14 +163,35 @@ func (c *voteService) CreateVote(
 		return false, err
 	}
 
-	ranking := &model.Ranking{
-		IdentityID: candidate.Candidate,
-		Number:     0,
-		Votes:      voteCount,
-		CircleID:   circleId,
-	}
+	// update the ranking meta information
+	var ranking *model.Ranking
 
-	newRanking, err := c.storage.CreateNewRanking(ranking)
+	ranking, err = c.storage.RankingByCircleId(circleId, candidate.Candidate)
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		return false, err
+	case database.RecordNotFound(err):
+		newRanking := &model.Ranking{
+			IdentityID: candidate.Candidate,
+			Number:     0,
+			Votes:      voteCount,
+			CircleID:   circleId,
+		}
+
+		ranking, err = c.storage.CreateNewRanking(newRanking)
+
+		if err != nil {
+			return false, err
+		}
+		break
+	default:
+		ranking, err = c.storage.UpdateRanking(&model.Ranking{ID: ranking.ID, Votes: voteCount})
+
+		if err != nil {
+			return false, err
+		}
+	}
 
 	// update the voters meta information
 	voter.VotedFor = &candidate.Candidate
@@ -186,7 +209,7 @@ func (c *voteService) CreateVote(
 		return false, err
 	}
 
-	updatedRanking, err := c.cache.UpsertRanking(ctx, circleId, candidate, newRanking, voteCount)
+	updatedRanking, err := c.cache.UpsertRanking(ctx, circleId, candidate, ranking, voteCount)
 
 	if err != nil {
 		return false, err

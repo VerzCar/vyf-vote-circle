@@ -54,6 +54,7 @@ type Storage interface {
 	) ([]*model.CircleCandidate, error)
 
 	CreateNewRanking(ranking *model.Ranking) (*model.Ranking, error)
+	UpdateRanking(ranking *model.Ranking) (*model.Ranking, error)
 	RankingsByCircleId(circleId int64) ([]*model.Ranking, error)
 	RankingByCircleId(circleId int64, identityId string) (*model.Ranking, error)
 

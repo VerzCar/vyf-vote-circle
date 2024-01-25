@@ -15,6 +15,15 @@ func (s *storage) CreateNewRanking(ranking *model.Ranking) (*model.Ranking, erro
 	return ranking, nil
 }
 
+func (s *storage) UpdateRanking(ranking *model.Ranking) (*model.Ranking, error) {
+	if err := s.db.Model(ranking).Updates(ranking).Error; err != nil {
+		s.log.Errorf("error updating ranking: %s", err)
+		return nil, err
+	}
+
+	return ranking, nil
+}
+
 // RankingsByCircleId gets all rankings by the given circle id
 func (s *storage) RankingsByCircleId(circleId int64) ([]*model.Ranking, error) {
 	var rankings []*model.Ranking

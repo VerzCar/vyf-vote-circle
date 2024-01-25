@@ -44,7 +44,6 @@ func (s *Server) CreateVote() gin.HandlerFunc {
 
 		if err != nil {
 			s.log.Errorf("service error: %v", err)
-			errResponse.Msg = err.Error()
 			ctx.JSON(http.StatusInternalServerError, errResponse)
 			return
 		}
