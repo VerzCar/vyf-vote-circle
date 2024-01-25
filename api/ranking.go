@@ -137,7 +137,7 @@ func (c *rankingService) buildRankingList(
 				ranking, err := c.storage.RankingByCircleId(circleId, vote.Candidate.Candidate)
 
 				if err != nil {
-					c.log.Errorf("error creating new ranking: %s", err)
+					c.log.Errorf("error reading by circle id %d ranking: %s", circleId, err)
 					return false, err
 				}
 
