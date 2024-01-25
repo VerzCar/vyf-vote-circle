@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	logger "github.com/VerzCar/vyf-lib-logger"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/VerzCar/vyf-vote-circle/app/config"
@@ -14,7 +15,8 @@ type RedisCache interface {
 	UpsertRanking(
 		ctx context.Context,
 		circleId int64,
-		identityId string,
+		candidate *model.CircleCandidate,
+		ranking *model.Ranking,
 		votes int64,
 	) (*model.RankingResponse, error)
 	RankingList(
@@ -83,7 +85,7 @@ func (c *redisCache) getJson(ctx context.Context, key string, dest interface{}) 
 	entry := c.redis.Get(ctx, key)
 
 	switch {
-	case entry.Err() == redis.Nil:
+	case errors.Is(entry.Err(), redis.Nil):
 		return entry.Err()
 	case entry.Err() != nil:
 		return entry.Err()
@@ -105,7 +107,7 @@ func (c *redisCache) get(ctx context.Context, key string) (Entry, error) {
 	sReturn := Entry{Exists: false}
 
 	switch {
-	case entry.Err() == redis.Nil:
+	case errors.Is(entry.Err(), redis.Nil):
 		return sReturn, nil
 	case entry.Err() != nil:
 		return sReturn, entry.Err()

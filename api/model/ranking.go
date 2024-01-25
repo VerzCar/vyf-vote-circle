@@ -20,15 +20,15 @@ type Ranking struct {
 }
 
 type RankingResponse struct {
-	ID         int64     `json:"id"`
-	EventID    string    `json:"eventId"`
-	IdentityID string    `json:"identityId"`
-	Number     int64     `json:"number"`
-	Votes      int64     `json:"votes"`
-	Placement  Placement `json:"placement"`
-	CircleID   int64     `json:"circleId"`
-	CreatedAt  time.Time `json:"createdAt"`
-	UpdatedAt  time.Time `json:"updatedAt"`
+	ID          int64     `json:"id"`
+	CandidateID int64     `json:"candidateId"`
+	IdentityID  string    `json:"identityId"`
+	Number      int64     `json:"number"`
+	Votes       int64     `json:"votes"`
+	Placement   Placement `json:"placement"`
+	CircleID    int64     `json:"circleId"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 type RankingsUriRequest struct {
@@ -36,8 +36,15 @@ type RankingsUriRequest struct {
 }
 
 type RankingScore struct {
-	VoteCount      int64
-	UserIdentityId string
+	VoteCount      int64  `redis:"voteCount"`
+	UserIdentityId string `redis:"userIdentityId"`
+}
+
+type RankingUserCandidate struct {
+	CandidateID int64     `redis:"candidateId"`
+	RankingID   int64     `redis:"rankingId"`
+	CreatedAt   time.Time `redis:"createdAt"`
+	UpdatedAt   time.Time `redis:"updatedAt"`
 }
 
 func (s RankingScore) MarshalBinary() ([]byte, error) {

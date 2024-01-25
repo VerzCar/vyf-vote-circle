@@ -25,22 +25,23 @@ func (s *storage) CreateNewVote(
 	return vote, nil
 }
 
-// ElectedVoterCountsByCircleId gets the number of votes for the elected id
-func (s *storage) ElectedVoterCountsByCircleId(circleId int64, electedId int64) (int64, error) {
-	var votes []*model.Vote
-	err := s.db.Where(&model.Vote{CircleID: circleId, CircleRefer: &circleId, CandidateRefer: electedId}).
-		Find(&votes).Error
+// Gets the number of votes for the candidate id
+func (s *storage) CountsVotesOfCandidateByCircleId(circleId int64, candidateId int64) (int64, error) {
+	var count int64
+	err := s.db.Model(&model.Vote{}).
+		Where(&model.Vote{CircleID: circleId, CircleRefer: &circleId, CandidateRefer: candidateId}).
+		Count(&count).Error
 
 	switch {
 	case err != nil && !database.RecordNotFound(err):
-		s.log.Errorf("error reading votes for elected user %d by circle id %d: %s", electedId, circleId, err)
+		s.log.Errorf("error reading votes for candidate id %d by circle id %d: %s", candidateId, circleId, err)
 		return 0, err
 	case database.RecordNotFound(err):
-		s.log.Infof("votes for elected user %d with circle id %d not found: %s", electedId, circleId, err)
+		s.log.Infof("votes for candidate id %d with circle id %d not found: %s", candidateId, circleId, err)
 		return 0, err
 	}
 
-	return int64(len(votes)), nil
+	return count, nil
 }
 
 // Query the given voter and candidate id for the circle id and get the first result

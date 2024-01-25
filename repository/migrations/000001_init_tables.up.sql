@@ -51,7 +51,8 @@ create table circle_voters
             references circles
             on delete restrict,
     created_at   timestamp with time zone,
-    updated_at   timestamp with time zone
+    updated_at   timestamp with time zone,
+    unique (voter, circle_id)
 );
 
 create table circle_candidates
@@ -71,7 +72,8 @@ create table circle_candidates
             references circles
             on delete restrict,
     created_at   timestamp with time zone,
-    updated_at   timestamp with time zone
+    updated_at   timestamp with time zone,
+    unique (candidate, circle_id)
 );
 
 create table votes
