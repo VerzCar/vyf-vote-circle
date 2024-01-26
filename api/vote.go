@@ -133,6 +133,15 @@ func (c *voteService) CreateVote(
 		return false, err
 	}
 
+	if candidate.Commitment != model.CommitmentCommitted {
+		c.log.Infof(
+			"tried to vote for an uncommitted candidate with circle id %d and candidate id %d",
+			circleId,
+			candidate.ID,
+		)
+		return false, fmt.Errorf("candidate uncommitted")
+	}
+
 	// validate if voter already elected once - if so throw an error
 	_, err = c.storage.VoterCandidateByCircleId(circleId, voter.ID, candidate.ID)
 
