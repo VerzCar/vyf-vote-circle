@@ -37,8 +37,7 @@ type CircleVoterRequest struct {
 }
 
 type CircleVotersFilterBy struct {
-	HasBeenVoted      *bool `form:"hasBeenVoted,omitempty"`
-	ShouldContainUser *bool `form:"shouldContainUser,omitempty"`
+	HasBeenVoted *bool `form:"hasBeenVoted,omitempty"`
 }
 
 type CircleVotersRequest struct {

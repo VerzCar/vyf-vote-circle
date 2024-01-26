@@ -41,8 +41,7 @@ func (s *Server) CircleVoters() gin.HandlerFunc {
 		}
 
 		filterBy := &model.CircleVotersFilterBy{
-			HasBeenVoted:      circleVotersReq.HasBeenVoted,
-			ShouldContainUser: circleVotersReq.ShouldContainUser,
+			HasBeenVoted: circleVotersReq.HasBeenVoted,
 		}
 
 		voters, userVoter, err := s.circleVoterService.CircleVotersFiltered(

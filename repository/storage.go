@@ -33,7 +33,6 @@ type Storage interface {
 	IsVoterInCircle(userIdentityId string, circleId int64) (bool, error)
 	CircleVotersFiltered(
 		circleId int64,
-		userIdentityId string,
 		filterBy *model.CircleVotersFilterBy,
 	) ([]*model.CircleVoter, error)
 
@@ -49,7 +48,6 @@ type Storage interface {
 	) (bool, error)
 	CircleCandidatesFiltered(
 		circleId int64,
-		userIdentityId string,
 		filterBy *model.CircleCandidatesFilterBy,
 	) ([]*model.CircleCandidate, error)
 

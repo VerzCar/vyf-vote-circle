@@ -25,7 +25,6 @@ type CircleVoterService interface {
 type CircleVoterRepository interface {
 	CircleVotersFiltered(
 		circleId int64,
-		userIdentityId string,
 		filterBy *model.CircleVotersFilterBy,
 	) ([]*model.CircleVoter, error)
 	CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
@@ -64,7 +63,7 @@ func (c *circleVoterService) CircleVotersFiltered(
 		return nil, nil, err
 	}
 
-	voters, err := c.storage.CircleVotersFiltered(circleId, authClaims.Subject, filterBy)
+	voters, err := c.storage.CircleVotersFiltered(circleId, filterBy)
 
 	if err != nil {
 		return nil, nil, err

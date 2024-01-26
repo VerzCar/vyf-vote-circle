@@ -70,7 +70,6 @@ func (s *storage) IsVoterInCircle(
 // If no filter is provided all circle voters for the circle will be returned.
 func (s *storage) CircleVotersFiltered(
 	circleId int64,
-	userIdentityId string,
 	filterBy *model.CircleVotersFilterBy,
 ) ([]*model.CircleVoter, error) {
 	var circleVoters []*model.CircleVoter
@@ -86,10 +85,6 @@ func (s *storage) CircleVotersFiltered(
 		} else {
 			tx.Where("voted_for IS NULL")
 		}
-	}
-
-	if shouldContainUser := filterBy.ShouldContainUser != nil; !shouldContainUser {
-		tx.Not(&model.CircleVoter{Voter: userIdentityId})
 	}
 
 	err := tx.Find(&circleVoters).Error

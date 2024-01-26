@@ -41,9 +41,8 @@ func (s *Server) CircleCandidates() gin.HandlerFunc {
 		}
 
 		filterBy := &model.CircleCandidatesFilterBy{
-			Commitment:        circleCandidatesReq.Commitment,
-			HasBeenVoted:      circleCandidatesReq.HasBeenVoted,
-			ShouldContainUser: circleCandidatesReq.ShouldContainUser,
+			Commitment:   circleCandidatesReq.Commitment,
+			HasBeenVoted: circleCandidatesReq.HasBeenVoted,
 		}
 
 		candidates, userCandidate, err := s.circleCandidateService.CircleCandidatesFiltered(

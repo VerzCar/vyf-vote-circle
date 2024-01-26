@@ -30,7 +30,6 @@ type CircleCandidateService interface {
 type CircleCandidateRepository interface {
 	CircleCandidatesFiltered(
 		circleId int64,
-		userIdentityId string,
 		filterBy *model.CircleCandidatesFilterBy,
 	) ([]*model.CircleCandidate, error)
 	CreateNewCircleCandidate(voter *model.CircleCandidate) (*model.CircleCandidate, error)
@@ -70,7 +69,7 @@ func (c *circleCandidateService) CircleCandidatesFiltered(
 		return nil, nil, err
 	}
 
-	candidates, err := c.storage.CircleCandidatesFiltered(circleId, authClaims.Subject, filterBy)
+	candidates, err := c.storage.CircleCandidatesFiltered(circleId, filterBy)
 
 	if err != nil {
 		return nil, nil, err

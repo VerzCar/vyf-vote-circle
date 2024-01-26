@@ -39,9 +39,8 @@ type CircleCandidateCommitmentRequest struct {
 }
 
 type CircleCandidatesFilterBy struct {
-	Commitment        *Commitment `form:"commitment,omitempty" validate:"omitempty,gt=0,lte=12"`
-	HasBeenVoted      *bool       `form:"hasBeenVoted,omitempty"`
-	ShouldContainUser *bool       `form:"shouldContainUser,omitempty"`
+	Commitment   *Commitment `form:"commitment,omitempty" validate:"omitempty,gt=0,lte=12"`
+	HasBeenVoted *bool       `form:"hasBeenVoted,omitempty"`
 }
 
 type CircleCandidatesRequest struct {
