@@ -65,7 +65,6 @@ func (s *Server) CircleCandidates() gin.HandlerFunc {
 				ID:         candidate.ID,
 				Candidate:  candidate.Candidate,
 				Commitment: candidate.Commitment,
-				VotedFrom:  candidate.VotedFrom,
 				CreatedAt:  candidate.CreatedAt,
 				UpdatedAt:  candidate.UpdatedAt,
 			}
@@ -79,7 +78,6 @@ func (s *Server) CircleCandidates() gin.HandlerFunc {
 				ID:         userCandidate.ID,
 				Candidate:  userCandidate.Candidate,
 				Commitment: userCandidate.Commitment,
-				VotedFrom:  userCandidate.VotedFrom,
 				CreatedAt:  userCandidate.CreatedAt,
 				UpdatedAt:  userCandidate.UpdatedAt,
 			}
@@ -189,7 +187,6 @@ func (s *Server) CircleCandidateJoinCircle() gin.HandlerFunc {
 			ID:         candidate.ID,
 			Candidate:  candidate.Candidate,
 			Commitment: candidate.Commitment,
-			VotedFrom:  candidate.VotedFrom,
 			CreatedAt:  candidate.CreatedAt,
 			UpdatedAt:  candidate.UpdatedAt,
 		}

@@ -88,11 +88,7 @@ func (s *storage) CircleCandidatesFiltered(
 	}
 
 	if filterBy.HasBeenVoted != nil {
-		if *filterBy.HasBeenVoted {
-			tx.Where("voted_from IS NOT NULL")
-		} else {
-			tx.Where("voted_from IS NULL")
-		}
+		tx.Joins("left join votes on votes.circle_id = circle_candidates.circle_id and votes.candidate_refer = circle_candidates.candidate")
 	}
 
 	if shouldContainUser := filterBy.ShouldContainUser != nil; !shouldContainUser {

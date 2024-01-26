@@ -26,7 +26,6 @@ type VoteRepository interface {
 		candidateId string,
 	) (*model.CircleCandidate, error)
 	UpdateCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
-	UpdateCircleCandidate(candidate *model.CircleCandidate) (*model.CircleCandidate, error)
 	CreateNewVote(
 		voterId int64,
 		candidateId int64,
@@ -205,14 +204,6 @@ func (c *voteService) CreateVote(
 	// update the voters meta information
 	voter.VotedFor = &candidate.Candidate
 	_, err = c.storage.UpdateCircleVoter(voter)
-
-	if err != nil {
-		return false, err
-	}
-
-	// update the candidate meta information
-	candidate.VotedFrom = &voter.Voter
-	_, err = c.storage.UpdateCircleCandidate(candidate)
 
 	if err != nil {
 		return false, err

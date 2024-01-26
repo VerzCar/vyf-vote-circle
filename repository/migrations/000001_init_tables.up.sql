@@ -62,7 +62,6 @@ create table circle_candidates
             primary key,
     candidate    varchar(50)                           not null,
     commitment   commitment default 'OPEN'::commitment not null,
-    voted_from   varchar(50),
     circle_id    bigint
         constraint fk_circle_candidates_circle
             references circles
