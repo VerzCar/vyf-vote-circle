@@ -209,13 +209,25 @@ func (c *voteService) CreateVote(
 		return false, err
 	}
 
-	updatedRanking, err := c.cache.UpsertRanking(ctx, circleId, candidate, ranking, voteCount)
+	cachedRanking, err := c.cache.UpsertRanking(ctx, circleId, candidate, ranking, voteCount)
 
 	if err != nil {
 		return false, err
 	}
 
-	_ = c.subscription.RankingChangedEvent(ctx, circleId, updatedRanking)
+	// update ranking with newly indexed order
+	updatedRanking := &model.Ranking{
+		ID:     cachedRanking.ID,
+		Number: cachedRanking.Number,
+	}
+
+	_, err = c.storage.UpdateRanking(updatedRanking)
+
+	if err != nil {
+		return false, err
+	}
+
+	_ = c.subscription.RankingChangedEvent(ctx, circleId, cachedRanking)
 
 	return true, nil
 }

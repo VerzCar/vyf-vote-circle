@@ -8,7 +8,7 @@ import (
 // CreateNewRanking based on given model.Ranking model
 func (s *storage) CreateNewRanking(ranking *model.Ranking) (*model.Ranking, error) {
 	if err := s.db.Create(ranking).Error; err != nil {
-		s.log.Infof("error creating ranking: %s", err)
+		s.log.Errorf("error creating ranking: %s", err)
 		return nil, err
 	}
 
@@ -16,7 +16,7 @@ func (s *storage) CreateNewRanking(ranking *model.Ranking) (*model.Ranking, erro
 }
 
 func (s *storage) UpdateRanking(ranking *model.Ranking) (*model.Ranking, error) {
-	if err := s.db.Model(ranking).Updates(ranking).Error; err != nil {
+	if err := s.db.Model(&model.Ranking{ID: ranking.ID}).Updates(ranking).Error; err != nil {
 		s.log.Errorf("error updating ranking: %s", err)
 		return nil, err
 	}

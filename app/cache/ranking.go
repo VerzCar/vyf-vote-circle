@@ -3,9 +3,9 @@ package cache
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/go-redis/redis/v8"
-	"strconv"
 	"time"
 )
 
@@ -21,76 +21,17 @@ func (c *redisCache) UpsertRanking(
 		UserIdentityId: candidate.Candidate,
 	}
 
-	key := circleRankingKey(circleId)
+	if err := c.setRankingScore(ctx, circleId, candidate, ranking, rankingScore); err != nil {
+		return nil, err
+	}
 
-	var rankingPlacementIndex int64
-
-	_, err := c.redis.Pipelined(
-		ctx, func(pipe redis.Pipeliner) error {
-			err := pipeSetRankingScore(ctx, pipe, key, rankingScore)
-
-			if err != nil {
-				c.log.Errorf(
-					"error setting ranking score: for circle key %s with ranking score %v: %s",
-					key,
-					rankingScore,
-					err,
-				)
-				return err
-			}
-
-			score, err := pipeRankingScore(ctx, pipe, key, rankingScore.UserIdentityId)
-
-			if err != nil {
-				c.log.Errorf(
-					"error getting ranking score for candidate %s: for circle key %s: %s",
-					rankingScore.UserIdentityId,
-					key,
-					err,
-				)
-				return err
-			}
-
-			rankingPlacementIndex, err = pipeRankingPlacementIndex(
-				ctx,
-				pipe,
-				key,
-				strconv.FormatInt(score, 10),
-				"",
-			)
-
-			if err != nil {
-				c.log.Errorf(
-					"error getting ranking score for candidate %s: for circle key %s: %s",
-					rankingScore.UserIdentityId,
-					key,
-					err,
-				)
-				return err
-			}
-
-			candidateKey := circleUserCandidateKey(circleId, candidate.Candidate)
-			err = pipeSetUserCandidate(ctx, pipe, candidateKey, candidate, ranking)
-
-			if err != nil {
-				c.log.Errorf(
-					"error setting user candidate key candidate id %d: for circle id %s: %s",
-					candidate.ID,
-					candidate.Candidate,
-					err,
-				)
-				return err
-			}
-
-			return nil
-		},
+	placmentNumber, rankingPlacementIndex, err := c.rankingPlacementNumberWithIndex(
+		ctx,
+		circleId,
+		rankingScore.UserIdentityId,
 	)
 
 	if err != nil {
-		c.log.Errorf(
-			"could not update ranking in transaction: %s",
-			err,
-		)
 		return nil, err
 	}
 
@@ -99,12 +40,74 @@ func (c *redisCache) UpsertRanking(
 		circleId,
 		candidate.ID,
 		rankingScore,
-		rankingPlacementIndex+1,
+		rankingPlacementIndex,
+		placmentNumber,
 		ranking.CreatedAt,
 		ranking.UpdatedAt,
 	)
 
 	return rankingRes, nil
+}
+
+func (c *redisCache) setRankingScore(
+	ctx context.Context,
+	circleId int64,
+	candidate *model.CircleCandidate,
+	ranking *model.Ranking,
+	rankingScore *model.RankingScore,
+) error {
+	key := circleRankingKey(circleId)
+
+	_, err := c.redis.Pipelined(
+		ctx, func(pipe redis.Pipeliner) error {
+			pipeSetRankingScore(ctx, pipe, key, rankingScore)
+			candidateKey := circleUserCandidateKey(circleId, candidate.Candidate)
+			pipeSetUserCandidate(ctx, pipe, candidateKey, candidate, ranking)
+			return nil
+		},
+	)
+
+	if err != nil {
+		c.log.Errorf(
+			"could not set ranking in transaction for circle key %s: %s",
+			key,
+			err,
+		)
+		return err
+	}
+
+	return nil
+}
+
+func (c *redisCache) rankingPlacementNumberWithIndex(
+	ctx context.Context,
+	circleId int64,
+	member string,
+) (int64, int64, error) {
+	key := circleRankingKey(circleId)
+
+	cmds, err := c.redis.Pipelined(
+		ctx, func(pipe redis.Pipeliner) error {
+			pipe.ZScore(ctx, key, member)
+			pipe.ZRank(ctx, key, member)
+			return nil
+		},
+	)
+
+	if err != nil {
+		c.log.Errorf(
+			"could not read placement number and index for member %s for circle key %s: %s",
+			member,
+			key,
+			err,
+		)
+		return 0, 0, err
+	}
+
+	placementNumber := int64(cmds[0].(*redis.FloatCmd).Val())
+	placementIndex := cmds[1].(*redis.IntCmd).Val()
+
+	return placementNumber, placementIndex, nil
 }
 
 // RankingList of the current cached ranking for the circle
@@ -129,7 +132,7 @@ func (c *redisCache) RankingList(
 	placementNumber := int64(0)
 	var voteCount int64
 
-	for _, rankingScore := range rankingScores {
+	for placementIndex, rankingScore := range rankingScores {
 		rankingUserCandidateKey := circleUserCandidateKey(circleId, rankingScore.UserIdentityId)
 		rankingUserCandidate, err := c.rankingUserCandidate(ctx, rankingUserCandidateKey)
 
@@ -155,6 +158,7 @@ func (c *redisCache) RankingList(
 				circleId,
 				rankingUserCandidate.CandidateID,
 				rankingScore,
+				int64(placementIndex),
 				placementNumber,
 				rankingUserCandidate.CreatedAt,
 				rankingUserCandidate.UpdatedAt,
@@ -244,6 +248,26 @@ func (c *redisCache) rankingScore(
 	}
 }
 
+// Identifies the current index (placement)
+// of the given score that the member is.
+// Returns 0 if the key or member does not exist.
+func (c *redisCache) rankingPlacementIndex(
+	ctx context.Context,
+	key string,
+	member string,
+) (int64, error) {
+	result := c.redis.ZRank(ctx, key, member)
+
+	switch {
+	case errors.Is(result.Err(), redis.Nil):
+		return 0, nil
+	case result.Err() != nil:
+		return 0, result.Err()
+	default:
+		return result.Val(), nil
+	}
+}
+
 func (c *redisCache) rankingUserCandidate(
 	ctx context.Context,
 	key string,
@@ -265,13 +289,12 @@ func pipeSetRankingScore(
 	pipe redis.Pipeliner,
 	key string,
 	rankingScore *model.RankingScore,
-) error {
+) {
 	members := &redis.Z{
 		Score:  float64(rankingScore.VoteCount),
 		Member: rankingScore.UserIdentityId,
 	}
-
-	return pipe.ZAdd(ctx, key, members).Err()
+	pipe.ZAdd(ctx, key, members)
 }
 
 // Ranking score of the given key and member.
@@ -281,39 +304,8 @@ func pipeRankingScore(
 	pipe redis.Pipeliner,
 	key string,
 	member string,
-) (int64, error) {
-	result := pipe.ZScore(ctx, key, member)
-
-	switch {
-	case errors.Is(result.Err(), redis.Nil):
-		return 0, nil
-	case result.Err() != nil:
-		return 0, result.Err()
-	default:
-		return int64(result.Val()), nil
-	}
-}
-
-// Identifies the current index (placement)
-// of the given score that the member is.
-// Returns 0 if the key or member does not exist
-func pipeRankingPlacementIndex(
-	ctx context.Context,
-	pipe redis.Pipeliner,
-	key string,
-	min string,
-	max string,
-) (int64, error) {
-	result := pipe.ZCount(ctx, key, min, max)
-
-	switch {
-	case errors.Is(result.Err(), redis.Nil):
-		return 0, nil
-	case result.Err() != nil:
-		return 0, result.Err()
-	default:
-		return result.Val(), nil
-	}
+) *redis.FloatCmd {
+	return pipe.ZScore(ctx, key, member)
 }
 
 func pipeSetUserCandidate(
@@ -322,34 +314,19 @@ func pipeSetUserCandidate(
 	key string,
 	candidate *model.CircleCandidate,
 	ranking *model.Ranking,
-) error {
-	err := pipe.HSet(ctx, key, "candidateId", candidate.ID).Err()
-
-	if err != nil {
-		return err
-	}
-
-	err = pipe.HSet(ctx, key, "rankingId", ranking.ID).Err()
-
-	if err != nil {
-		return err
-	}
-
-	err = pipe.HSet(ctx, key, "createdAt", ranking.CreatedAt).Err()
-
-	if err != nil {
-		return err
-	}
-
-	return pipe.HSet(ctx, key, "updatedAt", ranking.UpdatedAt).Err()
+) {
+	pipe.HSet(ctx, key, "candidateId", candidate.ID)
+	pipe.HSet(ctx, key, "rankingId", ranking.ID)
+	pipe.HSet(ctx, key, "createdAt", ranking.CreatedAt)
+	pipe.HSet(ctx, key, "updatedAt", ranking.UpdatedAt)
 }
 
-func circleRankingKey(id int64) string {
-	return "circle:" + strconv.FormatInt(id, 10) + ":ranking"
+func circleRankingKey(circleId int64) string {
+	return fmt.Sprintf("cirlce:%d:ranking", circleId)
 }
 
 func circleUserCandidateKey(circleId int64, identityId string) string {
-	return "circle:" + strconv.FormatInt(circleId, 10) + ":" + identityId
+	return fmt.Sprintf("circle:%d:%s", circleId, identityId)
 }
 
 func populateRanking(
@@ -357,19 +334,21 @@ func populateRanking(
 	circleId int64,
 	candidateId int64,
 	rankingScore *model.RankingScore,
+	placementIndex int64,
 	placementNumber int64,
 	createdAt time.Time,
 	updatedAt time.Time,
 ) *model.RankingResponse {
 	return &model.RankingResponse{
-		ID:          id,
-		CandidateID: candidateId,
-		IdentityID:  rankingScore.UserIdentityId,
-		Number:      placementNumber,
-		Votes:       rankingScore.VoteCount,
-		Placement:   model.PlacementNeutral,
-		CircleID:    circleId,
-		CreatedAt:   createdAt,
-		UpdatedAt:   updatedAt,
+		ID:           id,
+		CandidateID:  candidateId,
+		IdentityID:   rankingScore.UserIdentityId,
+		Number:       placementNumber,
+		Votes:        rankingScore.VoteCount,
+		IndexedOrder: placementIndex,
+		Placement:    model.PlacementNeutral,
+		CircleID:     circleId,
+		CreatedAt:    createdAt,
+		UpdatedAt:    updatedAt,
 	}
 }

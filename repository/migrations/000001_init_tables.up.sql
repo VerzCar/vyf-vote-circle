@@ -105,19 +105,19 @@ create index idx_votes_id
 
 create table rankings
 (
-    id          bigserial
+    id            bigserial
         constraint rankings_pkey
             primary key,
-    identity_id varchar(50)                            not null,
-    number      int                                    not null,
-    votes       bigint    default 0                    not null,
-    placement   placement default 'NEUTRAL'::placement not null,
-    circle_id   bigint
+    identity_id   varchar(50)                            not null,
+    number        int                                    not null,
+    votes         bigint    default 0                    not null,
+    placement     placement default 'NEUTRAL'::placement not null,
+    circle_id     bigint
         constraint fk_rankings_circle
             references circles
             on delete restrict,
-    created_at  timestamp with time zone,
-    updated_at  timestamp with time zone
+    created_at    timestamp with time zone,
+    updated_at    timestamp with time zone
 );
 
 create index idx_rankings_id

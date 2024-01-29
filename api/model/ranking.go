@@ -20,15 +20,16 @@ type Ranking struct {
 }
 
 type RankingResponse struct {
-	ID          int64     `json:"id"`
-	CandidateID int64     `json:"candidateId"`
-	IdentityID  string    `json:"identityId"`
-	Number      int64     `json:"number"`
-	Votes       int64     `json:"votes"`
-	Placement   Placement `json:"placement"`
-	CircleID    int64     `json:"circleId"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID           int64     `json:"id"`
+	CandidateID  int64     `json:"candidateId"`
+	IdentityID   string    `json:"identityId"`
+	Number       int64     `json:"number"`
+	Votes        int64     `json:"votes"`
+	IndexedOrder int64     `json:"indexedOrder"`
+	Placement    Placement `json:"placement"`
+	CircleID     int64     `json:"circleId"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
 }
 
 type RankingsUriRequest struct {
