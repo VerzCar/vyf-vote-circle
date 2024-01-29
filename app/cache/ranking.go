@@ -89,7 +89,7 @@ func (c *redisCache) rankingPlacementNumberWithIndex(
 	cmds, err := c.redis.Pipelined(
 		ctx, func(pipe redis.Pipeliner) error {
 			pipe.ZScore(ctx, key, member)
-			pipe.ZRank(ctx, key, member)
+			pipe.ZRevRank(ctx, key, member)
 			return nil
 		},
 	)
@@ -256,7 +256,7 @@ func (c *redisCache) rankingPlacementIndex(
 	key string,
 	member string,
 ) (int64, error) {
-	result := c.redis.ZRank(ctx, key, member)
+	result := c.redis.ZRevRank(ctx, key, member)
 
 	switch {
 	case errors.Is(result.Err(), redis.Nil):
