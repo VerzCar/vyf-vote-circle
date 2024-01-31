@@ -199,3 +199,42 @@ func (s *Server) CircleCandidateJoinCircle() gin.HandlerFunc {
 		ctx.JSON(http.StatusOK, response)
 	}
 }
+
+func (s *Server) CircleCandidateLeaveCircle() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		errResponse := model.Response{
+			Status: model.ResponseError,
+			Msg:    "cannot leave as candidate from circle",
+			Data:   nil,
+		}
+
+		circleReq := &model.CircleUriRequest{}
+
+		err := ctx.ShouldBindUri(circleReq)
+
+		if err != nil {
+			s.log.Error(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
+		err = s.circleCandidateService.CircleCandidateLeaveCircle(
+			ctx.Request.Context(),
+			circleReq.CircleID,
+		)
+
+		if err != nil {
+			s.log.Errorf("service error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, errResponse)
+			return
+		}
+
+		response := model.Response{
+			Status: model.ResponseSuccess,
+			Msg:    "",
+			Data:   "",
+		}
+
+		ctx.JSON(http.StatusOK, response)
+	}
+}

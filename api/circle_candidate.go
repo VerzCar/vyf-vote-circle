@@ -25,6 +25,10 @@ type CircleCandidateService interface {
 		ctx context.Context,
 		circleId int64,
 	) (*model.CircleCandidate, error)
+	CircleCandidateLeaveCircle(
+		ctx context.Context,
+		circleId int64,
+	) error
 }
 
 type CircleCandidateRepository interface {
@@ -35,6 +39,7 @@ type CircleCandidateRepository interface {
 	CreateNewCircleCandidate(voter *model.CircleCandidate) (*model.CircleCandidate, error)
 	CircleCandidateByCircleId(circleId int64, voterId string) (*model.CircleCandidate, error)
 	UpdateCircleCandidate(voter *model.CircleCandidate) (*model.CircleCandidate, error)
+	DeleteCircleCandidate(candidateId int64) error
 	IsCandidateInCircle(userIdentityId string, circleId int64) (bool, error)
 	CircleById(id int64) (*model.Circle, error)
 }
@@ -156,13 +161,13 @@ func (c *circleCandidateService) CircleCandidateJoinCircle(
 		return nil, err
 	}
 
-	circleVoter := &model.CircleCandidate{
+	circleCandidate := &model.CircleCandidate{
 		Candidate:   authClaims.Subject,
 		Circle:      circle,
 		CircleRefer: &circle.ID,
 		Commitment:  model.CommitmentCommitted,
 	}
-	voter, err := c.storage.CreateNewCircleCandidate(circleVoter)
+	voter, err := c.storage.CreateNewCircleCandidate(circleCandidate)
 
 	if err != nil {
 		c.log.Errorf("error adding candidate to circle id %d: %s", circleId, err)
@@ -170,4 +175,36 @@ func (c *circleCandidateService) CircleCandidateJoinCircle(
 	}
 
 	return voter, nil
+}
+
+func (c *circleCandidateService) CircleCandidateLeaveCircle(
+	ctx context.Context,
+	circleId int64,
+) error {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return err
+	}
+
+	candidate, err := c.storage.CircleCandidateByCircleId(circleId, authClaims.Subject)
+
+	if err != nil {
+		return fmt.Errorf("cannot leave as candidate from cirlce")
+	}
+
+	err = c.storage.DeleteCircleCandidate(candidate.ID)
+
+	if err != nil {
+		c.log.Errorf(
+			"error removing candidate %s from circle id %d: %s",
+			authClaims.Subject,
+			circleId,
+			err,
+		)
+		return fmt.Errorf("leaving as candidate from cirlce failed")
+	}
+
+	return nil
 }

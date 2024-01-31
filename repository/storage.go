@@ -38,6 +38,7 @@ type Storage interface {
 
 	CreateNewCircleCandidate(candidate *model.CircleCandidate) (*model.CircleCandidate, error)
 	UpdateCircleCandidate(candidate *model.CircleCandidate) (*model.CircleCandidate, error)
+	DeleteCircleCandidate(candidateId int64) error
 	CircleCandidateByCircleId(
 		circleId int64,
 		candidateId string,

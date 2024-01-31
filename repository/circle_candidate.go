@@ -15,7 +15,7 @@ func (s *storage) CreateNewCircleCandidate(candidate *model.CircleCandidate) (*m
 	return candidate, nil
 }
 
-// UpdateCircleCandidate update circle voter based on given circle model
+// UpdateCircleCandidate update circle candidate based on given candidate model
 func (s *storage) UpdateCircleCandidate(candidate *model.CircleCandidate) (*model.CircleCandidate, error) {
 	if err := s.db.Save(candidate).Error; err != nil {
 		s.log.Errorf("error updating candidate: %s", err)
@@ -23,6 +23,16 @@ func (s *storage) UpdateCircleCandidate(candidate *model.CircleCandidate) (*mode
 	}
 
 	return candidate, nil
+}
+
+// deletes circle candidate based on given candidate model
+func (s *storage) DeleteCircleCandidate(candidateId int64) error {
+	if err := s.db.Model(&model.CircleCandidate{}).Delete(&model.CircleCandidate{}, candidateId).Error; err != nil {
+		s.log.Errorf("error updating candidate: %s", err)
+		return err
+	}
+
+	return nil
 }
 
 // CircleCandidateByCircleId returns the queried circle candidate in
