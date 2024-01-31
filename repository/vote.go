@@ -45,44 +45,40 @@ func (s *storage) CountsVotesOfCandidateByCircleId(circleId int64, candidateId i
 	return count, nil
 }
 
-// Query the given voter and candidate id for the circle id and get the first result
-func (s *storage) VoterCandidateByCircleId(
+// Determines if the voter already voted in the circle
+func (s *storage) HasVoterVotedForCircle(
 	circleId int64,
 	voterId int64,
-	candidateId int64,
-) (*model.Vote, error) {
-	vote := &model.Vote{}
+) (bool, error) {
+	var count int64
 	err := s.db.Where(
 		&model.Vote{
-			VoterRefer:     voterId,
-			CandidateRefer: candidateId,
-			CircleID:       circleId,
-			CircleRefer:    &circleId,
+			VoterRefer:  voterId,
+			CircleID:    circleId,
+			CircleRefer: &circleId,
 		},
-	).First(vote).Error
+	).Count(&count).Error
 
 	switch {
 	case err != nil && !database.RecordNotFound(err):
 		s.log.Errorf(
-			"error reading vote for voter %d and candidate %d by circle id %d: %s",
+			"error reading vote for voter %d by circle id %d: %s",
 			voterId,
-			candidateId,
 			circleId,
 			err,
 		)
-		return nil, err
+		return false, err
 	case database.RecordNotFound(err):
 		s.log.Infof(
-			"voter %d and candidate %d by circle id %d not found: %s",
+			"vote for voter %d by circle id %d not found: %s",
 			voterId,
-			candidateId,
 			circleId,
 			err,
 		)
-		return nil, err
+		return false, err
 	}
 
-	return vote, nil
+	return count > 0, nil
 }
 
 // Votes gets all votes for the given circle id

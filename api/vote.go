@@ -32,11 +32,10 @@ type VoteRepository interface {
 		circleId int64,
 	) (*model.Vote, error)
 	CountsVotesOfCandidateByCircleId(circleId int64, candidateId int64) (int64, error)
-	VoterCandidateByCircleId(
+	HasVoterVotedForCircle(
 		circleId int64,
 		voterId int64,
-		electedId int64,
-	) (*model.Vote, error)
+	) (bool, error)
 	CreateNewRanking(ranking *model.Ranking) (*model.Ranking, error)
 	UpdateRanking(ranking *model.Ranking) (*model.Ranking, error)
 	RankingByCircleId(circleId int64, identityId string) (*model.Ranking, error)
@@ -142,7 +141,7 @@ func (c *voteService) CreateVote(
 	}
 
 	// validate if voter already elected once - if so throw an error
-	_, err = c.storage.VoterCandidateByCircleId(circleId, voter.ID, candidate.ID)
+	_, err = c.storage.HasVoterVotedForCircle(circleId, voter.ID)
 
 	if err != nil && !database.RecordNotFound(err) {
 		c.log.Errorf("error getting voter %d for candidate %d not in circle: %s", voter.ID, candidate.ID, err)

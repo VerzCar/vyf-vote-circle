@@ -62,11 +62,10 @@ type Storage interface {
 		circleId int64,
 	) (*model.Vote, error)
 	CountsVotesOfCandidateByCircleId(circleId int64, candidateId int64) (int64, error)
-	VoterCandidateByCircleId(
+	HasVoterVotedForCircle(
 		circleId int64,
 		voterId int64,
-		electedId int64,
-	) (*model.Vote, error)
+	) (bool, error)
 	Votes(circleId int64) ([]*model.Vote, error)
 }
 
