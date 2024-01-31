@@ -44,21 +44,32 @@ type CircleCandidateRepository interface {
 	CircleById(id int64) (*model.Circle, error)
 }
 
+type CircleCandidateSubscription interface {
+	CircleCandidateChangedEvent(
+		ctx context.Context,
+		circleId int64,
+		event *model.CircleCandidateChangedEvent,
+	) error
+}
+
 type circleCandidateService struct {
-	storage CircleCandidateRepository
-	config  *config.Config
-	log     logger.Logger
+	storage      CircleCandidateRepository
+	subscription CircleCandidateSubscription
+	config       *config.Config
+	log          logger.Logger
 }
 
 func NewCircleCandidateService(
 	circleCandidateRepo CircleCandidateRepository,
+	subscription CircleCandidateSubscription,
 	config *config.Config,
 	log logger.Logger,
 ) CircleCandidateService {
 	return &circleCandidateService{
-		storage: circleCandidateRepo,
-		config:  config,
-		log:     log,
+		storage:      circleCandidateRepo,
+		subscription: subscription,
+		config:       config,
+		log:          log,
 	}
 }
 
@@ -125,6 +136,9 @@ func (c *circleCandidateService) CircleCandidateCommitment(
 		return nil, err
 	}
 
+	candidateEvent := createCandidateChangedEvent(model.EventOperationUpdated, candidate)
+	_ = c.subscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
+
 	return &candidate.Commitment, nil
 }
 
@@ -167,14 +181,18 @@ func (c *circleCandidateService) CircleCandidateJoinCircle(
 		CircleRefer: &circle.ID,
 		Commitment:  model.CommitmentCommitted,
 	}
-	voter, err := c.storage.CreateNewCircleCandidate(circleCandidate)
+
+	candidate, err := c.storage.CreateNewCircleCandidate(circleCandidate)
 
 	if err != nil {
 		c.log.Errorf("error adding candidate to circle id %d: %s", circleId, err)
 		return nil, err
 	}
 
-	return voter, nil
+	candidateEvent := createCandidateChangedEvent(model.EventOperationCreated, candidate)
+	_ = c.subscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
+
+	return candidate, nil
 }
 
 func (c *circleCandidateService) CircleCandidateLeaveCircle(
@@ -206,5 +224,24 @@ func (c *circleCandidateService) CircleCandidateLeaveCircle(
 		return fmt.Errorf("leaving as candidate from cirlce failed")
 	}
 
+	candidateEvent := createCandidateChangedEvent(model.EventOperationDeleted, candidate)
+	_ = c.subscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
+
 	return nil
+}
+
+func createCandidateChangedEvent(
+	operation model.EventOperation,
+	candidate *model.CircleCandidate,
+) *model.CircleCandidateChangedEvent {
+	return &model.CircleCandidateChangedEvent{
+		Operation: operation,
+		Candidate: &model.CircleCandidateResponse{
+			ID:         candidate.ID,
+			Candidate:  candidate.Candidate,
+			Commitment: candidate.Commitment,
+			CreatedAt:  candidate.CreatedAt,
+			UpdatedAt:  candidate.UpdatedAt,
+		},
+	}
 }

@@ -82,17 +82,11 @@ func run() error {
 	circleService := api.NewCircleService(storage, envConfig, log)
 	circleUploadService := api.NewCircleUploadService(circleService, s3Service, envConfig, log)
 	rankingService := api.NewRankingService(storage, redis, envConfig, log)
-	rankingSubscriptionService := api.NewRankingSubscriptionService(
-		storage,
-		redis,
-		rankingService,
-		pubSubService,
-		envConfig,
-		log,
-	)
+	rankingSubscriptionService := api.NewRankingSubscriptionService(pubSubService, log)
 	voteService := api.NewVoteService(storage, redis, rankingSubscriptionService, envConfig, log)
 	circleVoterService := api.NewCircleVoterService(storage, envConfig, log)
-	circleCandidateService := api.NewCircleCandidateService(storage, envConfig, log)
+	circleCandidateSubService := api.NewCircleCandidateSubscriptionService(pubSubService, log)
+	circleCandidateService := api.NewCircleCandidateService(storage, circleCandidateSubService, envConfig, log)
 	tokenService := api.NewTokenService(pubSubService, envConfig, log)
 
 	validate = validator.New()
@@ -108,6 +102,7 @@ func run() error {
 		voteService,
 		circleVoterService,
 		circleCandidateService,
+		circleCandidateSubService,
 		tokenService,
 		validate,
 		envConfig,

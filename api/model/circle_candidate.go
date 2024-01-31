@@ -47,6 +47,19 @@ type CircleCandidatesRequest struct {
 	CircleCandidatesFilterBy
 }
 
+type CircleCandidateChangedEvent struct {
+	Operation EventOperation
+	Candidate *CircleCandidateResponse
+}
+
+type EventOperation string
+
+const (
+	EventOperationCreated EventOperation = "CREATED"
+	EventOperationUpdated EventOperation = "UPDATED"
+	EventOperationDeleted EventOperation = "DELETED"
+)
+
 type Commitment string
 
 const (
