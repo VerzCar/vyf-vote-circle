@@ -12,20 +12,18 @@ import (
 )
 
 type Server struct {
-	router                             *gin.Engine
-	authService                        awsx.AuthService
-	circleService                      api.CircleService
-	circleUploadService                api.CircleUploadService
-	rankingService                     api.RankingService
-	rankingSubscriptionService         api.RankingSubscriptionService
-	voteService                        api.VoteService
-	circleVoterService                 api.CircleVoterService
-	circleCandidateService             api.CircleCandidateService
-	circleCandidateSubscriptionService api.CircleCandidateSubscriptionService
-	tokenService                       api.TokenService
-	validate                           sanitizer.Validator
-	config                             *config.Config
-	log                                logger.Logger
+	router                 *gin.Engine
+	authService            awsx.AuthService
+	circleService          api.CircleService
+	circleUploadService    api.CircleUploadService
+	rankingService         api.RankingService
+	voteService            api.VoteService
+	circleVoterService     api.CircleVoterService
+	circleCandidateService api.CircleCandidateService
+	tokenService           api.TokenService
+	validate               sanitizer.Validator
+	config                 *config.Config
+	log                    logger.Logger
 }
 
 func NewServer(
@@ -34,31 +32,27 @@ func NewServer(
 	circleService api.CircleService,
 	circleUploadService api.CircleUploadService,
 	rankingService api.RankingService,
-	rankingSubscriptionService api.RankingSubscriptionService,
 	voteService api.VoteService,
 	circleVoterService api.CircleVoterService,
 	circleCandidateService api.CircleCandidateService,
-	circleCandidateSubscriptionService api.CircleCandidateSubscriptionService,
 	tokenService api.TokenService,
 	validate sanitizer.Validator,
 	config *config.Config,
 	log logger.Logger,
 ) *Server {
 	server := &Server{
-		router:                             router,
-		authService:                        authService,
-		circleService:                      circleService,
-		circleUploadService:                circleUploadService,
-		rankingService:                     rankingService,
-		rankingSubscriptionService:         rankingSubscriptionService,
-		voteService:                        voteService,
-		circleVoterService:                 circleVoterService,
-		circleCandidateService:             circleCandidateService,
-		circleCandidateSubscriptionService: circleCandidateSubscriptionService,
-		tokenService:                       tokenService,
-		validate:                           validate,
-		config:                             config,
-		log:                                log,
+		router:                 router,
+		authService:            authService,
+		circleService:          circleService,
+		circleUploadService:    circleUploadService,
+		rankingService:         rankingService,
+		voteService:            voteService,
+		circleVoterService:     circleVoterService,
+		circleCandidateService: circleCandidateService,
+		tokenService:           tokenService,
+		validate:               validate,
+		config:                 config,
+		log:                    log,
 	}
 
 	server.routes()
