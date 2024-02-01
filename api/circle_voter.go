@@ -20,6 +20,10 @@ type CircleVoterService interface {
 		ctx context.Context,
 		circleId int64,
 	) (*model.CircleVoter, error)
+	CircleVoterLeaveCircle(
+		ctx context.Context,
+		circleId int64,
+	) error
 }
 
 type CircleVoterRepository interface {
@@ -31,23 +35,35 @@ type CircleVoterRepository interface {
 	CircleVoterByCircleId(circleId int64, voterId string) (*model.CircleVoter, error)
 	IsVoterInCircle(userIdentityId string, circleId int64) (bool, error)
 	CircleById(id int64) (*model.Circle, error)
+	DeleteCircleVoter(voterId int64) error
+}
+
+type CircleVoterSubscription interface {
+	CircleVoterChangedEvent(
+		ctx context.Context,
+		circleId int64,
+		event *model.CircleVoterChangedEvent,
+	) error
 }
 
 type circleVoterService struct {
-	storage CircleVoterRepository
-	config  *config.Config
-	log     logger.Logger
+	storage      CircleVoterRepository
+	subscription CircleVoterSubscription
+	config       *config.Config
+	log          logger.Logger
 }
 
 func NewCircleVoterService(
 	circleVoterRepo CircleVoterRepository,
+	subscription CircleVoterSubscription,
 	config *config.Config,
 	log logger.Logger,
 ) CircleVoterService {
 	return &circleVoterService{
-		storage: circleVoterRepo,
-		config:  config,
-		log:     log,
+		storage:      circleVoterRepo,
+		subscription: subscription,
+		config:       config,
+		log:          log,
 	}
 }
 
@@ -128,5 +144,60 @@ func (c *circleVoterService) CircleVoterJoinCircle(
 		return nil, err
 	}
 
+	voterEvent := createVoterChangedEvent(model.EventOperationCreated, voter)
+	_ = c.subscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
+
 	return voter, nil
+}
+
+func (c *circleVoterService) CircleVoterLeaveCircle(
+	ctx context.Context,
+	circleId int64,
+) error {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return err
+	}
+
+	voter, err := c.storage.CircleVoterByCircleId(circleId, authClaims.Subject)
+
+	if err != nil {
+		return fmt.Errorf("cannot leave as voter from cirlce")
+	}
+
+	err = c.storage.DeleteCircleVoter(voter.ID)
+
+	if err != nil {
+		c.log.Errorf(
+			"error removing voter %s from circle id %d: %s",
+			authClaims.Subject,
+			circleId,
+			err,
+		)
+		return fmt.Errorf("leaving as voter from cirlce failed")
+	}
+
+	voterEvent := createVoterChangedEvent(model.EventOperationDeleted, voter)
+	_ = c.subscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
+
+	return nil
+}
+
+func createVoterChangedEvent(
+	operation model.EventOperation,
+	voter *model.CircleVoter,
+) *model.CircleVoterChangedEvent {
+	return &model.CircleVoterChangedEvent{
+		Operation: operation,
+		Voter: &model.CircleVoterResponse{
+			ID:         voter.ID,
+			Voter:      voter.Voter,
+			VotedFor:   voter.VotedFor,
+			Commitment: voter.Commitment,
+			CreatedAt:  voter.CreatedAt,
+			UpdatedAt:  voter.UpdatedAt,
+		},
+	}
 }

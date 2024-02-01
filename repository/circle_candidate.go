@@ -28,7 +28,7 @@ func (s *storage) UpdateCircleCandidate(candidate *model.CircleCandidate) (*mode
 // deletes circle candidate based on given candidate model
 func (s *storage) DeleteCircleCandidate(candidateId int64) error {
 	if err := s.db.Model(&model.CircleCandidate{}).Delete(&model.CircleCandidate{}, candidateId).Error; err != nil {
-		s.log.Errorf("error updating candidate: %s", err)
+		s.log.Errorf("error deleting candidate: %s", err)
 		return err
 	}
 

@@ -43,3 +43,8 @@ type CircleVotersFilterBy struct {
 type CircleVotersRequest struct {
 	CircleVotersFilterBy
 }
+
+type CircleVoterChangedEvent struct {
+	Operation EventOperation       `json:"operation"`
+	Voter     *CircleVoterResponse `json:"voter"`
+}

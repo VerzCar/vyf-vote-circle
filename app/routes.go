@@ -24,6 +24,7 @@ func (s *Server) routes() {
 		// circle voters
 		authorized.GET("/circle-voters/:circleId", s.CircleVoters())
 		authorized.POST("/circle-voters/:circleId/join", s.CircleVoterJoinCircle())
+		authorized.DELETE("/circle-voters/:circleId/leave", s.CircleVoterLeaveCircle())
 
 		// circle candidates
 		authorized.GET("/circle-candidates/:circleId", s.CircleCandidates())

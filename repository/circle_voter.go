@@ -25,6 +25,16 @@ func (s *storage) UpdateCircleVoter(voter *model.CircleVoter) (*model.CircleVote
 	return voter, nil
 }
 
+// deletes circle candidate based on given candidate model
+func (s *storage) DeleteCircleVoter(voterId int64) error {
+	if err := s.db.Model(&model.CircleVoter{}).Delete(&model.CircleVoter{}, voterId).Error; err != nil {
+		s.log.Errorf("error deleting voter: %s", err)
+		return err
+	}
+
+	return nil
+}
+
 // CircleVoterByCircleId returns the queried circle voter in
 // the circle based on the given circle id
 func (s *storage) CircleVoterByCircleId(circleId int64, voterId string) (*model.CircleVoter, error) {
