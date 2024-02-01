@@ -48,8 +48,8 @@ type CircleCandidatesRequest struct {
 }
 
 type CircleCandidateChangedEvent struct {
-	Operation EventOperation
-	Candidate *CircleCandidateResponse
+	Operation EventOperation           `json:"operation"`
+	Candidate *CircleCandidateResponse `json:"candidate"`
 }
 
 type EventOperation string
