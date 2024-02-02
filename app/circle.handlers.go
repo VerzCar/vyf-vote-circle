@@ -41,6 +41,8 @@ func (s *Server) Circle() gin.HandlerFunc {
 			Active:      circle.Active,
 			CreatedFrom: circle.CreatedFrom,
 			ValidUntil:  circle.ValidUntil,
+			CreatedAt:   circle.CreatedAt,
+			UpdatedAt:   circle.UpdatedAt,
 		}
 
 		response := model.Response{
@@ -132,6 +134,8 @@ func (s *Server) Circles() gin.HandlerFunc {
 				Active:      circle.Active,
 				CreatedFrom: circle.CreatedFrom,
 				ValidUntil:  circle.ValidUntil,
+				CreatedAt:   circle.CreatedAt,
+				UpdatedAt:   circle.UpdatedAt,
 			}
 
 			circlesResponse = append(circlesResponse, circleResponse)
@@ -284,6 +288,8 @@ func (s *Server) CreateCircle() gin.HandlerFunc {
 			Active:      circle.Active,
 			CreatedFrom: circle.CreatedFrom,
 			ValidUntil:  circle.ValidUntil,
+			CreatedAt:   circle.CreatedAt,
+			UpdatedAt:   circle.UpdatedAt,
 		}
 
 		response := model.Response{
@@ -337,6 +343,8 @@ func (s *Server) UpdateCircle() gin.HandlerFunc {
 			Active:      circle.Active,
 			CreatedFrom: circle.CreatedFrom,
 			ValidUntil:  circle.ValidUntil,
+			CreatedAt:   circle.CreatedAt,
+			UpdatedAt:   circle.UpdatedAt,
 		}
 
 		response := model.Response{

@@ -50,16 +50,19 @@ type CircleResponse struct {
 	Active      bool       `json:"active"`
 	CreatedFrom string     `json:"createdFrom"`
 	ValidUntil  *time.Time `json:"validUntil"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
 }
 
 type CircleUpdateRequest struct {
-	ID          int64                 `json:"id" validate:"gt=0"`
-	Name        *string               `json:"name,omitempty" validate:"omitempty,gt=0,lte=40"`
-	Description *string               `json:"description,omitempty" validate:"omitempty,lte=1200"`
-	ImageSrc    *string               `json:"imageSrc,omitempty" validate:"omitempty,url"`
-	Voters      []*CircleVoterRequest `json:"voters,omitempty"`
-	Delete      *bool                 `json:"delete,omitempty" validate:"omitempty"`
-	ValidUntil  *time.Time            `json:"validUntil,omitempty" validate:"omitempty"`
+	ID          int64                     `json:"id" validate:"gt=0"`
+	Name        *string                   `json:"name,omitempty" validate:"omitempty,gt=0,lte=40"`
+	Description *string                   `json:"description,omitempty" validate:"omitempty,lte=1200"`
+	ImageSrc    *string                   `json:"imageSrc,omitempty" validate:"omitempty,url"`
+	Voters      []*CircleVoterRequest     `json:"voters,omitempty"`
+	Candidates  []*CircleCandidateRequest `json:"candidates,omitempty"`
+	Delete      *bool                     `json:"delete,omitempty" validate:"omitempty"`
+	ValidUntil  *time.Time                `json:"validUntil,omitempty" validate:"omitempty"`
 }
 
 type CircleCreateRequest struct {

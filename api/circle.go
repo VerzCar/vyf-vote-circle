@@ -256,20 +256,43 @@ func (c *circleService) UpdateCircle(
 		circle.Description = strings.TrimSpace(*circleUpdateRequest.Description)
 	}
 
-	// TODO: check update of voters
 	// can only update voters if the circle is private
-	//if circleUpdateRequest.Voters != nil && circle.Private {
-	//	var circleVoters []*model.CircleVoter
-	//	for _, voter := range circleUpdateRequest.Voters {
-	//		circleVoter := &model.CircleVoter{
-	//			Voter:       voter.Voter,
-	//			Circle:      circle,
-	//			CircleRefer: &circle.ID,
-	//		}
-	//		circleVoters = append(circleVoters, circleVoter)
-	//	}
-	//	circle.Voters = circleVoters
-	//}
+	if circleUpdateRequest.Voters != nil && circle.Private {
+		if len(circleUpdateRequest.Voters) <= 1 {
+			err = fmt.Errorf("not enough voters")
+			return nil, err
+		}
+
+		var circleVoters []*model.CircleVoter
+		for _, voter := range circleUpdateRequest.Voters {
+			circleVoter := &model.CircleVoter{
+				Voter:       voter.Voter,
+				Circle:      circle,
+				CircleRefer: &circle.ID,
+			}
+			circleVoters = append(circleVoters, circleVoter)
+		}
+		circle.Voters = circleVoters
+	}
+
+	// can only update candidates if the circle is private
+	if circleUpdateRequest.Candidates != nil && circle.Private {
+		if len(circleUpdateRequest.Candidates) <= 1 {
+			err = fmt.Errorf("not enough candidates")
+			return nil, err
+		}
+
+		var circleCandidates []*model.CircleCandidate
+		for _, candidate := range circleUpdateRequest.Candidates {
+			circleCandidate := &model.CircleCandidate{
+				Candidate:   candidate.Candidate,
+				Circle:      circle,
+				CircleRefer: &circle.ID,
+			}
+			circleCandidates = append(circleCandidates, circleCandidate)
+		}
+		circle.Candidates = circleCandidates
+	}
 
 	circle, err = c.storage.UpdateCircle(circle)
 
