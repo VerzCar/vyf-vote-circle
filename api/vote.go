@@ -23,7 +23,7 @@ type VoteRepository interface {
 	CircleVoterByCircleId(circleId int64, voterId string) (*model.CircleVoter, error)
 	CircleCandidateByCircleId(
 		circleId int64,
-		candidateId string,
+		userIdentityId string,
 	) (*model.CircleCandidate, error)
 	UpdateCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
 	CreateNewVote(

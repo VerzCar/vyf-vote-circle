@@ -42,7 +42,7 @@ type Storage interface {
 	DeleteCircleCandidate(candidateId int64) error
 	CircleCandidateByCircleId(
 		circleId int64,
-		candidateId string,
+		userIdentityId string,
 	) (*model.CircleCandidate, error)
 	IsCandidateInCircle(
 		userIdentityId string,

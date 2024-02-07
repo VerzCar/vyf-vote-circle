@@ -29,6 +29,16 @@ type CircleCandidateService interface {
 		ctx context.Context,
 		circleId int64,
 	) error
+	CircleCandidateAddToCircle(
+		ctx context.Context,
+		circleId int64,
+		circleCandidateInput *model.CircleCandidateRequest,
+	) (*model.CircleCandidate, error)
+	CircleCandidateRemoveFromCircle(
+		ctx context.Context,
+		circleId int64,
+		circleCandidateInput *model.CircleCandidateRequest,
+	) (*model.CircleCandidate, error)
 }
 
 type CircleCandidateRepository interface {
@@ -37,7 +47,7 @@ type CircleCandidateRepository interface {
 		filterBy *model.CircleCandidatesFilterBy,
 	) ([]*model.CircleCandidate, error)
 	CreateNewCircleCandidate(voter *model.CircleCandidate) (*model.CircleCandidate, error)
-	CircleCandidateByCircleId(circleId int64, voterId string) (*model.CircleCandidate, error)
+	CircleCandidateByCircleId(circleId int64, userIdentityId string) (*model.CircleCandidate, error)
 	UpdateCircleCandidate(voter *model.CircleCandidate) (*model.CircleCandidate, error)
 	DeleteCircleCandidate(candidateId int64) error
 	IsCandidateInCircle(userIdentityId string, circleId int64) (bool, error)
@@ -228,6 +238,129 @@ func (c *circleCandidateService) CircleCandidateLeaveCircle(
 	_ = c.subscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
 
 	return nil
+}
+
+func (c *circleCandidateService) CircleCandidateAddToCircle(
+	ctx context.Context,
+	circleId int64,
+	circleCandidateInput *model.CircleCandidateRequest,
+) (*model.CircleCandidate, error) {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return nil, err
+	}
+
+	circle, err := c.storage.CircleById(circleId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// checks whether user is eligible to add candidate to this circle
+	if circle.CreatedFrom != authClaims.Subject {
+		c.log.Infof(
+			"user is not eligible to add candidate to circle: user %s, circle ID %d",
+			authClaims.Subject,
+			circle.ID,
+		)
+		err = fmt.Errorf("user is not eligible add candidate to circle")
+		return nil, err
+	}
+
+	IsCandidateInCircle, err := c.storage.IsCandidateInCircle(circleCandidateInput.Candidate, circleId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if IsCandidateInCircle {
+		err = fmt.Errorf("user is already as candidate in the circle")
+		return nil, err
+	}
+
+	circleCandidate := &model.CircleCandidate{
+		Candidate:   circleCandidateInput.Candidate,
+		Circle:      circle,
+		CircleRefer: &circle.ID,
+	}
+
+	newCandidate, err := c.storage.CreateNewCircleCandidate(circleCandidate)
+
+	if err != nil {
+		c.log.Errorf("error adding candidate to circle id %d: %s", circleId, err)
+		return nil, err
+	}
+
+	candidateEvent := createCandidateChangedEvent(model.EventOperationCreated, newCandidate)
+	_ = c.subscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
+
+	return newCandidate, nil
+}
+
+func (c *circleCandidateService) CircleCandidateRemoveFromCircle(
+	ctx context.Context,
+	circleId int64,
+	circleCandidateInput *model.CircleCandidateRequest,
+) (*model.CircleCandidate, error) {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return nil, err
+	}
+
+	circle, err := c.storage.CircleById(circleId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// checks whether user is eligible to remove candidate from this circle
+	if circle.CreatedFrom != authClaims.Subject {
+		c.log.Infof(
+			"user is not eligible to remove candidate from circle: user %s, circle ID %d",
+			authClaims.Subject,
+			circle.ID,
+		)
+		err = fmt.Errorf("user is not eligible to remove candidate from circle")
+		return nil, err
+	}
+
+	candidate, err := c.storage.CircleCandidateByCircleId(circleId, circleCandidateInput.Candidate)
+
+	if err != nil && !database.RecordNotFound(err) {
+		return nil, err
+	}
+
+	if !database.RecordNotFound(err) && candidate.Commitment == model.CommitmentRejected {
+		c.log.Infof(
+			"user has rejected candidacy for this circle: user %s, circle ID %d",
+			authClaims.Subject,
+			circle.ID,
+		)
+		err = fmt.Errorf("user cannot be removed as candidate from this circle")
+		return nil, err
+	}
+
+	circleCandidate := &model.CircleCandidate{
+		Candidate:   circleCandidateInput.Candidate,
+		Circle:      circle,
+		CircleRefer: &circle.ID,
+	}
+
+	newCandidate, err := c.storage.CreateNewCircleCandidate(circleCandidate)
+
+	if err != nil {
+		c.log.Errorf("error adding candidate to circle id %d: %s", circleId, err)
+		return nil, err
+	}
+
+	candidateEvent := createCandidateChangedEvent(model.EventOperationCreated, newCandidate)
+	_ = c.subscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
+
+	return newCandidate, nil
 }
 
 func createCandidateChangedEvent(
