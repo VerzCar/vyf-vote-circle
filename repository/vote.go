@@ -211,13 +211,14 @@ func (s *storage) HasVoterVotedForCircle(
 	voterId int64,
 ) (bool, error) {
 	var count int64
-	err := s.db.Where(
-		&model.Vote{
-			VoterRefer:  voterId,
-			CircleID:    circleId,
-			CircleRefer: &circleId,
-		},
-	).Count(&count).Error
+	err := s.db.Model(&model.Vote{}).
+		Where(
+			&model.Vote{
+				VoterRefer:  voterId,
+				CircleID:    circleId,
+				CircleRefer: &circleId,
+			},
+		).Count(&count).Error
 
 	switch {
 	case err != nil && !database.RecordNotFound(err):
