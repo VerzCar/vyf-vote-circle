@@ -30,7 +30,7 @@ type Storage interface {
 	CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
 	UpdateCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
 	DeleteCircleVoter(voterId int64) error
-	CircleVoterByCircleId(circleId int64, voterId string) (*model.CircleVoter, error)
+	CircleVoterByCircleId(circleId int64, userIdentityId string) (*model.CircleVoter, error)
 	IsVoterInCircle(userIdentityId string, circleId int64) (bool, error)
 	CircleVotersFiltered(
 		circleId int64,
@@ -55,13 +55,23 @@ type Storage interface {
 
 	CreateNewRanking(ranking *model.Ranking) (*model.Ranking, error)
 	UpdateRanking(ranking *model.Ranking) (*model.Ranking, error)
+	DeleteRanking(rankingId int64) error
 	RankingsByCircleId(circleId int64) ([]*model.Ranking, error)
 	RankingByCircleId(circleId int64, identityId string) (*model.Ranking, error)
 
 	CreateNewVote(
-		voterId int64,
-		candidateId int64,
 		circleId int64,
+		voter *model.CircleVoter,
+		candidate *model.CircleCandidate,
+	) (*model.Vote, *model.Ranking, int64, error)
+	DeleteVote(
+		circleId int64,
+		vote *model.Vote,
+		voter *model.CircleVoter,
+	) (*model.Ranking, int64, error)
+	VoteByCircleId(
+		circleId int64,
+		voterId int64,
 	) (*model.Vote, error)
 	CountsVotesOfCandidateByCircleId(circleId int64, candidateId int64) (int64, error)
 	HasVoterVotedForCircle(

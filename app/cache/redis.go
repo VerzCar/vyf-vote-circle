@@ -19,6 +19,11 @@ type RedisCache interface {
 		ranking *model.Ranking,
 		votes int64,
 	) (*model.RankingResponse, error)
+	RemoveRanking(
+		ctx context.Context,
+		circleId int64,
+		candidate *model.CircleCandidate,
+	) error
 	RankingList(
 		ctx context.Context,
 		circleId int64,

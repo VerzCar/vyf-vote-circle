@@ -54,6 +54,11 @@ type RankingCacheItem struct {
 	VoteCount int64
 }
 
+type RankingChangedEvent struct {
+	Operation EventOperation   `json:"operation"`
+	Ranking   *RankingResponse `json:"ranking"`
+}
+
 func (s RankingScore) MarshalBinary() ([]byte, error) {
 	return json.Marshal(s)
 }

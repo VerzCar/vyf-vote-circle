@@ -12,9 +12,11 @@ type Client interface {
 	HSet(ctx context.Context, key string, values ...interface{}) *redis.IntCmd
 	HGet(ctx context.Context, key string, field string) *redis.StringCmd
 	HGetAll(ctx context.Context, key string) *redis.StringStringMapCmd
+	HDel(ctx context.Context, key string, fields ...string) *redis.IntCmd
 	FlushDB(ctx context.Context) *redis.StatusCmd
 	Exists(ctx context.Context, keys ...string) *redis.IntCmd
 	ZAdd(ctx context.Context, key string, members ...*redis.Z) *redis.IntCmd
+	ZRem(ctx context.Context, key string, members ...interface{}) *redis.IntCmd
 	ZRevRangeWithScores(ctx context.Context, key string, start int64, stop int64) *redis.ZSliceCmd
 	ZScore(ctx context.Context, key string, member string) *redis.FloatCmd
 	ZRevRank(ctx context.Context, key string, member string) *redis.IntCmd

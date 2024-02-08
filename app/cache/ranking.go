@@ -25,7 +25,7 @@ func (c *redisCache) UpsertRanking(
 		return nil, err
 	}
 
-	placmentNumber, rankingPlacementIndex, err := c.rankingPlacementNumberWithIndex(
+	placementNumber, rankingPlacementIndex, err := c.rankingPlacementNumberWithIndex(
 		ctx,
 		circleId,
 		rankingScore.UserIdentityId,
@@ -41,7 +41,7 @@ func (c *redisCache) UpsertRanking(
 		candidate.ID,
 		rankingScore,
 		rankingPlacementIndex,
-		placmentNumber,
+		placementNumber,
 		ranking.CreatedAt,
 		ranking.UpdatedAt,
 	)
@@ -49,65 +49,16 @@ func (c *redisCache) UpsertRanking(
 	return rankingRes, nil
 }
 
-func (c *redisCache) setRankingScore(
+func (c *redisCache) RemoveRanking(
 	ctx context.Context,
 	circleId int64,
 	candidate *model.CircleCandidate,
-	ranking *model.Ranking,
-	rankingScore *model.RankingScore,
 ) error {
-	key := circleRankingKey(circleId)
-
-	_, err := c.redis.Pipelined(
-		ctx, func(pipe redis.Pipeliner) error {
-			pipeSetRankingScore(ctx, pipe, key, rankingScore)
-			candidateKey := circleUserCandidateKey(circleId, candidate.Candidate)
-			pipeSetUserCandidate(ctx, pipe, candidateKey, candidate, ranking)
-			return nil
-		},
-	)
-
-	if err != nil {
-		c.log.Errorf(
-			"could not set ranking in transaction for circle key %s: %s",
-			key,
-			err,
-		)
+	if err := c.removeRanking(ctx, circleId, candidate); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func (c *redisCache) rankingPlacementNumberWithIndex(
-	ctx context.Context,
-	circleId int64,
-	member string,
-) (int64, int64, error) {
-	key := circleRankingKey(circleId)
-
-	cmds, err := c.redis.Pipelined(
-		ctx, func(pipe redis.Pipeliner) error {
-			pipe.ZScore(ctx, key, member)
-			pipe.ZRevRank(ctx, key, member)
-			return nil
-		},
-	)
-
-	if err != nil {
-		c.log.Errorf(
-			"could not read placement number and index for member %s for circle key %s: %s",
-			member,
-			key,
-			err,
-		)
-		return 0, 0, err
-	}
-
-	placementNumber := int64(cmds[0].(*redis.FloatCmd).Val())
-	placementIndex := cmds[1].(*redis.IntCmd).Val()
-
-	return placementNumber, placementIndex, nil
 }
 
 // RankingList of the current cached ranking for the circle
@@ -199,6 +150,95 @@ func (c *redisCache) BuildRankingList(
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (c *redisCache) setRankingScore(
+	ctx context.Context,
+	circleId int64,
+	candidate *model.CircleCandidate,
+	ranking *model.Ranking,
+	rankingScore *model.RankingScore,
+) error {
+	key := circleRankingKey(circleId)
+
+	_, err := c.redis.Pipelined(
+		ctx, func(pipe redis.Pipeliner) error {
+			pipeSetRankingScore(ctx, pipe, key, rankingScore)
+			candidateKey := circleUserCandidateKey(circleId, candidate.Candidate)
+			pipeSetUserCandidate(ctx, pipe, candidateKey, candidate, ranking)
+			return nil
+		},
+	)
+
+	if err != nil {
+		c.log.Errorf(
+			"could not set ranking in transaction for circle key %s: %s",
+			key,
+			err,
+		)
+		return err
+	}
+
+	return nil
+}
+
+func (c *redisCache) rankingPlacementNumberWithIndex(
+	ctx context.Context,
+	circleId int64,
+	member string,
+) (int64, int64, error) {
+	key := circleRankingKey(circleId)
+
+	cmds, err := c.redis.Pipelined(
+		ctx, func(pipe redis.Pipeliner) error {
+			pipe.ZScore(ctx, key, member)
+			pipe.ZRevRank(ctx, key, member)
+			return nil
+		},
+	)
+
+	if err != nil {
+		c.log.Errorf(
+			"could not read placement number and index for member %s for circle key %s: %s",
+			member,
+			key,
+			err,
+		)
+		return 0, 0, err
+	}
+
+	placementNumber := int64(cmds[0].(*redis.FloatCmd).Val())
+	placementIndex := cmds[1].(*redis.IntCmd).Val()
+
+	return placementNumber, placementIndex, nil
+}
+
+func (c *redisCache) removeRanking(
+	ctx context.Context,
+	circleId int64,
+	candidate *model.CircleCandidate,
+) error {
+	key := circleRankingKey(circleId)
+
+	_, err := c.redis.Pipelined(
+		ctx, func(pipe redis.Pipeliner) error {
+			pipeRemoveRankingScore(ctx, pipe, key, candidate.Candidate)
+			candidateKey := circleUserCandidateKey(circleId, candidate.Candidate)
+			pipeRemoveUserCandidate(ctx, pipe, candidateKey)
+			return nil
+		},
+	)
+
+	if err != nil {
+		c.log.Errorf(
+			"could not remove ranking in transaction for circle key %s: %s",
+			key,
+			err,
+		)
+		return err
 	}
 
 	return nil
@@ -297,6 +337,16 @@ func pipeSetRankingScore(
 	pipe.ZAdd(ctx, key, members)
 }
 
+// Removes the member for the given key in cache
+func pipeRemoveRankingScore(
+	ctx context.Context,
+	pipe redis.Pipeliner,
+	key string,
+	member string,
+) {
+	pipe.ZRem(ctx, key, member)
+}
+
 // Ranking score of the given key and member.
 // Returns 0 if the key or member does not exist
 func pipeRankingScore(
@@ -319,6 +369,14 @@ func pipeSetUserCandidate(
 	pipe.HSet(ctx, key, "rankingId", ranking.ID)
 	pipe.HSet(ctx, key, "createdAt", ranking.CreatedAt)
 	pipe.HSet(ctx, key, "updatedAt", ranking.UpdatedAt)
+}
+
+func pipeRemoveUserCandidate(
+	ctx context.Context,
+	pipe redis.Pipeliner,
+	key string,
+) {
+	pipe.HDel(ctx, key, "candidateId", "rankingId", "createdAt", "updatedAt")
 }
 
 func circleRankingKey(circleId int64) string {

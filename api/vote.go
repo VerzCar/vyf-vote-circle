@@ -8,6 +8,7 @@ import (
 	"github.com/VerzCar/vyf-vote-circle/app/config"
 	"github.com/VerzCar/vyf-vote-circle/app/database"
 	routerContext "github.com/VerzCar/vyf-vote-circle/app/router/ctx"
+	"time"
 )
 
 type VoteService interface {
@@ -16,29 +17,38 @@ type VoteService interface {
 		circleId int64,
 		voteReq *model.VoteCreateRequest,
 	) (bool, error)
+	RevokeVote(
+		ctx context.Context,
+		circleId int64,
+	) (bool, error)
 }
 
 type VoteRepository interface {
 	CircleById(id int64) (*model.Circle, error)
-	CircleVoterByCircleId(circleId int64, voterId string) (*model.CircleVoter, error)
+	CircleVoterByCircleId(circleId int64, userIdentityId string) (*model.CircleVoter, error)
 	CircleCandidateByCircleId(
 		circleId int64,
 		userIdentityId string,
 	) (*model.CircleCandidate, error)
-	UpdateCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
 	CreateNewVote(
-		voterId int64,
-		candidateId int64,
 		circleId int64,
+		voter *model.CircleVoter,
+		candidate *model.CircleCandidate,
+	) (*model.Vote, *model.Ranking, int64, error)
+	VoteByCircleId(
+		circleId int64,
+		voterId int64,
 	) (*model.Vote, error)
-	CountsVotesOfCandidateByCircleId(circleId int64, candidateId int64) (int64, error)
+	DeleteVote(
+		circleId int64,
+		vote *model.Vote,
+		voter *model.CircleVoter,
+	) (*model.Ranking, int64, error)
 	HasVoterVotedForCircle(
 		circleId int64,
 		voterId int64,
 	) (bool, error)
-	CreateNewRanking(ranking *model.Ranking) (*model.Ranking, error)
 	UpdateRanking(ranking *model.Ranking) (*model.Ranking, error)
-	RankingByCircleId(circleId int64, identityId string) (*model.Ranking, error)
 }
 
 type VoteCache interface {
@@ -49,13 +59,18 @@ type VoteCache interface {
 		ranking *model.Ranking,
 		votes int64,
 	) (*model.RankingResponse, error)
+	RemoveRanking(
+		ctx context.Context,
+		circleId int64,
+		candidate *model.CircleCandidate,
+	) error
 }
 
 type VoteSubscription interface {
 	RankingChangedEvent(
 		ctx context.Context,
 		circleId int64,
-		ranking *model.RankingResponse,
+		event *model.RankingChangedEvent,
 	) error
 }
 
@@ -157,52 +172,7 @@ func (c *voteService) CreateVote(
 		return false, fmt.Errorf("already voted in circle")
 	}
 
-	// TODO: put this write block in transaction as the update ranking in the cache could fail
-	_, err = c.storage.CreateNewVote(voter.ID, candidate.ID, circleId)
-
-	if err != nil {
-		return false, err
-	}
-
-	voteCount, err := c.storage.CountsVotesOfCandidateByCircleId(circleId, candidate.ID)
-
-	if err != nil {
-		return false, err
-	}
-
-	// update the ranking meta information
-	var ranking *model.Ranking
-
-	ranking, err = c.storage.RankingByCircleId(circleId, candidate.Candidate)
-
-	switch {
-	case err != nil && !database.RecordNotFound(err):
-		return false, err
-	case database.RecordNotFound(err):
-		newRanking := &model.Ranking{
-			IdentityID: candidate.Candidate,
-			Number:     0,
-			Votes:      voteCount,
-			CircleID:   circleId,
-		}
-
-		ranking, err = c.storage.CreateNewRanking(newRanking)
-
-		if err != nil {
-			return false, err
-		}
-		break
-	default:
-		ranking, err = c.storage.UpdateRanking(&model.Ranking{ID: ranking.ID, Votes: voteCount})
-
-		if err != nil {
-			return false, err
-		}
-	}
-
-	// update the voters meta information
-	voter.VotedFor = &candidate.Candidate
-	_, err = c.storage.UpdateCircleVoter(voter)
+	_, ranking, voteCount, err := c.storage.CreateNewVote(circleId, voter, candidate)
 
 	if err != nil {
 		return false, err
@@ -226,7 +196,119 @@ func (c *voteService) CreateVote(
 		return false, err
 	}
 
-	_ = c.subscription.RankingChangedEvent(ctx, circleId, cachedRanking)
+	event := createRankingChangedEvent(model.EventOperationCreated, cachedRanking)
+	_ = c.subscription.RankingChangedEvent(ctx, circleId, event)
 
 	return true, nil
+}
+
+func (c *voteService) RevokeVote(
+	ctx context.Context,
+	circleId int64,
+) (bool, error) {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("getting auth claims: %s", err)
+		return false, err
+	}
+
+	circle, err := c.storage.CircleById(circleId)
+
+	if err != nil {
+		return false, err
+	}
+
+	if !circle.Active {
+		c.log.Infof(
+			"tried to revoke vote for an inactive circle with circle id %d and subject %s",
+			circleId,
+			authClaims.Subject,
+		)
+		return false, fmt.Errorf("circle inactive")
+	}
+
+	if circle.ValidUntil != nil && time.Now().After(*circle.ValidUntil) {
+		c.log.Infof(
+			"tried to revoke vote for an circle that is not valid anymore with circle id %d and subject %s",
+			circleId,
+			authClaims.Subject,
+		)
+		return false, fmt.Errorf("circle closed")
+	}
+
+	voter, err := c.storage.CircleVoterByCircleId(circleId, authClaims.Subject)
+
+	if err != nil {
+		c.log.Errorf("voter userIdentity id %s not in circle: %s", authClaims.Subject, err)
+		return false, err
+	}
+
+	vote, err := c.storage.VoteByCircleId(circleId, voter.ID)
+
+	if err != nil && !database.RecordNotFound(err) {
+		c.log.Errorf("getting vote for voter %d for circle id %d: %s", voter.ID, circleId, err)
+		return false, err
+	}
+
+	if database.RecordNotFound(err) {
+		c.log.Errorf("user has not voted for circle id %d", circleId)
+		return false, fmt.Errorf("no voting exists")
+	}
+
+	ranking, voteCount, err := c.storage.DeleteVote(circleId, vote, voter)
+
+	if err != nil {
+		return false, err
+	}
+
+	if voteCount > 0 {
+		cachedRanking, err := c.cache.UpsertRanking(ctx, circleId, &vote.Candidate, ranking, voteCount)
+
+		if err != nil {
+			return false, err
+		}
+
+		// update ranking with newly indexed order
+		updatedRanking := &model.Ranking{
+			ID:     cachedRanking.ID,
+			Number: cachedRanking.Number,
+		}
+
+		_, err = c.storage.UpdateRanking(updatedRanking)
+
+		if err != nil {
+			return false, err
+		}
+
+		event := createRankingChangedEvent(model.EventOperationUpdated, cachedRanking)
+		_ = c.subscription.RankingChangedEvent(ctx, circleId, event)
+
+		return true, nil
+	}
+
+	err = c.cache.RemoveRanking(ctx, circleId, &vote.Candidate)
+
+	if err != nil {
+		return false, err
+	}
+
+	rankingResponse := &model.RankingResponse{
+		ID: ranking.ID,
+	}
+
+	event := createRankingChangedEvent(model.EventOperationDeleted, rankingResponse)
+	_ = c.subscription.RankingChangedEvent(ctx, circleId, event)
+
+	return true, nil
+}
+
+func createRankingChangedEvent(
+	operation model.EventOperation,
+	ranking *model.RankingResponse,
+) *model.RankingChangedEvent {
+	return &model.RankingChangedEvent{
+		Operation: operation,
+		Ranking:   ranking,
+	}
 }

@@ -32,7 +32,7 @@ type CircleVoterRepository interface {
 		filterBy *model.CircleVotersFilterBy,
 	) ([]*model.CircleVoter, error)
 	CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
-	CircleVoterByCircleId(circleId int64, voterId string) (*model.CircleVoter, error)
+	CircleVoterByCircleId(circleId int64, userIdentityId string) (*model.CircleVoter, error)
 	IsVoterInCircle(userIdentityId string, circleId int64) (bool, error)
 	CircleById(id int64) (*model.Circle, error)
 	DeleteCircleVoter(voterId int64) error

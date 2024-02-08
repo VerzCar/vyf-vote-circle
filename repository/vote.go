@@ -3,27 +3,164 @@ package repository
 import (
 	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/VerzCar/vyf-vote-circle/app/database"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
-// CreateNewVote creates a new vote for the circle
+// Creates a new vote and updates all necessary tables
+// in a transaction.
 func (s *storage) CreateNewVote(
-	voterId int64,
-	candidateId int64,
 	circleId int64,
-) (*model.Vote, error) {
+	voter *model.CircleVoter,
+	candidate *model.CircleCandidate,
+) (*model.Vote, *model.Ranking, int64, error) {
 	vote := &model.Vote{
-		VoterRefer:     voterId,
-		CandidateRefer: candidateId,
+		VoterRefer:     voter.ID,
+		CandidateRefer: candidate.ID,
 		CircleID:       circleId,
 		CircleRefer:    &circleId,
 	}
-	if err := s.db.Create(vote).Error; err != nil {
-		s.log.Infof("error creating vote in circle %d: %s", circleId, err)
-		return nil, err
+	voteCount := int64(0)
+	ranking := &model.Ranking{}
+
+	err := s.db.Transaction(
+		func(tx *gorm.DB) error {
+			// create vote
+			err := tx.Model(&model.Vote{}).Create(vote).Error
+
+			if err != nil {
+				s.log.Errorf("error creating vote in circle %d: %s", circleId, err)
+				return err
+			}
+
+			// update the voters meta information
+			voter.VotedFor = &candidate.Candidate
+			err = tx.Model(voter).Update("voted_for", candidate.Candidate).Error
+
+			if err != nil {
+				s.log.Errorf("error updating voter id %d for circle id %d: %s", voter.ID, circleId, err)
+				return err
+			}
+
+			err = tx.Model(&model.Vote{}).
+				Where(&model.Vote{CircleID: circleId, CircleRefer: &circleId, CandidateRefer: candidate.ID}).
+				Count(&voteCount).
+				Error
+
+			if err != nil {
+				s.log.Errorf("error reading votes for candidate id %d by circle id %d: %s", candidate.ID, circleId, err)
+				return err
+			}
+
+			ranking, err = s.txUpsertRanking(tx, circleId, voteCount, candidate)
+
+			if err != nil {
+				return err
+			}
+
+			return nil
+		},
+	)
+
+	if err != nil {
+		s.log.Error("error creating vote: %s", err)
+		return nil, nil, 0, err
 	}
 
-	return vote, nil
+	return vote, ranking, voteCount, nil
+}
+
+// Deletes a new vote and updates all necessary tables
+// in a transaction.
+func (s *storage) DeleteVote(
+	circleId int64,
+	vote *model.Vote,
+	voter *model.CircleVoter,
+) (*model.Ranking, int64, error) {
+	voteCount := int64(0)
+	ranking := &model.Ranking{}
+
+	err := s.db.Transaction(
+		func(tx *gorm.DB) error {
+			// delete vote
+			err := tx.Model(&model.Vote{}).Delete(&model.Vote{ID: vote.ID}).Error
+
+			if err != nil {
+				s.log.Errorf("error deleting vote id %d: %s", vote.ID, err)
+				return err
+			}
+
+			// update the voters meta information
+			voter.VotedFor = nil
+			err = tx.Model(voter).Update("voted_for", nil).Error
+
+			if err != nil {
+				s.log.Errorf("error updating voter id %d for circle id %d: %s", voter.ID, circleId, err)
+				return err
+			}
+
+			err = tx.Model(&model.Vote{}).
+				Where(&model.Vote{CircleID: circleId, CircleRefer: &circleId, CandidateRefer: vote.Candidate.ID}).
+				Count(&voteCount).
+				Error
+
+			if err != nil {
+				s.log.Errorf(
+					"error reading votes for candidate id %d by circle id %d: %s",
+					vote.Candidate.ID,
+					circleId,
+					err,
+				)
+				return err
+			}
+
+			// if still has votes update ranking
+			if voteCount > 0 {
+				ranking, err = s.txUpsertRanking(tx, circleId, voteCount, &vote.Candidate)
+
+				if err != nil {
+					return err
+				}
+
+				return nil
+			}
+
+			err = tx.Where(&model.Ranking{IdentityID: vote.Candidate.Candidate, CircleID: circleId}).
+				First(ranking).
+				Error
+
+			if err != nil && !database.RecordNotFound(err) {
+				s.log.Errorf(
+					"error reading ranking by circle id %d for user %s: %s",
+					circleId,
+					vote.Candidate.Candidate,
+					err,
+				)
+				return err
+			}
+
+			// Ranking exists
+			if err == nil {
+				err = tx.Model(&model.Ranking{}).
+					Delete(&model.Ranking{}, ranking.ID).
+					Error
+
+				if err != nil {
+					s.log.Errorf("error deleting ranking: %s", err)
+					return err
+				}
+			}
+
+			return nil
+		},
+	)
+
+	if err != nil {
+		s.log.Error("error deleting vote: %s", err)
+		return nil, 0, err
+	}
+
+	return ranking, voteCount, nil
 }
 
 // Gets the number of votes for the candidate id
@@ -43,6 +180,29 @@ func (s *storage) CountsVotesOfCandidateByCircleId(circleId int64, candidateId i
 	}
 
 	return count, nil
+}
+
+// VoteByCircleId returns the queried vote in
+// the circle based on the given voter id
+func (s *storage) VoteByCircleId(
+	circleId int64,
+	voterId int64,
+) (*model.Vote, error) {
+	vote := &model.Vote{}
+	err := s.db.Preload(clause.Associations).
+		Where(&model.Vote{VoterRefer: voterId, CircleID: circleId}).
+		First(vote).Error
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		s.log.Errorf("error reading vote for voter id %d by circle id %d: %s", voterId, circleId, err)
+		return nil, err
+	case database.RecordNotFound(err):
+		s.log.Infof("vote with id %s in circle %d not found: %s", voterId, circleId, err)
+		return nil, err
+	}
+
+	return vote, nil
 }
 
 // Determines if the voter already voted in the circle

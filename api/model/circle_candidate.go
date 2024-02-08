@@ -52,14 +52,6 @@ type CircleCandidateChangedEvent struct {
 	Candidate *CircleCandidateResponse `json:"candidate"`
 }
 
-type EventOperation string
-
-const (
-	EventOperationCreated EventOperation = "CREATED"
-	EventOperationUpdated EventOperation = "UPDATED"
-	EventOperationDeleted EventOperation = "DELETED"
-)
-
 type Commitment string
 
 const (

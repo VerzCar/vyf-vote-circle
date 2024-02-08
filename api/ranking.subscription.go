@@ -12,7 +12,7 @@ type RankingSubscriptionService interface {
 	RankingChangedEvent(
 		ctx context.Context,
 		circleId int64,
-		ranking *model.RankingResponse,
+		event *model.RankingChangedEvent,
 	) error
 }
 
@@ -37,14 +37,14 @@ func NewRankingSubscriptionService(
 func (s *rankingSubscriptionService) RankingChangedEvent(
 	ctx context.Context,
 	circleId int64,
-	ranking *model.RankingResponse,
+	event *model.RankingChangedEvent,
 ) error {
 	channelName := fmt.Sprintf("circle-%d:rankings", circleId)
 	msgName := "ranking-changed"
 
 	channel := s.pubSubService.Channels.Get(channelName)
 
-	err := channel.Publish(ctx, msgName, ranking)
+	err := channel.Publish(ctx, msgName, event)
 
 	if err != nil {
 		s.log.Errorf(

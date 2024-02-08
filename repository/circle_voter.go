@@ -37,9 +37,9 @@ func (s *storage) DeleteCircleVoter(voterId int64) error {
 
 // CircleVoterByCircleId returns the queried circle voter in
 // the circle based on the given circle id
-func (s *storage) CircleVoterByCircleId(circleId int64, voterId string) (*model.CircleVoter, error) {
+func (s *storage) CircleVoterByCircleId(circleId int64, userIdentityId string) (*model.CircleVoter, error) {
 	circleVoter := &model.CircleVoter{}
-	err := s.db.Where(&model.CircleVoter{Voter: voterId, CircleID: circleId}).
+	err := s.db.Where(&model.CircleVoter{Voter: userIdentityId, CircleID: circleId}).
 		First(circleVoter).Error
 
 	switch {
@@ -47,7 +47,7 @@ func (s *storage) CircleVoterByCircleId(circleId int64, voterId string) (*model.
 		s.log.Errorf("error reading circle voter by circle id %d: %s", circleId, err)
 		return nil, err
 	case database.RecordNotFound(err):
-		s.log.Infof("circle voter with id %s in circle %d not found: %s", voterId, circleId, err)
+		s.log.Infof("circle userIdentity with id %s in circle %d not found: %s", userIdentityId, circleId, err)
 		return nil, err
 	}
 
