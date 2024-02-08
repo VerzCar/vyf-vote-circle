@@ -156,13 +156,12 @@ func (c *voteService) CreateVote(
 	}
 
 	// validate if voter already elected once - if so throw an error
-	_, err = c.storage.HasVoterVotedForCircle(circleId, voter.ID)
+	hasVoted, err := c.storage.HasVoterVotedForCircle(circleId, voter.ID)
 
 	if err != nil && !database.RecordNotFound(err) {
-		c.log.Errorf("error getting voter %d for candidate %d not in circle: %s", voter.ID, candidate.ID, err)
-		return false, err
+		return false, fmt.Errorf("already voted in circle")
 	}
-	if err == nil {
+	if err == nil && hasVoted {
 		c.log.Errorf(
 			"voter %s for candidate %s already voted in circle: %d",
 			voter.Voter,
