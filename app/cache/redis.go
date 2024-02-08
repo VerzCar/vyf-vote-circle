@@ -11,6 +11,20 @@ import (
 	"time"
 )
 
+type UpsertRankingCacheCallback func(
+	context.Context,
+	int64,
+	*model.CircleCandidate,
+	*model.Ranking,
+	int64,
+) (*model.RankingResponse, error)
+
+type RemoveRankingCacheCallback func(
+	context.Context,
+	int64,
+	*model.CircleCandidate,
+) error
+
 type RedisCache interface {
 	UpsertRanking(
 		ctx context.Context,

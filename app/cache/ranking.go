@@ -21,6 +21,7 @@ func (c *redisCache) UpsertRanking(
 		UserIdentityId: candidate.Candidate,
 	}
 
+	// TODO: put this in transaction
 	if err := c.setRankingScore(ctx, circleId, candidate, ranking, rankingScore); err != nil {
 		return nil, err
 	}
@@ -54,6 +55,7 @@ func (c *redisCache) RemoveRanking(
 	circleId int64,
 	candidate *model.CircleCandidate,
 ) error {
+	// TODO: put this in transaction
 	if err := c.removeRanking(ctx, circleId, candidate); err != nil {
 		return err
 	}

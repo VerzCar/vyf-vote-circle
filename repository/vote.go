@@ -1,7 +1,9 @@
 package repository
 
 import (
+	"context"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
+	"github.com/VerzCar/vyf-vote-circle/app/cache"
 	"github.com/VerzCar/vyf-vote-circle/app/database"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -10,10 +12,12 @@ import (
 // Creates a new vote and updates all necessary tables
 // in a transaction.
 func (s *storage) CreateNewVote(
+	ctx context.Context,
 	circleId int64,
 	voter *model.CircleVoter,
 	candidate *model.CircleCandidate,
-) (*model.Vote, *model.Ranking, int64, error) {
+	upsertRankingCache cache.UpsertRankingCacheCallback,
+) (*model.RankingResponse, error) {
 	vote := &model.Vote{
 		VoterRefer:     voter.ID,
 		CandidateRefer: candidate.ID,
@@ -22,6 +26,7 @@ func (s *storage) CreateNewVote(
 	}
 	voteCount := int64(0)
 	ranking := &model.Ranking{}
+	var cachedRanking *model.RankingResponse
 
 	err := s.db.Transaction(
 		func(tx *gorm.DB) error {
@@ -58,27 +63,47 @@ func (s *storage) CreateNewVote(
 				return err
 			}
 
+			cachedRanking, err = upsertRankingCache(ctx, circleId, candidate, ranking, voteCount)
+
+			if err != nil {
+				return err
+			}
+
+			// update ranking with newly indexed order
+			err = tx.Model(&model.Ranking{ID: cachedRanking.ID}).
+				Update("number", cachedRanking.Number).
+				Error
+
+			if err != nil {
+				s.log.Errorf("error updating ranking for ranking id %d: %s", ranking.ID, err)
+				return err
+			}
+
 			return nil
 		},
 	)
 
 	if err != nil {
 		s.log.Error("error creating vote: %s", err)
-		return nil, nil, 0, err
+		return nil, err
 	}
 
-	return vote, ranking, voteCount, nil
+	return cachedRanking, nil
 }
 
 // Deletes a new vote and updates all necessary tables
 // in a transaction.
 func (s *storage) DeleteVote(
+	ctx context.Context,
 	circleId int64,
 	vote *model.Vote,
 	voter *model.CircleVoter,
-) (*model.Ranking, int64, error) {
+	upsertRankingCache cache.UpsertRankingCacheCallback,
+	removeRankingCache cache.RemoveRankingCacheCallback,
+) (*model.RankingResponse, int64, error) {
 	voteCount := int64(0)
 	ranking := &model.Ranking{}
+	var cachedRanking *model.RankingResponse
 
 	err := s.db.Transaction(
 		func(tx *gorm.DB) error {
@@ -122,9 +147,26 @@ func (s *storage) DeleteVote(
 					return err
 				}
 
+				cachedRanking, err = upsertRankingCache(ctx, circleId, &vote.Candidate, ranking, voteCount)
+
+				if err != nil {
+					return err
+				}
+
+				// update ranking with newly indexed order
+				err = tx.Model(&model.Ranking{ID: cachedRanking.ID}).
+					Update("number", cachedRanking.Number).
+					Error
+
+				if err != nil {
+					s.log.Errorf("error updating ranking for ranking id %d: %s", ranking.ID, err)
+					return err
+				}
+
 				return nil
 			}
 
+			// if it does not have any votes delete ranking
 			err = tx.Where(&model.Ranking{IdentityID: vote.Candidate.Candidate, CircleID: circleId}).
 				First(ranking).
 				Error
@@ -151,6 +193,16 @@ func (s *storage) DeleteVote(
 				}
 			}
 
+			err = removeRankingCache(ctx, circleId, &vote.Candidate)
+
+			if err != nil {
+				return err
+			}
+
+			cachedRanking = &model.RankingResponse{
+				ID: ranking.ID,
+			}
+
 			return nil
 		},
 	)
@@ -160,7 +212,7 @@ func (s *storage) DeleteVote(
 		return nil, 0, err
 	}
 
-	return ranking, voteCount, nil
+	return cachedRanking, voteCount, nil
 }
 
 // Gets the number of votes for the candidate id

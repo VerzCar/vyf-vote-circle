@@ -5,6 +5,7 @@ import (
 	"fmt"
 	logger "github.com/VerzCar/vyf-lib-logger"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
+	"github.com/VerzCar/vyf-vote-circle/app/cache"
 	"github.com/VerzCar/vyf-vote-circle/app/config"
 	"github.com/VerzCar/vyf-vote-circle/app/database"
 	routerContext "github.com/VerzCar/vyf-vote-circle/app/router/ctx"
@@ -31,19 +32,24 @@ type VoteRepository interface {
 		userIdentityId string,
 	) (*model.CircleCandidate, error)
 	CreateNewVote(
+		ctx context.Context,
 		circleId int64,
 		voter *model.CircleVoter,
 		candidate *model.CircleCandidate,
-	) (*model.Vote, *model.Ranking, int64, error)
+		upsertRankingCache cache.UpsertRankingCacheCallback,
+	) (*model.RankingResponse, error)
 	VoteByCircleId(
 		circleId int64,
 		voterId int64,
 	) (*model.Vote, error)
 	DeleteVote(
+		ctx context.Context,
 		circleId int64,
 		vote *model.Vote,
 		voter *model.CircleVoter,
-	) (*model.Ranking, int64, error)
+		upsertRankingCache cache.UpsertRankingCacheCallback,
+		removeRankingCache cache.RemoveRankingCacheCallback,
+	) (*model.RankingResponse, int64, error)
 	HasVoterVotedForCircle(
 		circleId int64,
 		voterId int64,
@@ -171,25 +177,7 @@ func (c *voteService) CreateVote(
 		return false, fmt.Errorf("already voted in circle")
 	}
 
-	_, ranking, voteCount, err := c.storage.CreateNewVote(circleId, voter, candidate)
-
-	if err != nil {
-		return false, err
-	}
-
-	cachedRanking, err := c.cache.UpsertRanking(ctx, circleId, candidate, ranking, voteCount)
-
-	if err != nil {
-		return false, err
-	}
-
-	// update ranking with newly indexed order
-	updatedRanking := &model.Ranking{
-		ID:     cachedRanking.ID,
-		Number: cachedRanking.Number,
-	}
-
-	_, err = c.storage.UpdateRanking(updatedRanking)
+	cachedRanking, err := c.storage.CreateNewVote(ctx, circleId, voter, candidate, c.cache.UpsertRanking)
 
 	if err != nil {
 		return false, err
@@ -255,48 +243,27 @@ func (c *voteService) RevokeVote(
 		return false, fmt.Errorf("no voting exists")
 	}
 
-	ranking, voteCount, err := c.storage.DeleteVote(circleId, vote, voter)
+	cachedRanking, voteCount, err := c.storage.DeleteVote(
+		ctx,
+		circleId,
+		vote,
+		voter,
+		c.cache.UpsertRanking,
+		c.cache.RemoveRanking,
+	)
 
 	if err != nil {
 		return false, err
 	}
 
 	if voteCount > 0 {
-		cachedRanking, err := c.cache.UpsertRanking(ctx, circleId, &vote.Candidate, ranking, voteCount)
-
-		if err != nil {
-			return false, err
-		}
-
-		// update ranking with newly indexed order
-		updatedRanking := &model.Ranking{
-			ID:     cachedRanking.ID,
-			Number: cachedRanking.Number,
-		}
-
-		_, err = c.storage.UpdateRanking(updatedRanking)
-
-		if err != nil {
-			return false, err
-		}
-
 		event := createRankingChangedEvent(model.EventOperationUpdated, cachedRanking)
 		_ = c.subscription.RankingChangedEvent(ctx, circleId, event)
 
 		return true, nil
 	}
 
-	err = c.cache.RemoveRanking(ctx, circleId, &vote.Candidate)
-
-	if err != nil {
-		return false, err
-	}
-
-	rankingResponse := &model.RankingResponse{
-		ID: ranking.ID,
-	}
-
-	event := createRankingChangedEvent(model.EventOperationDeleted, rankingResponse)
+	event := createRankingChangedEvent(model.EventOperationDeleted, cachedRanking)
 	_ = c.subscription.RankingChangedEvent(ctx, circleId, event)
 
 	return true, nil

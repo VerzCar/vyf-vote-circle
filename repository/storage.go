@@ -1,10 +1,12 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	logger "github.com/VerzCar/vyf-lib-logger"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
+	"github.com/VerzCar/vyf-vote-circle/app/cache"
 	"github.com/VerzCar/vyf-vote-circle/app/config"
 	"github.com/VerzCar/vyf-vote-circle/app/database"
 	"github.com/VerzCar/vyf-vote-circle/utils"
@@ -60,15 +62,20 @@ type Storage interface {
 	RankingByCircleId(circleId int64, identityId string) (*model.Ranking, error)
 
 	CreateNewVote(
+		ctx context.Context,
 		circleId int64,
 		voter *model.CircleVoter,
 		candidate *model.CircleCandidate,
-	) (*model.Vote, *model.Ranking, int64, error)
+		upsertRankingCache cache.UpsertRankingCacheCallback,
+	) (*model.RankingResponse, error)
 	DeleteVote(
+		ctx context.Context,
 		circleId int64,
 		vote *model.Vote,
 		voter *model.CircleVoter,
-	) (*model.Ranking, int64, error)
+		upsertRankingCache cache.UpsertRankingCacheCallback,
+		removeRankingCache cache.RemoveRankingCacheCallback,
+	) (*model.RankingResponse, int64, error)
 	VoteByCircleId(
 		circleId int64,
 		voterId int64,
