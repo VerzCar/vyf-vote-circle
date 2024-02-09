@@ -26,15 +26,20 @@ func (c *redisCache) UpsertRanking(
 		return nil, err
 	}
 
-	placementNumber, rankingPlacementIndex, err := c.rankingPlacementNumberWithIndex(
-		ctx,
-		circleId,
-		rankingScore.UserIdentityId,
-	)
+	key := circleRankingKey(circleId)
+	rankingPlacementIndex, err := c.rankingPlacementIndex(ctx, key, rankingScore.UserIdentityId)
 
 	if err != nil {
+		c.log.Errorf(
+			"could not read ranking index for member %s for circle key %s: %s",
+			rankingScore.UserIdentityId,
+			key,
+			err,
+		)
 		return nil, err
 	}
+
+	placementNumber := rankingPlacementIndex + 1
 
 	rankingRes := populateRanking(
 		ranking.ID,
@@ -185,37 +190,6 @@ func (c *redisCache) setRankingScore(
 	}
 
 	return nil
-}
-
-func (c *redisCache) rankingPlacementNumberWithIndex(
-	ctx context.Context,
-	circleId int64,
-	member string,
-) (int64, int64, error) {
-	key := circleRankingKey(circleId)
-
-	cmds, err := c.redis.Pipelined(
-		ctx, func(pipe redis.Pipeliner) error {
-			pipe.ZScore(ctx, key, member)
-			pipe.ZRevRank(ctx, key, member)
-			return nil
-		},
-	)
-
-	if err != nil {
-		c.log.Errorf(
-			"could not read placement number and index for member %s for circle key %s: %s",
-			member,
-			key,
-			err,
-		)
-		return 0, 0, err
-	}
-
-	placementNumber := int64(cmds[0].(*redis.FloatCmd).Val())
-	placementIndex := cmds[1].(*redis.IntCmd).Val()
-
-	return placementNumber, placementIndex, nil
 }
 
 func (c *redisCache) removeRanking(
