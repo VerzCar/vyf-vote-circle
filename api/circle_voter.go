@@ -144,7 +144,7 @@ func (c *circleVoterService) CircleVoterJoinCircle(
 		return nil, err
 	}
 
-	voterEvent := createVoterChangedEvent(model.EventOperationCreated, voter)
+	voterEvent := CreateVoterChangedEvent(model.EventOperationCreated, voter)
 	_ = c.subscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
 
 	return voter, nil
@@ -179,25 +179,8 @@ func (c *circleVoterService) CircleVoterLeaveCircle(
 		return fmt.Errorf("leaving as voter from cirlce failed")
 	}
 
-	voterEvent := createVoterChangedEvent(model.EventOperationDeleted, voter)
+	voterEvent := CreateVoterChangedEvent(model.EventOperationDeleted, voter)
 	_ = c.subscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
 
 	return nil
-}
-
-func createVoterChangedEvent(
-	operation model.EventOperation,
-	voter *model.CircleVoter,
-) *model.CircleVoterChangedEvent {
-	return &model.CircleVoterChangedEvent{
-		Operation: operation,
-		Voter: &model.CircleVoterResponse{
-			ID:         voter.ID,
-			Voter:      voter.Voter,
-			VotedFor:   voter.VotedFor,
-			Commitment: voter.Commitment,
-			CreatedAt:  voter.CreatedAt,
-			UpdatedAt:  voter.UpdatedAt,
-		},
-	}
 }

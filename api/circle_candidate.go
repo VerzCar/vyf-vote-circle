@@ -146,7 +146,7 @@ func (c *circleCandidateService) CircleCandidateCommitment(
 		return nil, err
 	}
 
-	candidateEvent := createCandidateChangedEvent(model.EventOperationUpdated, candidate)
+	candidateEvent := CreateCandidateChangedEvent(model.EventOperationUpdated, candidate)
 	_ = c.subscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
 
 	return &candidate.Commitment, nil
@@ -199,7 +199,7 @@ func (c *circleCandidateService) CircleCandidateJoinCircle(
 		return nil, err
 	}
 
-	candidateEvent := createCandidateChangedEvent(model.EventOperationCreated, candidate)
+	candidateEvent := CreateCandidateChangedEvent(model.EventOperationCreated, candidate)
 	_ = c.subscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
 
 	return candidate, nil
@@ -234,7 +234,7 @@ func (c *circleCandidateService) CircleCandidateLeaveCircle(
 		return fmt.Errorf("leaving as candidate from cirlce failed")
 	}
 
-	candidateEvent := createCandidateChangedEvent(model.EventOperationDeleted, candidate)
+	candidateEvent := CreateCandidateChangedEvent(model.EventOperationDeleted, candidate)
 	_ = c.subscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
 
 	return nil
@@ -293,7 +293,7 @@ func (c *circleCandidateService) CircleCandidateAddToCircle(
 		return nil, err
 	}
 
-	candidateEvent := createCandidateChangedEvent(model.EventOperationCreated, newCandidate)
+	candidateEvent := CreateCandidateChangedEvent(model.EventOperationCreated, newCandidate)
 	_ = c.subscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
 
 	return newCandidate, nil
@@ -357,24 +357,8 @@ func (c *circleCandidateService) CircleCandidateRemoveFromCircle(
 		return nil, err
 	}
 
-	candidateEvent := createCandidateChangedEvent(model.EventOperationCreated, newCandidate)
+	candidateEvent := CreateCandidateChangedEvent(model.EventOperationCreated, newCandidate)
 	_ = c.subscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
 
 	return newCandidate, nil
-}
-
-func createCandidateChangedEvent(
-	operation model.EventOperation,
-	candidate *model.CircleCandidate,
-) *model.CircleCandidateChangedEvent {
-	return &model.CircleCandidateChangedEvent{
-		Operation: operation,
-		Candidate: &model.CircleCandidateResponse{
-			ID:         candidate.ID,
-			Candidate:  candidate.Candidate,
-			Commitment: candidate.Commitment,
-			CreatedAt:  candidate.CreatedAt,
-			UpdatedAt:  candidate.UpdatedAt,
-		},
-	}
 }

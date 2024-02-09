@@ -55,3 +55,20 @@ func (s *circleVoterSubscriptionService) CircleVoterChangedEvent(
 
 	return nil
 }
+
+func CreateVoterChangedEvent(
+	operation model.EventOperation,
+	voter *model.CircleVoter,
+) *model.CircleVoterChangedEvent {
+	return &model.CircleVoterChangedEvent{
+		Operation: operation,
+		Voter: &model.CircleVoterResponse{
+			ID:         voter.ID,
+			Voter:      voter.Voter,
+			VotedFor:   voter.VotedFor,
+			Commitment: voter.Commitment,
+			CreatedAt:  voter.CreatedAt,
+			UpdatedAt:  voter.UpdatedAt,
+		},
+	}
+}

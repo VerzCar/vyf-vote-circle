@@ -72,7 +72,7 @@ type VoteCache interface {
 	) error
 }
 
-type VoteSubscription interface {
+type VoteRankingSubscription interface {
 	RankingChangedEvent(
 		ctx context.Context,
 		circleId int64,
@@ -80,27 +80,38 @@ type VoteSubscription interface {
 	) error
 }
 
+type VoteCircleVoterSubscription interface {
+	CircleVoterChangedEvent(
+		ctx context.Context,
+		circleId int64,
+		event *model.CircleVoterChangedEvent,
+	) error
+}
+
 type voteService struct {
-	storage      VoteRepository
-	cache        VoteCache
-	subscription VoteSubscription
-	config       *config.Config
-	log          logger.Logger
+	storage                 VoteRepository
+	cache                   VoteCache
+	rankingSubscription     VoteRankingSubscription
+	circleVoterSubscription VoteCircleVoterSubscription
+	config                  *config.Config
+	log                     logger.Logger
 }
 
 func NewVoteService(
 	circleRepo VoteRepository,
 	cache VoteCache,
-	subscription VoteSubscription,
+	rankingSubscription VoteRankingSubscription,
+	circleVoterSubscription VoteCircleVoterSubscription,
 	config *config.Config,
 	log logger.Logger,
 ) VoteService {
 	return &voteService{
-		storage:      circleRepo,
-		cache:        cache,
-		subscription: subscription,
-		config:       config,
-		log:          log,
+		storage:                 circleRepo,
+		cache:                   cache,
+		rankingSubscription:     rankingSubscription,
+		circleVoterSubscription: circleVoterSubscription,
+		config:                  config,
+		log:                     log,
 	}
 }
 
@@ -183,8 +194,11 @@ func (c *voteService) CreateVote(
 		return false, err
 	}
 
-	event := createRankingChangedEvent(model.EventOperationCreated, cachedRanking)
-	_ = c.subscription.RankingChangedEvent(ctx, circleId, event)
+	event := CreateRankingChangedEvent(model.EventOperationCreated, cachedRanking)
+	_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
+
+	voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
+	_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
 
 	return true, nil
 }
@@ -257,24 +271,14 @@ func (c *voteService) RevokeVote(
 	}
 
 	if voteCount > 0 {
-		event := createRankingChangedEvent(model.EventOperationUpdated, cachedRanking)
-		_ = c.subscription.RankingChangedEvent(ctx, circleId, event)
+		event := CreateRankingChangedEvent(model.EventOperationUpdated, cachedRanking)
+		_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
 
 		return true, nil
 	}
 
-	event := createRankingChangedEvent(model.EventOperationDeleted, cachedRanking)
-	_ = c.subscription.RankingChangedEvent(ctx, circleId, event)
+	event := CreateRankingChangedEvent(model.EventOperationDeleted, cachedRanking)
+	_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
 
 	return true, nil
-}
-
-func createRankingChangedEvent(
-	operation model.EventOperation,
-	ranking *model.RankingResponse,
-) *model.RankingChangedEvent {
-	return &model.RankingChangedEvent{
-		Operation: operation,
-		Ranking:   ranking,
-	}
 }

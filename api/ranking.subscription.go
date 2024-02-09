@@ -58,3 +58,13 @@ func (s *rankingSubscriptionService) RankingChangedEvent(
 
 	return nil
 }
+
+func CreateRankingChangedEvent(
+	operation model.EventOperation,
+	ranking *model.RankingResponse,
+) *model.RankingChangedEvent {
+	return &model.RankingChangedEvent{
+		Operation: operation,
+		Ranking:   ranking,
+	}
+}
