@@ -274,11 +274,17 @@ func (c *voteService) RevokeVote(
 		event := CreateRankingChangedEvent(model.EventOperationUpdated, cachedRanking)
 		_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
 
+		voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
+		_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
+
 		return true, nil
 	}
 
 	event := CreateRankingChangedEvent(model.EventOperationDeleted, cachedRanking)
 	_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
+
+	voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
+	_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
 
 	return true, nil
 }
