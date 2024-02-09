@@ -88,13 +88,22 @@ type VoteCircleVoterSubscription interface {
 	) error
 }
 
+type VoteCircleCandidateSubscription interface {
+	CircleCandidateChangedEvent(
+		ctx context.Context,
+		circleId int64,
+		event *model.CircleCandidateChangedEvent,
+	) error
+}
+
 type voteService struct {
-	storage                 VoteRepository
-	cache                   VoteCache
-	rankingSubscription     VoteRankingSubscription
-	circleVoterSubscription VoteCircleVoterSubscription
-	config                  *config.Config
-	log                     logger.Logger
+	storage                     VoteRepository
+	cache                       VoteCache
+	rankingSubscription         VoteRankingSubscription
+	circleVoterSubscription     VoteCircleVoterSubscription
+	circleCandidateSubscription VoteCircleCandidateSubscription
+	config                      *config.Config
+	log                         logger.Logger
 }
 
 func NewVoteService(
@@ -102,16 +111,18 @@ func NewVoteService(
 	cache VoteCache,
 	rankingSubscription VoteRankingSubscription,
 	circleVoterSubscription VoteCircleVoterSubscription,
+	circleCandidateSubscription VoteCircleCandidateSubscription,
 	config *config.Config,
 	log logger.Logger,
 ) VoteService {
 	return &voteService{
-		storage:                 circleRepo,
-		cache:                   cache,
-		rankingSubscription:     rankingSubscription,
-		circleVoterSubscription: circleVoterSubscription,
-		config:                  config,
-		log:                     log,
+		storage:                     circleRepo,
+		cache:                       cache,
+		rankingSubscription:         rankingSubscription,
+		circleVoterSubscription:     circleVoterSubscription,
+		circleCandidateSubscription: circleCandidateSubscription,
+		config:                      config,
+		log:                         log,
 	}
 }
 
@@ -285,6 +296,9 @@ func (c *voteService) RevokeVote(
 
 	voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
 	_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
+
+	candidateEvent := CreateCandidateChangedEvent(model.EventOperationRepositioned, &vote.Candidate)
+	_ = c.circleCandidateSubscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
 
 	return true, nil
 }

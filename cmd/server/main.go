@@ -85,7 +85,15 @@ func run() error {
 	rankingSubService := api.NewRankingSubscriptionService(pubSubService, log)
 	circleVoterSubService := api.NewCircleVoterSubscriptionService(pubSubService, log)
 	circleCandidateSubService := api.NewCircleCandidateSubscriptionService(pubSubService, log)
-	voteService := api.NewVoteService(storage, redis, rankingSubService, circleVoterSubService, envConfig, log)
+	voteService := api.NewVoteService(
+		storage,
+		redis,
+		rankingSubService,
+		circleVoterSubService,
+		circleCandidateSubService,
+		envConfig,
+		log,
+	)
 	circleVoterService := api.NewCircleVoterService(storage, circleVoterSubService, envConfig, log)
 	circleCandidateService := api.NewCircleCandidateService(storage, circleCandidateSubService, envConfig, log)
 	tokenService := api.NewTokenService(pubSubService, envConfig, log)
