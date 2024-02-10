@@ -356,7 +356,7 @@ func pipeRemoveUserCandidate(
 }
 
 func circleRankingKey(circleId int64) string {
-	return fmt.Sprintf("cirlce:%d:ranking", circleId)
+	return fmt.Sprintf("circle:%d:ranking", circleId)
 }
 
 func circleUserCandidateKey(circleId int64, identityId string) string {
