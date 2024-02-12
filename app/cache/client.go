@@ -20,5 +20,7 @@ type Client interface {
 	ZRevRangeWithScores(ctx context.Context, key string, start int64, stop int64) *redis.ZSliceCmd
 	ZScore(ctx context.Context, key string, member string) *redis.FloatCmd
 	ZRevRank(ctx context.Context, key string, member string) *redis.IntCmd
+	ZRevRange(ctx context.Context, key string, start int64, stop int64) *redis.StringSliceCmd
+	ZRangeArgs(ctx context.Context, z redis.ZRangeArgs) *redis.StringSliceCmd
 	Pipelined(ctx context.Context, fn func(redis.Pipeliner) error) ([]redis.Cmder, error)
 }

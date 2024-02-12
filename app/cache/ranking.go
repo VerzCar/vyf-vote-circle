@@ -26,20 +26,31 @@ func (c *redisCache) UpsertRanking(
 		return nil, err
 	}
 
+	rankingPlacementIndex, highestVotedMember, err := c.rankingIndexWithLastestVoteCountMember(
+		ctx,
+		circleId,
+		rankingScore.UserIdentityId,
+		votes,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
 	key := circleRankingKey(circleId)
-	rankingPlacementIndex, err := c.rankingPlacementIndex(ctx, key, rankingScore.UserIdentityId)
+	highestVotedMemberIndex, err := c.rankingPlacementIndex(ctx, key, highestVotedMember)
 
 	if err != nil {
 		c.log.Errorf(
-			"could not read ranking index for member %s for circle key %s: %s",
-			rankingScore.UserIdentityId,
+			"could not read index for member %s for circle key %s: %s",
+			highestVotedMember,
 			key,
 			err,
 		)
 		return nil, err
 	}
 
-	placementNumber := rankingPlacementIndex + 1
+	placementNumber := highestVotedMemberIndex + 1
 
 	rankingRes := populateRanking(
 		ranking.ID,
@@ -218,6 +229,48 @@ func (c *redisCache) removeRanking(
 	}
 
 	return nil
+}
+
+func (c *redisCache) rankingIndexWithLastestVoteCountMember(
+	ctx context.Context,
+	circleId int64,
+	member string,
+	voteCount int64,
+) (int64, string, error) {
+	key := circleRankingKey(circleId)
+
+	cmds, err := c.redis.Pipelined(
+		ctx, func(pipe redis.Pipeliner) error {
+			pipe.ZRevRank(ctx, key, member)
+			rangeArgs := redis.ZRangeArgs{
+				Key:     key,
+				Start:   voteCount,
+				Stop:    voteCount,
+				ByScore: true,
+				ByLex:   false,
+				Rev:     true,
+				Offset:  0,
+				Count:   1,
+			}
+			pipe.ZRangeArgs(ctx, rangeArgs)
+			return nil
+		},
+	)
+
+	if err != nil {
+		c.log.Errorf(
+			"could not read ranking index for member %s for circle key %s: %s",
+			member,
+			key,
+			err,
+		)
+		return 0, "", err
+	}
+
+	placementIndex := cmds[0].(*redis.IntCmd).Val()
+	highestMember := cmds[1].(*redis.StringSliceCmd).Val()[0]
+
+	return placementIndex, highestMember, nil
 }
 
 // Ranking scores of the given key as a list
