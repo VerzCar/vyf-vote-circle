@@ -8,28 +8,28 @@ import (
 )
 
 type Ranking struct {
-	ID         int64     `json:"id" gorm:"primary_key;index;"`
-	IdentityID string    `json:"identityId" gorm:"type:varchar(50);not null"`
-	Number     int64     `json:"number" gorm:"primary_key;index;"`
-	Votes      int64     `json:"votes" gorm:"not null;default:0"`
-	Placement  Placement `json:"placement" gorm:"type:placement;not null;default:NEUTRAL"`
-	CircleID   int64     `json:"circleId" gorm:"not null;"`
-	Circle     *Circle   `json:"circle" gorm:"constraint:OnDelete:RESTRICT;"`
 	CreatedAt  time.Time `json:"createdAt" gorm:"autoCreateTime;"`
 	UpdatedAt  time.Time `json:"updatedAt" gorm:"autoUpdateTime;"`
+	Circle     *Circle   `json:"circle" gorm:"constraint:OnDelete:RESTRICT;"`
+	IdentityID string    `json:"identityId" gorm:"type:varchar(50);not null"`
+	Placement  Placement `json:"placement" gorm:"type:placement;not null;default:NEUTRAL"`
+	ID         int64     `json:"id" gorm:"primary_key;index;"`
+	Number     int64     `json:"number" gorm:"primary_key;index;"`
+	Votes      int64     `json:"votes" gorm:"not null;default:0"`
+	CircleID   int64     `json:"circleId" gorm:"not null;"`
 }
 
 type RankingResponse struct {
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+	IdentityID   string    `json:"identityId"`
+	Placement    Placement `json:"placement"`
 	ID           int64     `json:"id"`
 	CandidateID  int64     `json:"candidateId"`
-	IdentityID   string    `json:"identityId"`
 	Number       int64     `json:"number"`
 	Votes        int64     `json:"votes"`
 	IndexedOrder int64     `json:"indexedOrder"`
-	Placement    Placement `json:"placement"`
 	CircleID     int64     `json:"circleId"`
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedAt    time.Time `json:"updatedAt"`
 }
 
 type RankingsUriRequest struct {
@@ -37,15 +37,15 @@ type RankingsUriRequest struct {
 }
 
 type RankingScore struct {
-	VoteCount      int64  `redis:"voteCount"`
 	UserIdentityId string `redis:"userIdentityId"`
+	VoteCount      int64  `redis:"voteCount"`
 }
 
 type RankingUserCandidate struct {
-	CandidateID int64     `redis:"candidateId"`
-	RankingID   int64     `redis:"rankingId"`
 	CreatedAt   time.Time `redis:"time"`
 	UpdatedAt   time.Time `redis:"time"`
+	CandidateID int64     `redis:"candidateId"`
+	RankingID   int64     `redis:"rankingId"`
 }
 
 type RankingCacheItem struct {
@@ -55,8 +55,8 @@ type RankingCacheItem struct {
 }
 
 type RankingChangedEvent struct {
-	Operation EventOperation   `json:"operation"`
 	Ranking   *RankingResponse `json:"ranking"`
+	Operation EventOperation   `json:"operation"`
 }
 
 func (s RankingScore) MarshalBinary() ([]byte, error) {

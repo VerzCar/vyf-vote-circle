@@ -6,31 +6,19 @@ import (
 )
 
 type Circle struct {
-	ID int64 `json:"id" gorm:"primary_key;index;"`
-	// Name of the circle
-	Name string `json:"name" gorm:"type:varchar(40);not null;"`
-	// Description of the circle
-	Description string `json:"description" gorm:"type:varchar(1200);not null;"`
-	// ImageSrc of the circle
-	ImageSrc string `json:"imageSrc" gorm:"type:text;not null;"`
-	// Votes that the circle contains, 0 or more.
-	Votes []*Vote `json:"votes" gorm:"foreignKey:CircleRefer;constraint:OnDelete:CASCADE;"`
-	// Voters that the circle contains, 0 or more.
-	Voters []*CircleVoter `json:"voters" gorm:"foreignKey:CircleRefer;constraint:OnDelete:CASCADE;"`
-	// Voters that the circle contains, 0 or more.
-	Candidates []*CircleCandidate `json:"candidate" gorm:"foreignKey:CircleRefer;constraint:OnDelete:CASCADE;"`
-	// Private indicates if this Circle should be private and thus visible only to the users
-	// that are eligible.
-	Private bool `json:"private" gorm:"not null;default:false;"`
-	// Active indicates if this circle is active, and it is possible to vote.
-	// Otherwise, it is closed
-	Active bool `json:"active" gorm:"not null;default:true;"`
-	// CreatedFrom identity id that has created this circle
-	CreatedFrom string `json:"createdFrom" gorm:"type:varchar(50);not null"`
-	// ValidUntil if given, sets the time until this circle is valid and active
-	ValidUntil *time.Time `json:"validUntil"`
-	CreatedAt  time.Time  `json:"createdAt" gorm:"autoCreateTime;"`
-	UpdatedAt  time.Time  `json:"updatedAt" gorm:"autoUpdateTime;"`
+	UpdatedAt   time.Time          `json:"updatedAt" gorm:"autoUpdateTime;"`
+	CreatedAt   time.Time          `json:"createdAt" gorm:"autoCreateTime;"`
+	ValidUntil  *time.Time         `json:"validUntil"`
+	CreatedFrom string             `json:"createdFrom" gorm:"type:varchar(50);not null"`
+	ImageSrc    string             `json:"imageSrc" gorm:"type:text;not null;"`
+	Description string             `json:"description" gorm:"type:varchar(1200);not null;"`
+	Name        string             `json:"name" gorm:"type:varchar(40);not null;"`
+	Votes       []*Vote            `json:"votes" gorm:"foreignKey:CircleRefer;constraint:OnDelete:CASCADE;"`
+	Voters      []*CircleVoter     `json:"voters" gorm:"foreignKey:CircleRefer;constraint:OnDelete:CASCADE;"`
+	Candidates  []*CircleCandidate `json:"candidate" gorm:"foreignKey:CircleRefer;constraint:OnDelete:CASCADE;"`
+	ID          int64              `json:"id" gorm:"primary_key;index;"`
+	Private     bool               `json:"private" gorm:"not null;default:false;"`
+	Active      bool               `json:"active" gorm:"not null;default:true;"`
 }
 
 type CircleUriRequest struct {
@@ -42,58 +30,58 @@ type CircleByUriRequest struct {
 }
 
 type CircleResponse struct {
-	ID          int64      `json:"id"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+	ValidUntil  *time.Time `json:"validUntil"`
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
 	ImageSrc    string     `json:"imageSrc"`
+	CreatedFrom string     `json:"createdFrom"`
+	ID          int64      `json:"id"`
 	Private     bool       `json:"private"`
 	Active      bool       `json:"active"`
-	CreatedFrom string     `json:"createdFrom"`
-	ValidUntil  *time.Time `json:"validUntil"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	UpdatedAt   time.Time  `json:"updatedAt"`
 }
 
 type CircleUpdateRequest struct {
-	ID          int64                     `json:"id" validate:"gt=0"`
 	Name        *string                   `json:"name,omitempty" validate:"omitempty,gt=0,lte=40"`
 	Description *string                   `json:"description,omitempty" validate:"omitempty,lte=1200"`
 	ImageSrc    *string                   `json:"imageSrc,omitempty" validate:"omitempty,url"`
-	Voters      []*CircleVoterRequest     `json:"voters,omitempty"`
-	Candidates  []*CircleCandidateRequest `json:"candidates,omitempty"`
 	Delete      *bool                     `json:"delete,omitempty" validate:"omitempty"`
 	ValidUntil  *time.Time                `json:"validUntil,omitempty" validate:"omitempty"`
+	Voters      []*CircleVoterRequest     `json:"voters,omitempty"`
+	Candidates  []*CircleCandidateRequest `json:"candidates,omitempty"`
+	ID          int64                     `json:"id" validate:"gt=0"`
 }
 
 type CircleCreateRequest struct {
-	Name        string                    `json:"name" validate:"gt=0,lte=40"`
 	Description *string                   `json:"description,omitempty" validate:"omitempty,gt=0,lte=1200"`
 	ImageSrc    *string                   `json:"imageSrc,omitempty" validate:"omitempty,url"`
-	Voters      []*CircleVoterRequest     `json:"voters,omitempty"`
-	Candidates  []*CircleCandidateRequest `json:"candidates,omitempty"`
 	Private     *bool                     `json:"private,omitempty" validate:"omitempty"`
 	ValidUntil  *time.Time                `json:"validUntil,omitempty" validate:"omitempty"`
+	Name        string                    `json:"name" validate:"gt=0,lte=40"`
+	Voters      []*CircleVoterRequest     `json:"voters,omitempty"`
+	Candidates  []*CircleCandidateRequest `json:"candidates,omitempty"`
 }
 
 type CirclePaginated struct {
-	ID              int64     `json:"id"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UpdatedAt       time.Time `json:"updatedAt"`
 	Name            string    `json:"name"`
 	Description     string    `json:"description"`
 	ImageSrc        string    `json:"imageSrc"`
+	ID              int64     `json:"id"`
 	VotersCount     int64     `json:"votersCount"`
 	CandidatesCount int64     `json:"candidatesCount"`
 	Active          bool      `json:"active"`
-	CreatedAt       time.Time `json:"createdAt"`
-	UpdatedAt       time.Time `json:"updatedAt"`
 }
 
 type CirclePaginatedResponse struct {
-	ID              int64  `json:"id"`
+	VotersCount     *int64 `json:"votersCount"`
+	CandidatesCount *int64 `json:"candidatesCount"`
 	Name            string `json:"name"`
 	Description     string `json:"description"`
 	ImageSrc        string `json:"imageSrc"`
-	VotersCount     *int64 `json:"votersCount"`
-	CandidatesCount *int64 `json:"candidatesCount"`
+	ID              int64  `json:"id"`
 	Active          bool   `json:"active"`
 }
 

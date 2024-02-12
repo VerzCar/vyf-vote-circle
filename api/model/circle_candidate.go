@@ -6,28 +6,27 @@ import (
 )
 
 type CircleCandidate struct {
-	ID int64 `json:"id" gorm:"primary_key;"`
-	// This must be a user identity id that should be a candidate for the circle.
-	Candidate   string     `json:"voter" gorm:"type:varchar(50);not null"`
-	Commitment  Commitment `json:"commitment" gorm:"type:commitment;not null;default:OPEN"`
-	CircleID    int64      `json:"circleId" gorm:"not null;"`
-	Circle      *Circle    `json:"circle" gorm:"constraint:OnDelete:RESTRICT"`
-	CircleRefer *int64     `json:"circleRefer"`
 	CreatedAt   time.Time  `json:"createdAt" gorm:"autoCreateTime;"`
 	UpdatedAt   time.Time  `json:"updatedAt" gorm:"autoUpdateTime;"`
+	Circle      *Circle    `json:"circle" gorm:"constraint:OnDelete:RESTRICT"`
+	CircleRefer *int64     `json:"circleRefer"`
+	Candidate   string     `json:"voter" gorm:"type:varchar(50);not null"`
+	Commitment  Commitment `json:"commitment" gorm:"type:commitment;not null;default:OPEN"`
+	ID          int64      `json:"id" gorm:"primary_key;"`
+	CircleID    int64      `json:"circleId" gorm:"not null;"`
 }
 
 type CircleCandidateResponse struct {
-	ID         int64      `json:"id"`
-	Candidate  string     `json:"candidate"`
-	Commitment Commitment `json:"commitment"`
 	CreatedAt  time.Time  `json:"createdAt"`
 	UpdatedAt  time.Time  `json:"updatedAt"`
+	Candidate  string     `json:"candidate"`
+	Commitment Commitment `json:"commitment"`
+	ID         int64      `json:"id"`
 }
 
 type CircleCandidatesResponse struct {
-	Candidates    []*CircleCandidateResponse `json:"candidates"`
 	UserCandidate *CircleCandidateResponse   `json:"userCandidate"`
+	Candidates    []*CircleCandidateResponse `json:"candidates"`
 }
 
 type CircleCandidateRequest struct {
@@ -48,8 +47,8 @@ type CircleCandidatesRequest struct {
 }
 
 type CircleCandidateChangedEvent struct {
-	Operation EventOperation           `json:"operation"`
 	Candidate *CircleCandidateResponse `json:"candidate"`
+	Operation EventOperation           `json:"operation"`
 }
 
 type Commitment string

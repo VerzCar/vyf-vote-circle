@@ -5,31 +5,29 @@ import (
 )
 
 type CircleVoter struct {
-	ID int64 `json:"id" gorm:"primary_key;"`
-	// This must be a user identity id that should vote for the circle.
-	Voter      string     `json:"voter" gorm:"type:varchar(50);not null"`
-	Commitment Commitment `json:"commitment" gorm:"type:commitment;not null;default:OPEN"`
-	// This must be a user identity id.
-	VotedFor    *string   `json:"votedFor" gorm:"type:varchar(50)"`
-	CircleID    int64     `json:"circleId" gorm:"not null;"`
-	Circle      *Circle   `json:"circle" gorm:"constraint:OnDelete:RESTRICT"`
-	CircleRefer *int64    `json:"circleRefer"`
-	CreatedAt   time.Time `json:"createdAt" gorm:"autoCreateTime;"`
-	UpdatedAt   time.Time `json:"updatedAt" gorm:"autoUpdateTime;"`
+	CreatedAt   time.Time  `json:"createdAt" gorm:"autoCreateTime;"`
+	UpdatedAt   time.Time  `json:"updatedAt" gorm:"autoUpdateTime;"`
+	VotedFor    *string    `json:"votedFor" gorm:"type:varchar(50)"`
+	Circle      *Circle    `json:"circle" gorm:"constraint:OnDelete:RESTRICT"`
+	CircleRefer *int64     `json:"circleRefer"`
+	Voter       string     `json:"voter" gorm:"type:varchar(50);not null"`
+	Commitment  Commitment `json:"commitment" gorm:"type:commitment;not null;default:OPEN"`
+	ID          int64      `json:"id" gorm:"primary_key;"`
+	CircleID    int64      `json:"circleId" gorm:"not null;"`
 }
 
 type CircleVoterResponse struct {
-	ID         int64      `json:"id"`
-	Voter      string     `json:"voter"`
-	Commitment Commitment `json:"commitment"`
-	VotedFor   *string    `json:"votedFor"`
 	CreatedAt  time.Time  `json:"createdAt"`
 	UpdatedAt  time.Time  `json:"updatedAt"`
+	VotedFor   *string    `json:"votedFor"`
+	Voter      string     `json:"voter"`
+	Commitment Commitment `json:"commitment"`
+	ID         int64      `json:"id"`
 }
 
 type CircleVotersResponse struct {
-	Voters    []*CircleVoterResponse `json:"voters"`
 	UserVoter *CircleVoterResponse   `json:"userVoter"`
+	Voters    []*CircleVoterResponse `json:"voters"`
 }
 
 type CircleVoterRequest struct {
@@ -45,6 +43,6 @@ type CircleVotersRequest struct {
 }
 
 type CircleVoterChangedEvent struct {
-	Operation EventOperation       `json:"operation"`
 	Voter     *CircleVoterResponse `json:"voter"`
+	Operation EventOperation       `json:"operation"`
 }

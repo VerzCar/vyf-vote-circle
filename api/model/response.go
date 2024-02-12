@@ -1,9 +1,9 @@
 package model
 
 type Response struct {
+	Data   interface{}    `json:"data"`
 	Status ResponseStatus `json:"status"`
 	Msg    string         `json:"msg"`
-	Data   interface{}    `json:"data"`
 }
 
 type ResponseStatus string
