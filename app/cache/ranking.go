@@ -16,13 +16,10 @@ func (c *redisCache) UpsertRanking(
 	ranking *model.Ranking,
 	votes int64,
 ) (*model.RankingResponse, error) {
-	rankingScore := &model.RankingScore{
-		VoteCount:      votes,
-		UserIdentityId: candidate.Candidate,
-	}
-
 	// TODO: put this in transaction
-	if err := c.setRankingScore(ctx, circleId, candidate, ranking, rankingScore); err != nil {
+	rankingScore, err := c.setRankingScore(ctx, circleId, candidate, ranking, votes)
+
+	if err != nil {
 		return nil, err
 	}
 
@@ -113,9 +110,9 @@ func (c *redisCache) ExistsRankingListForCircle(
 	ctx context.Context,
 	circleId int64,
 ) (bool, error) {
-	circleRankingKey := circleRankingKey(circleId)
+	key := circleRankingKey(circleId)
 
-	result := c.redis.Exists(ctx, circleRankingKey)
+	result := c.redis.Exists(ctx, key)
 
 	if result.Err() != nil {
 		return false, result.Err()
@@ -131,12 +128,16 @@ func (c *redisCache) BuildRankingList(
 	rankingCacheItems []*model.RankingCacheItem,
 ) error {
 	for _, item := range rankingCacheItems {
-		_, err := c.UpsertRanking(ctx, circleId, item.Candidate, item.Ranking, item.VoteCount)
+		_, err := c.setRankingScore(ctx, circleId, item.Candidate, item.Ranking, item.VoteCount)
 
 		if err != nil {
 			return err
 		}
 	}
+
+	// TODO: set expiration based on circle inactive time
+	expirationDuration := time.Duration(72) * time.Hour
+	_ = c.setExpiration(ctx, circleRankingKey(circleId), expirationDuration)
 
 	return nil
 }
@@ -146,9 +147,13 @@ func (c *redisCache) setRankingScore(
 	circleId int64,
 	candidate *model.CircleCandidate,
 	ranking *model.Ranking,
-	rankingScore *model.RankingScore,
-) error {
+	votes int64,
+) (*model.RankingScore, error) {
 	key := circleRankingKey(circleId)
+	rankingScore := &model.RankingScore{
+		VoteCount:      votes,
+		UserIdentityId: candidate.Candidate,
+	}
 
 	_, err := c.redis.Pipelined(
 		ctx, func(pipe redis.Pipeliner) error {
@@ -165,10 +170,10 @@ func (c *redisCache) setRankingScore(
 			key,
 			err,
 		)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return rankingScore, nil
 }
 
 func (c *redisCache) rankingList(
@@ -386,6 +391,20 @@ func (c *redisCache) rankingUserCandidate(
 	}
 
 	return &userCandidate, nil
+}
+
+func (c *redisCache) setExpiration(
+	ctx context.Context,
+	key string,
+	expiration time.Duration,
+) error {
+	err := c.redis.Expire(ctx, key, expiration).Err()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Sets the ranking score for the given key in cache

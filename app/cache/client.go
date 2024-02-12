@@ -13,6 +13,7 @@ type Client interface {
 	HGet(ctx context.Context, key string, field string) *redis.StringCmd
 	HGetAll(ctx context.Context, key string) *redis.StringStringMapCmd
 	HDel(ctx context.Context, key string, fields ...string) *redis.IntCmd
+	Expire(ctx context.Context, key string, expiration time.Duration) *redis.BoolCmd
 	FlushDB(ctx context.Context) *redis.StatusCmd
 	Exists(ctx context.Context, keys ...string) *redis.IntCmd
 	ZAdd(ctx context.Context, key string, members ...*redis.Z) *redis.IntCmd
