@@ -132,6 +132,21 @@ func (c *circleCandidateService) CircleCandidateCommitment(
 		return nil, err
 	}
 
+	circle, err := c.storage.CircleById(circleId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !circle.Active {
+		c.log.Infof(
+			"tried to commit as candidate for an inactive circle with circle id %d and subject %s",
+			circleId,
+			authClaims.Subject,
+		)
+		return nil, fmt.Errorf("circle inactive")
+	}
+
 	candidate, err := c.storage.CircleCandidateByCircleId(circleId, authClaims.Subject)
 
 	if err != nil {
@@ -174,6 +189,15 @@ func (c *circleCandidateService) CircleCandidateJoinCircle(
 		return nil, err
 	}
 
+	if !circle.Active {
+		c.log.Infof(
+			"tried to join as candidate for an inactive circle with circle id %d and subject %s",
+			circleId,
+			authClaims.Subject,
+		)
+		return nil, fmt.Errorf("circle inactive")
+	}
+
 	IsCandidateInCircle, err := c.storage.IsCandidateInCircle(authClaims.Subject, circleId)
 
 	if err != nil {
@@ -214,6 +238,21 @@ func (c *circleCandidateService) CircleCandidateLeaveCircle(
 	if err != nil {
 		c.log.Errorf("error getting auth claims: %s", err)
 		return err
+	}
+
+	circle, err := c.storage.CircleById(circleId)
+
+	if err != nil {
+		return err
+	}
+
+	if !circle.Active {
+		c.log.Infof(
+			"tried to leave as candidate for an inactive circle with circle id %d and subject %s",
+			circleId,
+			authClaims.Subject,
+		)
+		return fmt.Errorf("circle inactive")
 	}
 
 	candidate, err := c.storage.CircleCandidateByCircleId(circleId, authClaims.Subject)
@@ -267,6 +306,15 @@ func (c *circleCandidateService) CircleCandidateAddToCircle(
 		)
 		err = fmt.Errorf("user is not eligible add candidate to circle")
 		return nil, err
+	}
+
+	if !circle.Active {
+		c.log.Infof(
+			"tried to add candidate for an inactive circle with circle id %d and subject %s",
+			circleId,
+			authClaims.Subject,
+		)
+		return nil, fmt.Errorf("circle inactive")
 	}
 
 	IsCandidateInCircle, err := c.storage.IsCandidateInCircle(circleCandidateInput.Candidate, circleId)
@@ -326,6 +374,15 @@ func (c *circleCandidateService) CircleCandidateRemoveFromCircle(
 		)
 		err = fmt.Errorf("user is not eligible to remove candidate from circle")
 		return nil, err
+	}
+
+	if !circle.Active {
+		c.log.Infof(
+			"tried to add candidate for an inactive circle with circle id %d and subject %s",
+			circleId,
+			authClaims.Subject,
+		)
+		return nil, fmt.Errorf("circle inactive")
 	}
 
 	candidate, err := c.storage.CircleCandidateByCircleId(circleId, circleCandidateInput.Candidate)

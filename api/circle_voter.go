@@ -120,6 +120,15 @@ func (c *circleVoterService) CircleVoterJoinCircle(
 		return nil, err
 	}
 
+	if !circle.Active {
+		c.log.Infof(
+			"tried to join as voter for an inactive circle with circle id %d and subject %s",
+			circleId,
+			authClaims.Subject,
+		)
+		return nil, fmt.Errorf("circle inactive")
+	}
+
 	isVoterInCircle, err := c.storage.IsVoterInCircle(authClaims.Subject, circleId)
 
 	if err != nil {
@@ -159,6 +168,21 @@ func (c *circleVoterService) CircleVoterLeaveCircle(
 	if err != nil {
 		c.log.Errorf("error getting auth claims: %s", err)
 		return err
+	}
+
+	circle, err := c.storage.CircleById(circleId)
+
+	if err != nil {
+		return err
+	}
+
+	if !circle.Active {
+		c.log.Infof(
+			"tried to leave as voter for an inactive circle with circle id %d and subject %s",
+			circleId,
+			authClaims.Subject,
+		)
+		return fmt.Errorf("circle inactive")
 	}
 
 	voter, err := c.storage.CircleVoterByCircleId(circleId, authClaims.Subject)
