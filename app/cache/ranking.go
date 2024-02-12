@@ -84,55 +84,23 @@ func (c *redisCache) RankingList(
 	ctx context.Context,
 	circleId int64,
 ) ([]*model.RankingResponse, error) {
-	circleRankingKey := circleRankingKey(circleId)
+	key := circleRankingKey(circleId)
 
-	rankingScores, err := c.rankingScores(ctx, circleRankingKey)
+	rankingScores, err := c.rankingScores(ctx, key)
 
 	if err != nil {
 		c.log.Errorf(
 			"error getting ranking scores: for circle key %s: %s",
-			circleRankingKey,
+			key,
 			err,
 		)
 		return nil, err
 	}
 
-	rankingList := make([]*model.RankingResponse, 0)
-	placementNumber := int64(0)
-	var voteCount int64
+	rankingList, err := c.rankingList(ctx, circleId, rankingScores)
 
-	for placementIndex, rankingScore := range rankingScores {
-		rankingUserCandidateKey := circleUserCandidateKey(circleId, rankingScore.UserIdentityId)
-		rankingUserCandidate, err := c.rankingUserCandidate(ctx, rankingUserCandidateKey)
-
-		if err != nil {
-			c.log.Errorf(
-				"error getting ranking user %s candidate: for circle key %s: %s",
-				rankingScore.UserIdentityId,
-				circleRankingKey,
-				err,
-			)
-			return nil, err
-		}
-
-		if voteCount != rankingScore.VoteCount {
-			voteCount = rankingScore.VoteCount
-			placementNumber++
-		}
-
-		rankingList = append(
-			rankingList,
-			populateRanking(
-				rankingUserCandidate.RankingID,
-				circleId,
-				rankingUserCandidate.CandidateID,
-				rankingScore,
-				int64(placementIndex),
-				placementNumber,
-				rankingUserCandidate.CreatedAt,
-				rankingUserCandidate.UpdatedAt,
-			),
-		)
+	if err != nil {
+		return nil, err
 	}
 
 	return rankingList, nil
@@ -201,6 +169,74 @@ func (c *redisCache) setRankingScore(
 	}
 
 	return nil
+}
+
+func (c *redisCache) rankingList(
+	ctx context.Context,
+	circleId int64,
+	rankingScores []*model.RankingScore,
+) ([]*model.RankingResponse, error) {
+	key := circleRankingKey(circleId)
+
+	cmds, err := c.redis.Pipelined(
+		ctx, func(pipe redis.Pipeliner) error {
+			for _, rankingScore := range rankingScores {
+				rankingUserCandidateKey := circleUserCandidateKey(circleId, rankingScore.UserIdentityId)
+				pipe.HGetAll(ctx, rankingUserCandidateKey)
+			}
+			return nil
+		},
+	)
+
+	if err != nil {
+		c.log.Errorf(
+			"could not get user canidates of ranking for circle key %s: %s",
+			key,
+			err,
+		)
+		return nil, err
+	}
+
+	rankingList := make([]*model.RankingResponse, 0)
+	placementNumber := int64(0)
+	var voteCount int64
+
+	for placementIndex, rankingScore := range rankingScores {
+		var rankingUserCandidate model.RankingUserCandidate
+
+		err = cmds[placementIndex].(*redis.StringStringMapCmd).Scan(&rankingUserCandidate)
+
+		if err != nil {
+			c.log.Errorf(
+				"error getting ranking user %s candidate: for circle key %s: %s",
+				rankingScore.UserIdentityId,
+				key,
+				err,
+			)
+			return nil, err
+		}
+
+		if voteCount != rankingScore.VoteCount {
+			voteCount = rankingScore.VoteCount
+			placementNumber++
+		}
+
+		rankingList = append(
+			rankingList,
+			populateRanking(
+				rankingUserCandidate.RankingID,
+				circleId,
+				rankingUserCandidate.CandidateID,
+				rankingScore,
+				int64(placementIndex),
+				placementNumber,
+				rankingUserCandidate.CreatedAt,
+				rankingUserCandidate.UpdatedAt,
+			),
+		)
+	}
+
+	return rankingList, nil
 }
 
 func (c *redisCache) removeRanking(
