@@ -17,7 +17,7 @@ func (s *storage) CreateNewVote(
 	voter *model.CircleVoter,
 	candidate *model.CircleCandidate,
 	upsertRankingCache cache.UpsertRankingCacheCallback,
-) (*model.RankingResponse, error) {
+) (*model.RankingResponse, int64, error) {
 	vote := &model.Vote{
 		VoterRefer:     voter.ID,
 		CandidateRefer: candidate.ID,
@@ -85,10 +85,10 @@ func (s *storage) CreateNewVote(
 
 	if err != nil {
 		s.log.Error("error creating vote: %s", err)
-		return nil, err
+		return nil, 0, err
 	}
 
-	return cachedRanking, nil
+	return cachedRanking, voteCount, nil
 }
 
 // Deletes a new vote and updates all necessary tables

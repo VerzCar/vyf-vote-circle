@@ -37,7 +37,7 @@ type VoteRepository interface {
 		voter *model.CircleVoter,
 		candidate *model.CircleCandidate,
 		upsertRankingCache cache.UpsertRankingCacheCallback,
-	) (*model.RankingResponse, error)
+	) (*model.RankingResponse, int64, error)
 	VoteByCircleId(
 		circleId int64,
 		voterId int64,
@@ -199,14 +199,19 @@ func (c *voteService) CreateVote(
 		return false, fmt.Errorf("already voted in circle")
 	}
 
-	cachedRanking, err := c.storage.CreateNewVote(ctx, circleId, voter, candidate, c.cache.UpsertRanking)
+	cachedRanking, voteCount, err := c.storage.CreateNewVote(ctx, circleId, voter, candidate, c.cache.UpsertRanking)
 
 	if err != nil {
 		return false, err
 	}
 
-	event := CreateRankingChangedEvent(model.EventOperationCreated, cachedRanking)
-	_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
+	if voteCount > 1 {
+		event := CreateRankingChangedEvent(model.EventOperationUpdated, cachedRanking)
+		_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
+	} else {
+		event := CreateRankingChangedEvent(model.EventOperationCreated, cachedRanking)
+		_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
+	}
 
 	voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
 	_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)

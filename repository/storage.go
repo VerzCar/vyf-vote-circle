@@ -67,7 +67,7 @@ type Storage interface {
 		voter *model.CircleVoter,
 		candidate *model.CircleCandidate,
 		upsertRankingCache cache.UpsertRankingCacheCallback,
-	) (*model.RankingResponse, error)
+	) (*model.RankingResponse, int64, error)
 	DeleteVote(
 		ctx context.Context,
 		circleId int64,
