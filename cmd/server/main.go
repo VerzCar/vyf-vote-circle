@@ -96,6 +96,7 @@ func run() error {
 	)
 	circleVoterService := api.NewCircleVoterService(storage, circleVoterSubService, envConfig, log)
 	circleCandidateService := api.NewCircleCandidateService(storage, circleCandidateSubService, envConfig, log)
+	userOptionService := api.NewUserOptionService(storage, envConfig, log)
 	tokenService := api.NewTokenService(pubSubService, envConfig, log)
 
 	validate = validator.New()
@@ -110,6 +111,7 @@ func run() error {
 		voteService,
 		circleVoterService,
 		circleCandidateService,
+		userOptionService,
 		tokenService,
 		validate,
 		envConfig,

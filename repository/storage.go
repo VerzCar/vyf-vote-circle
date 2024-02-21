@@ -92,6 +92,10 @@ type Storage interface {
 		voterId int64,
 	) (bool, error)
 	Votes(circleId int64) ([]*model.Vote, error)
+
+	CreateNewUserOption(option *model.UserOption) (*model.UserOption, error)
+	DeleteUserOption(optionId int64) error
+	UserOptionByUserIdentityId(userIdentityId string) (*model.UserOption, error)
 }
 
 type storage struct {

@@ -39,6 +39,9 @@ func (s *Server) routes() {
 		// rankings
 		authorized.GET("/rankings/:circleId", s.Rankings())
 
+		// user option
+		authorized.GET("/user-option", s.UserOption())
+
 		// ably token
 		authorized.GET("/token/ably", s.TokenAbly())
 
