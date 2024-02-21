@@ -64,21 +64,30 @@ type CircleRepository interface {
 	CountCirclesOfUser(userIdentityId string) (int64, error)
 }
 
+type CircleUserOptionService interface {
+	UserOption(
+		ctx context.Context,
+	) (*model.UserOptionResponse, error)
+}
+
 type circleService struct {
-	storage CircleRepository
-	config  *config.Config
-	log     logger.Logger
+	storage           CircleRepository
+	userOptionService CircleUserOptionService
+	config            *config.Config
+	log               logger.Logger
 }
 
 func NewCircleService(
 	circleRepo CircleRepository,
+	userOptionService CircleUserOptionService,
 	config *config.Config,
 	log logger.Logger,
 ) CircleService {
 	return &circleService{
-		storage: circleRepo,
-		config:  config,
-		log:     log,
+		storage:           circleRepo,
+		userOptionService: userOptionService,
+		config:            config,
+		log:               log,
 	}
 }
 
@@ -320,8 +329,10 @@ func (c *circleService) CreateCircle(
 		return nil, err
 	}
 
-	if circlesCount > c.config.Circle.MaxAmountPerUser {
-		err = fmt.Errorf("user has more than %d allowed circles", c.config.Circle.MaxAmountPerUser)
+	userOption, _ := c.userOptionService.UserOption(ctx)
+
+	if circlesCount > int64(userOption.MaxCircles) {
+		err = fmt.Errorf("user has more than %d allowed circles", userOption.MaxCircles)
 		return nil, err
 	}
 
@@ -339,8 +350,8 @@ func (c *circleService) CreateCircle(
 		return nil, err
 	}
 
-	if newCircle.Private && len(circleCreateRequest.Voters) > c.config.Circle.Private.MaxVoters {
-		err = fmt.Errorf("circle has more than %d allowed voters", c.config.Circle.Private.MaxVoters)
+	if newCircle.Private && len(circleCreateRequest.Voters) > userOption.PrivateOption.MaxVoters {
+		err = fmt.Errorf("circle has more than %d allowed voters", userOption.PrivateOption.MaxVoters)
 		return nil, err
 	}
 
@@ -349,8 +360,8 @@ func (c *circleService) CreateCircle(
 		return nil, err
 	}
 
-	if newCircle.Private && len(circleCreateRequest.Candidates) > c.config.Circle.Private.MaxCandidates {
-		err = fmt.Errorf("circle has more than %d allowed candidates", c.config.Circle.Private.MaxCandidates)
+	if newCircle.Private && len(circleCreateRequest.Candidates) > userOption.PrivateOption.MaxCandidates {
+		err = fmt.Errorf("circle has more than %d allowed candidates", userOption.PrivateOption.MaxCandidates)
 		return nil, err
 	}
 

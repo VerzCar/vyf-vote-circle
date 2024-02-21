@@ -79,7 +79,8 @@ func run() error {
 	pubSubService := pubsub.Connect(log, envConfig)
 
 	// initialize api services
-	circleService := api.NewCircleService(storage, envConfig, log)
+	userOptionService := api.NewUserOptionService(storage, envConfig, log)
+	circleService := api.NewCircleService(storage, userOptionService, envConfig, log)
 	circleUploadService := api.NewCircleUploadService(circleService, s3Service, envConfig, log)
 	rankingService := api.NewRankingService(storage, redis, envConfig, log)
 	rankingSubService := api.NewRankingSubscriptionService(pubSubService, log)
@@ -94,9 +95,14 @@ func run() error {
 		envConfig,
 		log,
 	)
-	circleVoterService := api.NewCircleVoterService(storage, circleVoterSubService, envConfig, log)
-	circleCandidateService := api.NewCircleCandidateService(storage, circleCandidateSubService, envConfig, log)
-	userOptionService := api.NewUserOptionService(storage, envConfig, log)
+	circleVoterService := api.NewCircleVoterService(storage, circleVoterSubService, userOptionService, envConfig, log)
+	circleCandidateService := api.NewCircleCandidateService(
+		storage,
+		circleCandidateSubService,
+		userOptionService,
+		envConfig,
+		log,
+	)
 	tokenService := api.NewTokenService(pubSubService, envConfig, log)
 
 	validate = validator.New()

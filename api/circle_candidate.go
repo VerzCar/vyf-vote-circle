@@ -65,24 +65,33 @@ type CircleCandidateSubscription interface {
 	) error
 }
 
+type CircleCandidateOptionService interface {
+	UserOption(
+		ctx context.Context,
+	) (*model.UserOptionResponse, error)
+}
+
 type circleCandidateService struct {
-	storage      CircleCandidateRepository
-	subscription CircleCandidateSubscription
-	config       *config.Config
-	log          logger.Logger
+	storage           CircleCandidateRepository
+	subscription      CircleCandidateSubscription
+	userOptionService CircleCandidateOptionService
+	config            *config.Config
+	log               logger.Logger
 }
 
 func NewCircleCandidateService(
 	circleCandidateRepo CircleCandidateRepository,
 	subscription CircleCandidateSubscription,
+	userOptionService CircleCandidateOptionService,
 	config *config.Config,
 	log logger.Logger,
 ) CircleCandidateService {
 	return &circleCandidateService{
-		storage:      circleCandidateRepo,
-		subscription: subscription,
-		config:       config,
-		log:          log,
+		storage:           circleCandidateRepo,
+		subscription:      subscription,
+		userOptionService: userOptionService,
+		config:            config,
+		log:               log,
 	}
 }
 
@@ -207,8 +216,10 @@ func (c *circleCandidateService) CircleCandidateJoinCircle(
 		return nil, err
 	}
 
-	if candidatesCount > int64(c.config.Circle.MaxCandidates) {
-		err = fmt.Errorf("circle has more than %d allowed candidates", c.config.Circle.MaxCandidates)
+	userOption, _ := c.userOptionService.UserOption(ctx)
+
+	if candidatesCount > int64(userOption.MaxCandidates) {
+		err = fmt.Errorf("circle has more than %d allowed candidates", userOption.MaxCandidates)
 		return nil, err
 	}
 
