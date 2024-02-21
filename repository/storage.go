@@ -33,6 +33,9 @@ type Storage interface {
 	UpdateCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
 	DeleteCircleVoter(voterId int64) error
 	CircleVoterByCircleId(circleId int64, userIdentityId string) (*model.CircleVoter, error)
+	CircleVoterCountByCircleId(
+		circleId int64,
+	) (int64, error)
 	IsVoterInCircle(userIdentityId string, circleId int64) (bool, error)
 	CircleVotersFiltered(
 		circleId int64,
@@ -50,6 +53,9 @@ type Storage interface {
 		userIdentityId string,
 		circleId int64,
 	) (bool, error)
+	CircleCandidateCountByCircleId(
+		circleId int64,
+	) (int64, error)
 	CircleCandidatesFiltered(
 		circleId int64,
 		filterBy *model.CircleCandidatesFilterBy,

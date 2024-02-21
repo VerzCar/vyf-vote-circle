@@ -16,6 +16,11 @@ type Config struct {
 	Circle struct {
 		MaxAmountPerUser int64
 		MaxVoters        int
+		MaxCandidates    int
+		Private          struct {
+			MaxVoters     int
+			MaxCandidates int
+		}
 	}
 
 	Aws struct {
@@ -181,6 +186,10 @@ func (c *Config) checkEnvironment() {
 
 		c.Circle.MaxAmountPerUser, _ = strconv.ParseInt(os.Getenv("CIRCLE_MAX_AMOUNT_PER_USER"), 10, 64)
 		c.Circle.MaxVoters, _ = strconv.Atoi(os.Getenv("CIRCLE_MAX_VOTERS"))
+		c.Circle.MaxCandidates, _ = strconv.Atoi(os.Getenv("CIRCLE_MAX_CANDIDATES"))
+
+		c.Circle.Private.MaxVoters, _ = strconv.Atoi(os.Getenv("CIRCLE_PRIVATE_MAX_VOTERS"))
+		c.Circle.Private.MaxCandidates, _ = strconv.Atoi(os.Getenv("CIRCLE_PRIVATE_MAX_CANDIDATES"))
 	}
 }
 

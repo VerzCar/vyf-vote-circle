@@ -33,6 +33,9 @@ type CircleVoterRepository interface {
 	) ([]*model.CircleVoter, error)
 	CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
 	CircleVoterByCircleId(circleId int64, userIdentityId string) (*model.CircleVoter, error)
+	CircleVoterCountByCircleId(
+		circleId int64,
+	) (int64, error)
 	IsVoterInCircle(userIdentityId string, circleId int64) (bool, error)
 	CircleById(id int64) (*model.Circle, error)
 	DeleteCircleVoter(voterId int64) error
@@ -127,6 +130,17 @@ func (c *circleVoterService) CircleVoterJoinCircle(
 			authClaims.Subject,
 		)
 		return nil, fmt.Errorf("circle inactive")
+	}
+
+	votersCount, err := c.storage.CircleVoterCountByCircleId(circleId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if votersCount > int64(c.config.Circle.MaxVoters) {
+		err = fmt.Errorf("circle has more than %d allowed voters", c.config.Circle.MaxVoters)
+		return nil, err
 	}
 
 	isVoterInCircle, err := c.storage.IsVoterInCircle(authClaims.Subject, circleId)

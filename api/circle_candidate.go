@@ -48,6 +48,9 @@ type CircleCandidateRepository interface {
 	) ([]*model.CircleCandidate, error)
 	CreateNewCircleCandidate(voter *model.CircleCandidate) (*model.CircleCandidate, error)
 	CircleCandidateByCircleId(circleId int64, userIdentityId string) (*model.CircleCandidate, error)
+	CircleCandidateCountByCircleId(
+		circleId int64,
+	) (int64, error)
 	UpdateCircleCandidate(voter *model.CircleCandidate) (*model.CircleCandidate, error)
 	DeleteCircleCandidate(candidateId int64) error
 	IsCandidateInCircle(userIdentityId string, circleId int64) (bool, error)
@@ -196,6 +199,17 @@ func (c *circleCandidateService) CircleCandidateJoinCircle(
 			authClaims.Subject,
 		)
 		return nil, fmt.Errorf("circle inactive")
+	}
+
+	candidatesCount, err := c.storage.CircleCandidateCountByCircleId(circleId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if candidatesCount > int64(c.config.Circle.MaxCandidates) {
+		err = fmt.Errorf("circle has more than %d allowed candidates", c.config.Circle.MaxCandidates)
+		return nil, err
 	}
 
 	IsCandidateInCircle, err := c.storage.IsCandidateInCircle(authClaims.Subject, circleId)

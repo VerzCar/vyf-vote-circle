@@ -339,8 +339,8 @@ func (c *circleService) CreateCircle(
 		return nil, err
 	}
 
-	if newCircle.Private && len(circleCreateRequest.Voters) > c.config.Circle.MaxVoters {
-		err = fmt.Errorf("circle has more than %d allowed voters", c.config.Circle.MaxVoters)
+	if newCircle.Private && len(circleCreateRequest.Voters) > c.config.Circle.Private.MaxVoters {
+		err = fmt.Errorf("circle has more than %d allowed voters", c.config.Circle.Private.MaxVoters)
 		return nil, err
 	}
 
@@ -349,8 +349,8 @@ func (c *circleService) CreateCircle(
 		return nil, err
 	}
 
-	if newCircle.Private && len(circleCreateRequest.Candidates) > c.config.Circle.MaxVoters {
-		err = fmt.Errorf("circle has more than %d allowed candidates", c.config.Circle.MaxVoters)
+	if newCircle.Private && len(circleCreateRequest.Candidates) > c.config.Circle.Private.MaxCandidates {
+		err = fmt.Errorf("circle has more than %d allowed candidates", c.config.Circle.Private.MaxCandidates)
 		return nil, err
 	}
 

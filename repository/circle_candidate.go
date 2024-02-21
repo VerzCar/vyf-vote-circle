@@ -57,6 +57,26 @@ func (s *storage) CircleCandidateByCircleId(
 	return circleCandidate, nil
 }
 
+func (s *storage) CircleCandidateCountByCircleId(
+	circleId int64,
+) (int64, error) {
+	var count int64
+	err := s.db.Model(&model.CircleCandidate{}).
+		Where(&model.CircleCandidate{CircleID: circleId}).
+		Count(&count).Error
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		s.log.Errorf("error reading circle candidates count by circle id %d: %s", circleId, err)
+		return 0, err
+	case database.RecordNotFound(err):
+		s.log.Infof("candidates for circle id %d in candidates not found: %s", circleId, err)
+		return 0, err
+	}
+
+	return count, nil
+}
+
 // IsCandidateInCircle determines if the user exists in the circle candidates list
 func (s *storage) IsCandidateInCircle(
 	userIdentityId string,

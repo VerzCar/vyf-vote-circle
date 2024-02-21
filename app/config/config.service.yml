@@ -1,8 +1,12 @@
 # web service
 port: 8080
 circle:
-  maxAmountPerUser: 10
-  maxVoters: 100
+  maxAmountPerUser: 3
+  maxVoters: 50
+  maxCandidates: 20
+  private:
+    maxVoters: 15
+    maxCandidates: 5
 
 # hosts
 hosts:
