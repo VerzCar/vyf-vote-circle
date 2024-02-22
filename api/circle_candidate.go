@@ -329,7 +329,7 @@ func (c *circleCandidateService) CircleCandidateAddToCircle(
 			authClaims.Subject,
 			circle.ID,
 		)
-		err = fmt.Errorf("user is not eligible add candidate to circle")
+		err = fmt.Errorf("user is not eligible to add candidate to circle")
 		return nil, err
 	}
 
@@ -353,6 +353,19 @@ func (c *circleCandidateService) CircleCandidateAddToCircle(
 		return nil, err
 	}
 
+	candidatesCount, err := c.storage.CircleCandidateCountByCircleId(circleId)
+
+	if err != nil {
+		return nil, fmt.Errorf("count of candidate failure")
+	}
+
+	userOption, _ := c.userOptionService.UserOption(ctx)
+
+	if candidatesCount > int64(userOption.MaxCandidates) {
+		err = fmt.Errorf("circle has more than %d allowed candidates", userOption.MaxCandidates)
+		return nil, err
+	}
+
 	circleCandidate := &model.CircleCandidate{
 		Candidate:   circleCandidateInput.Candidate,
 		Circle:      circle,
@@ -372,6 +385,7 @@ func (c *circleCandidateService) CircleCandidateAddToCircle(
 	return newCandidate, nil
 }
 
+// TODO: check what to do with already voted candidates
 func (c *circleCandidateService) CircleCandidateRemoveFromCircle(
 	ctx context.Context,
 	circleId int64,
