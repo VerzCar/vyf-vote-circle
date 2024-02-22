@@ -184,3 +184,68 @@ func (s *Server) CircleVoterLeaveCircle() gin.HandlerFunc {
 		ctx.JSON(http.StatusOK, response)
 	}
 }
+
+func (s *Server) CircleVoterAddToCircle() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		errResponse := model.Response{
+			Status: model.ResponseError,
+			Msg:    "cannot add voter to circle",
+			Data:   nil,
+		}
+
+		circleReq := &model.CircleUriRequest{}
+
+		err := ctx.ShouldBindUri(circleReq)
+
+		if err != nil {
+			s.log.Error(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
+		circleVoterReq := &model.CircleVoterRequest{}
+
+		err = ctx.ShouldBindJSON(circleVoterReq)
+
+		if err != nil {
+			s.log.Error(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
+		if err := s.validate.Struct(circleVoterReq); err != nil {
+			s.log.Warn(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
+		voter, err := s.circleVoterService.CircleVoterAddToCircle(
+			ctx.Request.Context(),
+			circleReq.CircleID,
+			circleVoterReq,
+		)
+
+		if err != nil {
+			s.log.Errorf("service error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, errResponse)
+			return
+		}
+
+		voterRes := &model.CircleVoterResponse{
+			ID:         voter.ID,
+			Voter:      voter.Voter,
+			Commitment: voter.Commitment,
+			VotedFor:   voter.VotedFor,
+			CreatedAt:  voter.CreatedAt,
+			UpdatedAt:  voter.UpdatedAt,
+		}
+
+		response := model.Response{
+			Status: model.ResponseSuccess,
+			Msg:    "",
+			Data:   voterRes,
+		}
+
+		ctx.JSON(http.StatusOK, response)
+	}
+}
