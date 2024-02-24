@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 // Config represents the composition of yml settings.
@@ -172,13 +173,21 @@ func (c *Config) checkEnvironment() {
 		c.Db.User = os.Getenv("DB_USER")
 		c.Db.Password = os.Getenv("DB_PASSWORD")
 
-		c.Redis.Host = os.Getenv("REDIS_HOST")
-		redisPort, _ := strconv.Atoi(os.Getenv("REDIS_PORT"))
-		c.Redis.Port = uint16(redisPort)
+		redisEnv := os.Getenv("REDIS_TLS_URL")
+		redisSubs := strings.Split(redisEnv, ":")
+		redisPwdHost := strings.Split(redisSubs[2], "@")
+
+		redisPasswort := redisPwdHost[0]
+		redisHost := redisPwdHost[1]
+		redisPort := redisSubs[3]
+
+		c.Redis.Host = redisHost
+		redisPortNumber, _ := strconv.Atoi(redisPort)
+		c.Redis.Port = uint16(redisPortNumber)
 		c.Redis.Username = os.Getenv("REDIS_USERNAME")
 		redisDb, _ := strconv.ParseUint(os.Getenv("REDIS_DB"), 16, 16)
 		c.Redis.Db = uint16(redisDb)
-		c.Redis.Password = os.Getenv("REDIS_PASSWORD")
+		c.Redis.Password = redisPasswort
 
 		c.Ably.Apikey = os.Getenv("ABLY_API_KEY")
 
