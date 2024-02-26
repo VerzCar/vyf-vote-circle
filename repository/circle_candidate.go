@@ -114,6 +114,7 @@ func (s *storage) CircleCandidatesFiltered(
 
 	if filterBy.Commitment != nil {
 		tx.Where(&model.CircleCandidate{Commitment: *filterBy.Commitment})
+		tx.Order("commitment = 'OPEN'")
 	}
 
 	if filterBy.HasBeenVoted != nil {
