@@ -39,6 +39,11 @@ type CircleCandidateService interface {
 		circleId int64,
 		circleCandidateInput *model.CircleCandidateRequest,
 	) (*model.CircleCandidate, error)
+	CircleCandidateVotedBy(
+		ctx context.Context,
+		circleId int64,
+		circleCandidateInput *model.CircleCandidateRequest,
+	) ([]*string, error)
 }
 
 type CircleCandidateRepository interface {
@@ -53,8 +58,13 @@ type CircleCandidateRepository interface {
 	) (int64, error)
 	UpdateCircleCandidate(voter *model.CircleCandidate) (*model.CircleCandidate, error)
 	DeleteCircleCandidate(candidateId int64) error
+	IsVoterInCircle(userIdentityId string, circleId int64) (bool, error)
 	IsCandidateInCircle(userIdentityId string, circleId int64) (bool, error)
 	CircleById(id int64) (*model.Circle, error)
+	CircleVotersVotedFor(
+		circleId int64,
+		userIdentityId string,
+	) ([]*model.CircleVoter, error)
 }
 
 type CircleCandidateSubscription interface {
@@ -457,4 +467,80 @@ func (c *circleCandidateService) CircleCandidateRemoveFromCircle(
 	_ = c.subscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
 
 	return newCandidate, nil
+}
+
+func (c *circleCandidateService) CircleCandidateVotedBy(
+	ctx context.Context,
+	circleId int64,
+	circleCandidateInput *model.CircleCandidateRequest,
+) ([]*string, error) {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return nil, err
+	}
+
+	circle, err := c.storage.CircleById(circleId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	eligibleToBeInCircle, err := c.eligibleToBeInCircle(authClaims.Subject, circle)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !eligibleToBeInCircle {
+		c.log.Infof(
+			"user is not eligible to interact with circle: user %s, circle ID %d",
+			authClaims.Subject,
+			circle.ID,
+		)
+		err = fmt.Errorf("user is not eligible to interact with circle")
+		return nil, err
+	}
+
+	voters, err := c.storage.CircleVotersVotedFor(circleId, circleCandidateInput.Candidate)
+
+	if err != nil {
+		return nil, err
+	}
+
+	userIds := make([]*string, 0)
+
+	for _, voter := range voters {
+		userIds = append(userIds, &voter.Voter)
+	}
+
+	return userIds, nil
+}
+
+// determines, when the circle is private, if the user is eligible to
+// interact with the circle
+func (c *circleCandidateService) eligibleToBeInCircle(
+	userIdentityId string,
+	circle *model.Circle,
+) (bool, error) {
+	if !circle.Private {
+		return true, nil
+	}
+
+	if userIdentityId == circle.CreatedFrom {
+		return true, nil
+	}
+
+	ok, err := c.storage.IsVoterInCircle(userIdentityId, circle.ID)
+
+	if err != nil && !database.RecordNotFound(err) {
+		return false, err
+	}
+
+	if ok {
+		return true, nil
+	}
+
+	return c.storage.IsCandidateInCircle(userIdentityId, circle.ID)
 }

@@ -33,6 +33,7 @@ func (s *Server) routes() {
 		authorized.POST("/circle-candidates/:circleId/join", s.CircleCandidateJoinCircle())
 		authorized.DELETE("/circle-candidates/:circleId/leave", s.CircleCandidateLeaveCircle())
 		authorized.POST("/circle-candidates/:circleId/add", s.CircleCandidateAddToCircle())
+		authorized.GET("/circle-candidates/:circleId/voted-by", s.CircleCandidateVotedBy())
 
 		// votes
 		authorized.POST("/vote/:circleId", s.CreateVote())

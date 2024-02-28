@@ -530,8 +530,8 @@ func (c *circleService) AddToGlobalCircle(
 	return nil
 }
 
-// determines, when the circle is private, if the user is eligible to be
-// in the circle
+// determines, when the circle is private, if the user is eligible to
+// interact with the circle
 func (c *circleService) eligibleToBeInCircle(
 	userIdentityId string,
 	circle *model.Circle,
