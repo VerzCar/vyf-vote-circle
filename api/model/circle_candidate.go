@@ -30,7 +30,7 @@ type CircleCandidatesResponse struct {
 }
 
 type CircleCandidateRequest struct {
-	Candidate string `json:"candidate" validate:"gt=0,lte=50"`
+	Candidate string `json:"candidate" form:"candidate" validate:"gt=0,lte=50"`
 }
 
 type CircleCandidateCommitmentRequest struct {
