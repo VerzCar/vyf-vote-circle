@@ -206,6 +206,47 @@ func (s *Server) CirclesByName() gin.HandlerFunc {
 	}
 }
 
+func (s *Server) CirclesOpenCommitments() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		errResponse := model.Response{
+			Status: model.ResponseError,
+			Msg:    "cannot find open commitments of circles related to user",
+			Data:   nil,
+		}
+
+		circles, err := s.circleService.CirclesOpenCommitments(ctx.Request.Context())
+
+		if err != nil {
+			s.log.Errorf("service error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, errResponse)
+			return
+		}
+
+		paginatedCirclesResponse := make([]*model.CirclePaginatedResponse, 0)
+
+		for _, circle := range circles {
+			c := &model.CirclePaginatedResponse{
+				ID:              circle.ID,
+				Name:            circle.Name,
+				Description:     circle.Description,
+				ImageSrc:        circle.ImageSrc,
+				VotersCount:     &circle.VotersCount,
+				CandidatesCount: &circle.CandidatesCount,
+				Active:          circle.Active,
+			}
+			paginatedCirclesResponse = append(paginatedCirclesResponse, c)
+		}
+
+		response := model.Response{
+			Status: model.ResponseSuccess,
+			Msg:    "",
+			Data:   paginatedCirclesResponse,
+		}
+
+		ctx.JSON(http.StatusOK, response)
+	}
+}
+
 func (s *Server) CirclesOfInterest() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		errResponse := model.Response{

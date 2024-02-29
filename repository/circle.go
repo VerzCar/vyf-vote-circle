@@ -27,6 +27,29 @@ func (s *storage) CircleById(id int64) (*model.Circle, error) {
 	return circle, nil
 }
 
+func (s *storage) CirclesByIds(circleIds []int64) ([]*model.CirclePaginated, error) {
+	var circles []*model.CirclePaginated
+
+	err := s.db.Model(&model.Circle{}).
+		Select("circles.id, circles.name, circles.description, circles.image_src, circles.active, circles.created_at, circles.updated_at").
+		Where(&model.Circle{Active: true}).
+		Limit(100).
+		Order("updated_at desc").
+		Find(&circles, circleIds).
+		Error
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		s.log.Errorf("error reading circles by ids %v: %s", circleIds, err)
+		return nil, err
+	case database.RecordNotFound(err):
+		s.log.Infof("circles not found for ids %v: %s", circleIds, err)
+		return nil, err
+	}
+
+	return circles, nil
+}
+
 // Circles gets all the active circles that have been created from the user
 func (s *storage) Circles(userIdentityId string) ([]*model.Circle, error) {
 	var circles []*model.Circle

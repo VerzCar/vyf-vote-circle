@@ -110,11 +110,11 @@ func (s *storage) CircleCandidatesFiltered(
 	tx := s.db.Model(&model.CircleCandidate{}).
 		Where(&model.CircleCandidate{CircleID: circleId}).
 		Limit(100).
+		Order("commitment = 'OPEN'").
 		Order("updated_at desc")
 
 	if filterBy.Commitment != nil {
 		tx.Where(&model.CircleCandidate{Commitment: *filterBy.Commitment})
-		tx.Order("commitment = 'OPEN'")
 	}
 
 	if filterBy.HasBeenVoted != nil {
@@ -135,6 +135,35 @@ func (s *storage) CircleCandidatesFiltered(
 		return nil, err
 	case database.RecordNotFound(err):
 		s.log.Infof("circle candidates not found: %s", err)
+		return nil, err
+	}
+
+	return circleCandidates, nil
+}
+
+func (s *storage) CircleCandidatesOpenCommitments(
+	userIdentityId string,
+) ([]*model.CircleCandidate, error) {
+	var circleCandidates []*model.CircleCandidate
+
+	err := s.db.Model(&model.CircleCandidate{}).
+		Where(
+			&model.CircleCandidate{
+				Candidate:  userIdentityId,
+				Commitment: model.CommitmentOpen,
+			},
+		).
+		Limit(100).
+		Order("updated_at desc").
+		Find(&circleCandidates).
+		Error
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		s.log.Errorf("error reading circle candidates open commitments for user id %s: %s", userIdentityId, err)
+		return nil, err
+	case database.RecordNotFound(err):
+		s.log.Infof("circle candidates open commitments not found: %s", err)
 		return nil, err
 	}
 

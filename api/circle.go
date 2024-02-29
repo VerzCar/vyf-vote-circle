@@ -20,6 +20,9 @@ type CircleService interface {
 	Circles(
 		ctx context.Context,
 	) ([]*model.Circle, error)
+	CirclesOpenCommitments(
+		ctx context.Context,
+	) ([]*model.CirclePaginated, error)
 	CirclesFiltered(
 		ctx context.Context,
 		name *string,
@@ -50,6 +53,7 @@ type CircleService interface {
 
 type CircleRepository interface {
 	CircleById(id int64) (*model.Circle, error)
+	CirclesByIds(circleIds []int64) ([]*model.CirclePaginated, error)
 	Circles(userIdentityId string) ([]*model.Circle, error)
 	CirclesFiltered(name string) ([]*model.CirclePaginated, error)
 	CirclesOfInterest(userIdentityId string) ([]*model.CirclePaginated, error)
@@ -62,6 +66,9 @@ type CircleRepository interface {
 		circleId int64,
 	) (bool, error)
 	CountCirclesOfUser(userIdentityId string) (int64, error)
+	CircleCandidatesOpenCommitments(
+		userIdentityId string,
+	) ([]*model.CircleCandidate, error)
 }
 
 type CircleUserOptionService interface {
@@ -147,6 +154,44 @@ func (c *circleService) Circles(
 		{
 			return nil, nil
 		}
+	}
+
+	return circles, nil
+}
+
+func (c *circleService) CirclesOpenCommitments(
+	ctx context.Context,
+) ([]*model.CirclePaginated, error) {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return nil, err
+	}
+
+	circleCandidates, err := c.storage.CircleCandidatesOpenCommitments(authClaims.Subject)
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		{
+			return nil, err
+		}
+	case database.RecordNotFound(err):
+		{
+			return nil, nil
+		}
+	}
+
+	var circleIds []int64
+
+	for _, candidate := range circleCandidates {
+		circleIds = append(circleIds, candidate.CircleID)
+	}
+
+	circles, err := c.storage.CirclesByIds(circleIds)
+
+	if err != nil {
+		return nil, err
 	}
 
 	return circles, nil

@@ -22,6 +22,7 @@ type Storage interface {
 	RunMigrationsDown(db *sql.DB) error
 
 	CircleById(id int64) (*model.Circle, error)
+	CirclesByIds(circleIds []int64) ([]*model.CirclePaginated, error)
 	Circles(userIdentityId string) ([]*model.Circle, error)
 	CirclesFiltered(name string) ([]*model.CirclePaginated, error)
 	CirclesOfInterest(userIdentityId string) ([]*model.CirclePaginated, error)
@@ -63,6 +64,9 @@ type Storage interface {
 	CircleCandidatesFiltered(
 		circleId int64,
 		filterBy *model.CircleCandidatesFilterBy,
+	) ([]*model.CircleCandidate, error)
+	CircleCandidatesOpenCommitments(
+		userIdentityId string,
 	) ([]*model.CircleCandidate, error)
 
 	CreateNewRanking(ranking *model.Ranking) (*model.Ranking, error)
