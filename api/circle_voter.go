@@ -277,7 +277,7 @@ func (c *circleVoterService) CircleVoterAddToCircle(
 		return nil, fmt.Errorf("circle inactive")
 	}
 
-	isVoterInCircle, err := c.storage.IsVoterInCircle(authClaims.Subject, circleId)
+	isVoterInCircle, err := c.storage.IsVoterInCircle(circleVoterInput.Voter, circleId)
 
 	if err != nil {
 		return nil, err
