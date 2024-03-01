@@ -42,10 +42,6 @@ type Storage interface {
 		circleId int64,
 		filterBy *model.CircleVotersFilterBy,
 	) ([]*model.CircleVoter, error)
-	CircleVotersVotedFor(
-		circleId int64,
-		userIdentityId string,
-	) ([]*model.CircleVoter, error)
 
 	CreateNewCircleCandidate(candidate *model.CircleCandidate) (*model.CircleCandidate, error)
 	UpdateCircleCandidate(candidate *model.CircleCandidate) (*model.CircleCandidate, error)
@@ -100,6 +96,10 @@ type Storage interface {
 		voterId int64,
 	) (bool, error)
 	Votes(circleId int64) ([]*model.Vote, error)
+	VotesByCandidateId(
+		circleId int64,
+		candidateId int64,
+	) ([]*model.Vote, error)
 
 	CreateNewUserOption(option *model.UserOption) (*model.UserOption, error)
 	DeleteUserOption(optionId int64) error

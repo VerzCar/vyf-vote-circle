@@ -141,13 +141,13 @@ func (s *storage) DeleteVote(
 
 			// if still has votes update ranking
 			if voteCount > 0 {
-				ranking, err = s.txUpsertRanking(tx, circleId, voteCount, &vote.Candidate)
+				ranking, err = s.txUpsertRanking(tx, circleId, voteCount, vote.Candidate)
 
 				if err != nil {
 					return err
 				}
 
-				cachedRanking, err = upsertRankingCache(ctx, circleId, &vote.Candidate, ranking, voteCount)
+				cachedRanking, err = upsertRankingCache(ctx, circleId, vote.Candidate, ranking, voteCount)
 
 				if err != nil {
 					return err
@@ -193,7 +193,7 @@ func (s *storage) DeleteVote(
 				}
 			}
 
-			err = removeRankingCache(ctx, circleId, &vote.Candidate)
+			err = removeRankingCache(ctx, circleId, vote.Candidate)
 
 			if err != nil {
 				return err
@@ -306,6 +306,32 @@ func (s *storage) Votes(circleId int64) ([]*model.Vote, error) {
 		return nil, err
 	case database.RecordNotFound(err):
 		s.log.Infof("votes with circle id %d not found: %s", circleId, err)
+		return nil, err
+	}
+
+	return votes, nil
+}
+
+func (s *storage) VotesByCandidateId(
+	circleId int64,
+	candidateId int64,
+) ([]*model.Vote, error) {
+	var votes []*model.Vote
+
+	err := s.db.Model(&model.Vote{}).
+		Preload("Voter").
+		Where(&model.Vote{CircleID: circleId, CandidateRefer: candidateId}).
+		Limit(100).
+		Order("updated_at desc").
+		Find(&votes).
+		Error
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		s.log.Errorf("error reading votes for candidate id %d: %s", candidateId, err)
+		return nil, err
+	case database.RecordNotFound(err):
+		s.log.Infof("votes for candidate id %d not found: %s", candidateId, err)
 		return nil, err
 	}
 

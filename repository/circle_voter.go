@@ -130,28 +130,3 @@ func (s *storage) CircleVotersFiltered(
 
 	return circleVoters, nil
 }
-
-func (s *storage) CircleVotersVotedFor(
-	circleId int64,
-	userIdentityId string,
-) ([]*model.CircleVoter, error) {
-	var circleVoters []*model.CircleVoter
-
-	err := s.db.Model(&model.CircleVoter{}).
-		Where(&model.CircleVoter{CircleID: circleId, VotedFor: &userIdentityId}).
-		Limit(100).
-		Order("updated_at desc").
-		Find(&circleVoters).
-		Error
-
-	switch {
-	case err != nil && !database.RecordNotFound(err):
-		s.log.Errorf("error reading circle voters for user id %s: %s", userIdentityId, err)
-		return nil, err
-	case database.RecordNotFound(err):
-		s.log.Infof("circle voters not found: %s", err)
-		return nil, err
-	}
-
-	return circleVoters, nil
-}

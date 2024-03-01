@@ -142,7 +142,7 @@ func (c *rankingService) buildRankingList(
 				}
 
 				rankingCacheItem := &model.RankingCacheItem{
-					Candidate: &vote.Candidate,
+					Candidate: vote.Candidate,
 					Ranking:   ranking,
 					VoteCount: voteCount,
 				}

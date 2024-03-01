@@ -302,7 +302,7 @@ func (c *voteService) RevokeVote(
 	voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
 	_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
 
-	candidateEvent := CreateCandidateChangedEvent(model.EventOperationRepositioned, &vote.Candidate)
+	candidateEvent := CreateCandidateChangedEvent(model.EventOperationRepositioned, vote.Candidate)
 	_ = c.circleCandidateSubscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
 
 	return true, nil

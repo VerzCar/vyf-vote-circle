@@ -61,10 +61,10 @@ type CircleCandidateRepository interface {
 	IsVoterInCircle(userIdentityId string, circleId int64) (bool, error)
 	IsCandidateInCircle(userIdentityId string, circleId int64) (bool, error)
 	CircleById(id int64) (*model.Circle, error)
-	CircleVotersVotedFor(
+	VotesByCandidateId(
 		circleId int64,
-		userIdentityId string,
-	) ([]*model.CircleVoter, error)
+		candidateId int64,
+	) ([]*model.Vote, error)
 }
 
 type CircleCandidateSubscription interface {
@@ -293,7 +293,17 @@ func (c *circleCandidateService) CircleCandidateLeaveCircle(
 	candidate, err := c.storage.CircleCandidateByCircleId(circleId, authClaims.Subject)
 
 	if err != nil {
-		return fmt.Errorf("cannot leave as candidate from cirlce")
+		return fmt.Errorf("cannot leave as candidate from circle")
+	}
+
+	votes, err := c.storage.VotesByCandidateId(circleId, candidate.ID)
+
+	if err != nil && !database.RecordNotFound(err) {
+		return fmt.Errorf("cannot leave as candidate from circle")
+	}
+
+	if votes != nil {
+		// remove voting of voters
 	}
 
 	err = c.storage.DeleteCircleCandidate(candidate.ID)
@@ -503,16 +513,27 @@ func (c *circleCandidateService) CircleCandidateVotedBy(
 		return nil, err
 	}
 
-	voters, err := c.storage.CircleVotersVotedFor(circleId, circleCandidateInput.Candidate)
+	candidate, err := c.storage.CircleCandidateByCircleId(circleId, authClaims.Subject)
 
 	if err != nil {
+		c.log.Errorf("error candidate id %s not in circle: %s", authClaims.Subject, err)
+		return nil, err
+	}
+
+	votes, err := c.storage.VotesByCandidateId(circleId, candidate.ID)
+
+	if err != nil && !database.RecordNotFound(err) {
 		return nil, err
 	}
 
 	userIds := make([]*string, 0)
 
-	for _, voter := range voters {
-		userIds = append(userIds, &voter.Voter)
+	if database.RecordNotFound(err) {
+		return userIds, nil
+	}
+
+	for _, vote := range votes {
+		userIds = append(userIds, &vote.Voter.Voter)
 	}
 
 	return userIds, nil
