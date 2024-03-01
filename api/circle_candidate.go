@@ -513,10 +513,10 @@ func (c *circleCandidateService) CircleCandidateVotedBy(
 		return nil, err
 	}
 
-	candidate, err := c.storage.CircleCandidateByCircleId(circleId, authClaims.Subject)
+	candidate, err := c.storage.CircleCandidateByCircleId(circleId, circleCandidateInput.Candidate)
 
 	if err != nil {
-		c.log.Errorf("error candidate id %s not in circle: %s", authClaims.Subject, err)
+		c.log.Errorf("error candidate id %s not in circle: %s", circleCandidateInput.Candidate, err)
 		return nil, err
 	}
 
