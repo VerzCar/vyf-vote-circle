@@ -110,6 +110,7 @@ func (s *storage) CircleCandidatesFiltered(
 	tx := s.db.Model(&model.CircleCandidate{}).
 		Where(&model.CircleCandidate{CircleID: circleId}).
 		Limit(100).
+		Order("commitment = 'REJECTED'").
 		Order("commitment = 'OPEN'").
 		Order("updated_at desc")
 
