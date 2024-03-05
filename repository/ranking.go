@@ -39,6 +39,7 @@ func (s *storage) DeleteRanking(rankingId int64) error {
 func (s *storage) RankingsByCircleId(circleId int64) ([]*model.Ranking, error) {
 	var rankings []*model.Ranking
 	err := s.db.Where(&model.Ranking{CircleID: circleId}).
+		Order("votes desc").
 		Find(&rankings).Error
 
 	switch {

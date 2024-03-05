@@ -6,7 +6,6 @@ import (
 	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/VerzCar/vyf-vote-circle/app/config"
 	"github.com/VerzCar/vyf-vote-circle/app/database"
-	routerContext "github.com/VerzCar/vyf-vote-circle/app/router/ctx"
 )
 
 type RankingService interface {
@@ -17,6 +16,7 @@ type RankingService interface {
 }
 
 type RankingRepository interface {
+	CircleById(id int64) (*model.Circle, error)
 	RankingsByCircleId(circleId int64) ([]*model.Ranking, error)
 	Votes(circleId int64) ([]*model.Vote, error)
 	CountsVotesOfCandidateByCircleId(circleId int64, candidateId int64) (int64, error)
@@ -69,11 +69,24 @@ func (c *rankingService) Rankings(
 	ctx context.Context,
 	circleId int64,
 ) ([]*model.RankingResponse, error) {
-	_, err := routerContext.ContextToAuthClaims(ctx)
+	circle, err := c.storage.CircleById(circleId)
 
 	if err != nil {
-		c.log.Errorf("error getting auth claims: %s", err)
 		return nil, err
+	}
+
+	if !circle.Active {
+		rankings, err := c.storage.RankingsByCircleId(circleId)
+
+		if err != nil && !database.RecordNotFound(err) {
+			return nil, err
+		}
+
+		if database.RecordNotFound(err) {
+			return make([]*model.RankingResponse, 0), nil
+		}
+
+		return c.mapRankingToRankingResponse(rankings), nil
 	}
 
 	exists, err := c.cache.ExistsRankingListForCircle(ctx, circleId)
@@ -84,7 +97,7 @@ func (c *rankingService) Rankings(
 	}
 
 	if !exists {
-		isEmpty, err := c.buildRankingList(ctx, circleId)
+		isEmpty, err := c.buildCacheRankingList(ctx, circleId)
 
 		if err != nil {
 			return nil, err
@@ -104,10 +117,10 @@ func (c *rankingService) Rankings(
 	return rankings, nil
 }
 
-// buildRankingList for the given circle.
+// buildCacheRankingList for the given circle.
 // Returns true if the circle does not contain any votes
 // (has an empty ranking list), otherwise false or an error if any occurs.
-func (c *rankingService) buildRankingList(
+func (c *rankingService) buildCacheRankingList(
 	ctx context.Context,
 	circleId int64,
 ) (bool, error) {
@@ -116,7 +129,7 @@ func (c *rankingService) buildRankingList(
 	switch {
 	case err != nil && !database.RecordNotFound(err):
 		{
-			c.log.Errorf("error building up cache for circle id %d: %s", circleId, err)
+			c.log.Errorf("error building up ranking list for circle id %d: %s", circleId, err)
 			return false, err
 		}
 	case database.RecordNotFound(err):
@@ -154,4 +167,25 @@ func (c *rankingService) buildRankingList(
 			return false, err
 		}
 	}
+}
+
+func (c *rankingService) mapRankingToRankingResponse(rankings []*model.Ranking) []*model.RankingResponse {
+	var responses []*model.RankingResponse
+	for _, ranking := range rankings {
+		response := &model.RankingResponse{
+			CreatedAt:    ranking.CreatedAt,
+			UpdatedAt:    ranking.UpdatedAt,
+			IdentityID:   ranking.IdentityID,
+			Placement:    ranking.Placement,
+			ID:           ranking.ID,
+			CandidateID:  0,
+			Number:       ranking.Number,
+			Votes:        ranking.Votes,
+			IndexedOrder: 0,
+			CircleID:     ranking.CircleID,
+		}
+		responses = append(responses, response)
+	}
+
+	return responses
 }
