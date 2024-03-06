@@ -9,6 +9,7 @@ type Circle struct {
 	UpdatedAt   time.Time          `json:"updatedAt" gorm:"autoUpdateTime;"`
 	CreatedAt   time.Time          `json:"createdAt" gorm:"autoCreateTime;"`
 	ValidUntil  *time.Time         `json:"validUntil"`
+	ValidFrom   *time.Time         `json:"validFrom"`
 	CreatedFrom string             `json:"createdFrom" gorm:"type:varchar(50);not null"`
 	ImageSrc    string             `json:"imageSrc" gorm:"type:text;not null;"`
 	Description string             `json:"description" gorm:"type:varchar(1200);not null;"`
@@ -33,6 +34,7 @@ type CircleResponse struct {
 	CreatedAt   time.Time  `json:"createdAt"`
 	UpdatedAt   time.Time  `json:"updatedAt"`
 	ValidUntil  *time.Time `json:"validUntil"`
+	ValidFrom   *time.Time `json:"validFrom"`
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
 	ImageSrc    string     `json:"imageSrc"`
@@ -48,6 +50,7 @@ type CircleUpdateRequest struct {
 	ImageSrc    *string                   `json:"imageSrc,omitempty" validate:"omitempty,url"`
 	Delete      *bool                     `json:"delete,omitempty" validate:"omitempty"`
 	ValidUntil  *time.Time                `json:"validUntil,omitempty" validate:"omitempty"`
+	ValidFrom   *time.Time                `json:"ValidFrom,omitempty" validate:"omitempty"`
 	Voters      []*CircleVoterRequest     `json:"voters,omitempty"`
 	Candidates  []*CircleCandidateRequest `json:"candidates,omitempty"`
 	ID          int64                     `json:"id" validate:"gt=0"`
@@ -58,6 +61,7 @@ type CircleCreateRequest struct {
 	ImageSrc    *string                   `json:"imageSrc,omitempty" validate:"omitempty,url"`
 	Private     *bool                     `json:"private,omitempty" validate:"omitempty"`
 	ValidUntil  *time.Time                `json:"validUntil,omitempty" validate:"omitempty"`
+	ValidFrom   *time.Time                `json:"ValidFrom,omitempty" validate:"omitempty"`
 	Name        string                    `json:"name" validate:"gt=0,lte=40"`
 	Voters      []*CircleVoterRequest     `json:"voters,omitempty"`
 	Candidates  []*CircleCandidateRequest `json:"candidates,omitempty"`
@@ -91,12 +95,12 @@ type CirclePaginatedResponse struct {
 // the circle inactive if so. If the update of the column failed,
 // the query will fail.
 func (circle *Circle) AfterFind(tx *gorm.DB) (err error) {
-	// check if any validation time is set
-	if circle.ValidUntil == nil {
+	if !circle.Active {
 		return
 	}
 
-	if isValidationTimeExpired(circle) {
+	// check if any validation time is set
+	if circle.ValidUntil != nil && isValidUntilTimeExpired(circle.ValidUntil) {
 		circle.Active = false
 		err := tx.Model(circle).Update("active", false).Error
 
@@ -108,10 +112,10 @@ func (circle *Circle) AfterFind(tx *gorm.DB) (err error) {
 	return
 }
 
-func isValidationTimeExpired(
-	circle *Circle,
+func isValidUntilTimeExpired(
+	validUntil *time.Time,
 ) bool {
-	if time.Now().After(*circle.ValidUntil) {
+	if time.Now().After(*validUntil) {
 		return true
 	}
 	return false

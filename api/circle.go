@@ -287,10 +287,22 @@ func (c *circleService) UpdateCircle(
 		}
 	}
 
+	currentTime := time.Now()
+	// check if new valid from time is given and is in the future from now on
+	// otherwise check if current valid from time has expired
+	if circleUpdateRequest.ValidFrom != nil {
+		if currentTime.After(*circleUpdateRequest.ValidFrom) {
+			err = fmt.Errorf("valid from time must be in the future from now")
+			return nil, err
+		}
+		circle.ValidFrom = circleUpdateRequest.ValidFrom
+	} else {
+		circle.ValidFrom = &currentTime
+	}
+
 	// check if new valid until time is given and is in the future from now on
 	// otherwise check if current valid until time has expired
 	if circleUpdateRequest.ValidUntil != nil {
-		currentTime := time.Now()
 		if currentTime.After(*circleUpdateRequest.ValidUntil) {
 			err = fmt.Errorf("valid until time must be in the future from now")
 			return nil, err
@@ -434,9 +446,21 @@ func (c *circleService) CreateCircle(
 		newCircle.Description = strings.TrimSpace(*circleCreateRequest.Description)
 	}
 
+	currentTime := time.Now()
+
+	// check if new valid from time is given and is in the future from now on
+	if circleCreateRequest.ValidFrom != nil {
+		if currentTime.After(*circleCreateRequest.ValidFrom) {
+			err = fmt.Errorf("valid from time must be in the future from now")
+			return nil, err
+		}
+		newCircle.ValidFrom = circleCreateRequest.ValidFrom
+	} else {
+		newCircle.ValidFrom = &currentTime
+	}
+
 	// check if new valid until time is given and is in the future from now on
 	if circleCreateRequest.ValidUntil != nil {
-		currentTime := time.Now()
 		if currentTime.After(*circleCreateRequest.ValidUntil) {
 			err = fmt.Errorf("valid until time must be in the future from now")
 			return nil, err

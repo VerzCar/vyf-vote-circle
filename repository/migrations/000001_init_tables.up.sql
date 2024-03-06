@@ -32,6 +32,7 @@ create table circles
     private      boolean default false not null,
     active       boolean default true  not null,
     created_from varchar(50)           not null,
+    valid_from   timestamp with time zone,
     valid_until  timestamp with time zone,
     created_at   timestamp with time zone,
     updated_at   timestamp with time zone
