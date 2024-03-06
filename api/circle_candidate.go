@@ -303,7 +303,7 @@ func (c *circleCandidateService) CircleCandidateLeaveCircle(
 	}
 
 	if votes != nil {
-		// remove voting of voters
+		return fmt.Errorf("candidate contain votes")
 	}
 
 	err = c.storage.DeleteCircleCandidate(candidate.ID)
@@ -405,7 +405,6 @@ func (c *circleCandidateService) CircleCandidateAddToCircle(
 	return newCandidate, nil
 }
 
-// TODO: check what to do with already voted candidates
 func (c *circleCandidateService) CircleCandidateRemoveFromCircle(
 	ctx context.Context,
 	circleId int64,
@@ -458,6 +457,16 @@ func (c *circleCandidateService) CircleCandidateRemoveFromCircle(
 		)
 		err = fmt.Errorf("user cannot be removed as candidate from this circle")
 		return nil, err
+	}
+
+	votes, err := c.storage.VotesByCandidateId(circleId, candidate.ID)
+
+	if err != nil && !database.RecordNotFound(err) {
+		return nil, fmt.Errorf("cannot remove as candidate from circle")
+	}
+
+	if votes != nil {
+		return nil, fmt.Errorf("candidate contain votes")
 	}
 
 	circleCandidate := &model.CircleCandidate{

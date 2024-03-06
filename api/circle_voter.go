@@ -29,6 +29,11 @@ type CircleVoterService interface {
 		circleId int64,
 		circleVoterInput *model.CircleVoterRequest,
 	) (*model.CircleVoter, error)
+	CircleVoterRemoveFromCircle(
+		ctx context.Context,
+		circleId int64,
+		circleVoterInput *model.CircleVoterRequest,
+	) (*model.CircleVoter, error)
 }
 
 type CircleVoterRepository interface {
@@ -44,6 +49,10 @@ type CircleVoterRepository interface {
 	IsVoterInCircle(userIdentityId string, circleId int64) (bool, error)
 	CircleById(id int64) (*model.Circle, error)
 	DeleteCircleVoter(voterId int64) error
+	HasVoterVotedForCircle(
+		circleId int64,
+		voterId int64,
+	) (bool, error)
 }
 
 type CircleVoterSubscription interface {
@@ -221,6 +230,15 @@ func (c *circleVoterService) CircleVoterLeaveCircle(
 		return fmt.Errorf("cannot leave as voter from cirlce")
 	}
 
+	hasVoted, err := c.storage.HasVoterVotedForCircle(circleId, voter.ID)
+
+	if err != nil && !database.RecordNotFound(err) {
+		return fmt.Errorf("cannot leave as voter from cirlce")
+	}
+	if err == nil && hasVoted {
+		return fmt.Errorf("voter has voted")
+	}
+
 	err = c.storage.DeleteCircleVoter(voter.ID)
 
 	if err != nil {
@@ -299,6 +317,78 @@ func (c *circleVoterService) CircleVoterAddToCircle(
 	if votersCount > int64(userOption.MaxVoters) {
 		err = fmt.Errorf("circle has more than %d allowed voters", userOption.MaxVoters)
 		return nil, err
+	}
+
+	circleVoter := &model.CircleVoter{
+		Voter:       circleVoterInput.Voter,
+		Circle:      circle,
+		CircleRefer: &circle.ID,
+	}
+
+	newVoter, err := c.storage.CreateNewCircleVoter(circleVoter)
+
+	if err != nil {
+		c.log.Errorf("error adding voter to circle id %d: %s", circleId, err)
+		return nil, fmt.Errorf("cannot add user as voter to circle")
+	}
+
+	voterEvent := CreateVoterChangedEvent(model.EventOperationCreated, newVoter)
+	_ = c.subscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
+
+	return newVoter, nil
+}
+
+func (c *circleVoterService) CircleVoterRemoveFromCircle(
+	ctx context.Context,
+	circleId int64,
+	circleVoterInput *model.CircleVoterRequest,
+) (*model.CircleVoter, error) {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return nil, err
+	}
+
+	circle, err := c.storage.CircleById(circleId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// checks whether user is eligible to add candidate to this circle
+	if circle.CreatedFrom != authClaims.Subject {
+		c.log.Infof(
+			"user is not eligible to add voter to circle: user %s, circle ID %d",
+			authClaims.Subject,
+			circle.ID,
+		)
+		err = fmt.Errorf("user is not eligible to add voter to circle")
+		return nil, err
+	}
+
+	if !circle.Active {
+		c.log.Infof(
+			"tried to add voter for an inactive circle with circle id %d and subject %s",
+			circleId,
+			authClaims.Subject,
+		)
+		return nil, fmt.Errorf("circle inactive")
+	}
+
+	voter, err := c.storage.CircleVoterByCircleId(circleId, authClaims.Subject)
+
+	if err != nil {
+		return nil, fmt.Errorf("cannot remove voter from circle")
+	}
+
+	hasVoted, err := c.storage.HasVoterVotedForCircle(circleId, voter.ID)
+
+	if err != nil && !database.RecordNotFound(err) {
+		return nil, fmt.Errorf("cannot leave as voter from circle")
+	}
+	if err == nil && hasVoted {
+		return nil, fmt.Errorf("voter has voted")
 	}
 
 	circleVoter := &model.CircleVoter{

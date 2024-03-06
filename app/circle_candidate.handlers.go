@@ -303,6 +303,70 @@ func (s *Server) CircleCandidateAddToCircle() gin.HandlerFunc {
 	}
 }
 
+func (s *Server) CircleCandidateRemoveFromCircle() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		errResponse := model.Response{
+			Status: model.ResponseError,
+			Msg:    "cannot add candidate to circle",
+			Data:   nil,
+		}
+
+		circleReq := &model.CircleUriRequest{}
+
+		err := ctx.ShouldBindUri(circleReq)
+
+		if err != nil {
+			s.log.Error(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
+		circleCandidateReq := &model.CircleCandidateRequest{}
+
+		err = ctx.ShouldBindJSON(circleCandidateReq)
+
+		if err != nil {
+			s.log.Error(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
+		if err := s.validate.Struct(circleCandidateReq); err != nil {
+			s.log.Warn(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
+		candidate, err := s.circleCandidateService.CircleCandidateRemoveFromCircle(
+			ctx.Request.Context(),
+			circleReq.CircleID,
+			circleCandidateReq,
+		)
+
+		if err != nil {
+			s.log.Errorf("service error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, errResponse)
+			return
+		}
+
+		candidateRes := &model.CircleCandidateResponse{
+			ID:         candidate.ID,
+			Candidate:  candidate.Candidate,
+			Commitment: candidate.Commitment,
+			CreatedAt:  candidate.CreatedAt,
+			UpdatedAt:  candidate.UpdatedAt,
+		}
+
+		response := model.Response{
+			Status: model.ResponseSuccess,
+			Msg:    "",
+			Data:   candidateRes,
+		}
+
+		ctx.JSON(http.StatusOK, response)
+	}
+}
+
 func (s *Server) CircleCandidateVotedBy() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		errResponse := model.Response{
