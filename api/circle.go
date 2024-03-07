@@ -287,23 +287,23 @@ func (c *circleService) UpdateCircle(
 		}
 	}
 
-	currentTime := time.Now()
+	currentTime := time.Now().Truncate(24 * time.Hour)
 	// check if new valid from time is given and is in the future from now on
 	// otherwise check if current valid from time has expired
 	if circleUpdateRequest.ValidFrom != nil {
-		if currentTime.After(*circleUpdateRequest.ValidFrom) {
+		validFromTime := *circleUpdateRequest.ValidFrom
+		if currentTime.After(validFromTime.Truncate(24 * time.Hour)) {
 			err = fmt.Errorf("valid from time must be in the future from now")
 			return nil, err
 		}
 		circle.ValidFrom = circleUpdateRequest.ValidFrom
-	} else {
-		circle.ValidFrom = nil
 	}
 
 	// check if new valid until time is given and is in the future from now on
 	// otherwise check if current valid until time has expired
 	if circleUpdateRequest.ValidUntil != nil {
-		if currentTime.After(*circleUpdateRequest.ValidUntil) {
+		validUntilTime := *circleUpdateRequest.ValidUntil
+		if currentTime.After(validUntilTime.Truncate(24 * time.Hour)) {
 			err = fmt.Errorf("valid until time must be in the future from now")
 			return nil, err
 		}
