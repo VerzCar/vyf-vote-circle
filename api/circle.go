@@ -297,7 +297,7 @@ func (c *circleService) UpdateCircle(
 		}
 		circle.ValidFrom = circleUpdateRequest.ValidFrom
 	} else {
-		circle.ValidFrom = &currentTime
+		circle.ValidFrom = nil
 	}
 
 	// check if new valid until time is given and is in the future from now on
@@ -308,6 +308,8 @@ func (c *circleService) UpdateCircle(
 			return nil, err
 		}
 		circle.ValidUntil = circleUpdateRequest.ValidUntil
+	} else {
+		circle.ValidUntil = nil
 	}
 
 	if circleUpdateRequest.Name != nil {
