@@ -31,7 +31,7 @@ func (s *storage) CirclesByIds(circleIds []int64) ([]*model.CirclePaginated, err
 	var circles []*model.CirclePaginated
 
 	err := s.db.Model(&model.Circle{}).
-		Select("circles.id, circles.name, circles.description, circles.image_src, circles.active, circles.created_at, circles.updated_at").
+		Select("circles.id, circles.name, circles.description, circles.image_src, circles.active, circles.stage, circles.created_at, circles.updated_at").
 		Where(&model.Circle{Active: true}).
 		Limit(100).
 		Order("updated_at desc").
@@ -75,7 +75,7 @@ func (s *storage) CirclesFiltered(name string) ([]*model.CirclePaginated, error)
 	var circles []*model.CirclePaginated
 
 	err := s.db.Model(&model.Circle{}).
-		Select("circles.id, circles.name, circles.description, circles.image_src, circles.active, circles.created_at, circles.updated_at").
+		Select("circles.id, circles.name, circles.description, circles.image_src, circles.active, circles.stage, circles.created_at, circles.updated_at").
 		Where("name ILIKE ?", fmt.Sprintf("%%%s%%", name)).
 		Where(&model.Circle{Active: true}).
 		Limit(100).
@@ -105,6 +105,7 @@ func (s *storage) CirclesOfInterest(userIdentityId string) ([]*model.CirclePagin
 												  circles.description,
 												  circles.image_src,
 												  circles.active,
+												  circles.stage,
 												  circles.created_at,
 												  circles.updated_at
             FROM circles
@@ -147,6 +148,7 @@ func (s *storage) CirclesOfInterest(userIdentityId string) ([]*model.CirclePagin
 			&circle.Description,
 			&circle.ImageSrc,
 			&circle.Active,
+			&circle.Stage,
 			&circle.CreatedAt,
 			&circle.UpdatedAt,
 		)

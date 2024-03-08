@@ -12,6 +12,8 @@ drop table circle_candidates cascade;
 
 drop table circles cascade;
 
+DROP TYPE circleStage;
+
 DROP TYPE subscriptionPackage;
 
 DROP TYPE placement;

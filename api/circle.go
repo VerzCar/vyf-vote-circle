@@ -287,6 +287,7 @@ func (c *circleService) UpdateCircle(
 		}
 	}
 
+	// TODO: add check for create from time if already voted
 	currentTime := time.Now().Truncate(24 * time.Hour)
 	// check if new valid from time is given and is in the future from now on
 	// otherwise check if current valid from time has expired
@@ -296,7 +297,7 @@ func (c *circleService) UpdateCircle(
 			err = fmt.Errorf("valid from time must be in the future from now")
 			return nil, err
 		}
-		circle.ValidFrom = circleUpdateRequest.ValidFrom
+		circle.ValidFrom = *circleUpdateRequest.ValidFrom
 	}
 
 	// check if new valid until time is given and is in the future from now on
@@ -456,9 +457,9 @@ func (c *circleService) CreateCircle(
 			err = fmt.Errorf("valid from time must be in the future from now")
 			return nil, err
 		}
-		newCircle.ValidFrom = circleCreateRequest.ValidFrom
+		newCircle.ValidFrom = *circleCreateRequest.ValidFrom
 	} else {
-		newCircle.ValidFrom = &currentTime
+		newCircle.ValidFrom = currentTime
 	}
 
 	// check if new valid until time is given and is in the future from now on

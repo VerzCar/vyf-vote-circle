@@ -39,6 +39,7 @@ func (s *Server) Circle() gin.HandlerFunc {
 			ImageSrc:    circle.ImageSrc,
 			Private:     circle.Private,
 			Active:      circle.Active,
+			Stage:       circle.Stage,
 			CreatedFrom: circle.CreatedFrom,
 			ValidFrom:   circle.ValidFrom,
 			ValidUntil:  circle.ValidUntil,
@@ -133,6 +134,7 @@ func (s *Server) Circles() gin.HandlerFunc {
 				ImageSrc:    circle.ImageSrc,
 				Private:     circle.Private,
 				Active:      circle.Active,
+				Stage:       circle.Stage,
 				CreatedFrom: circle.CreatedFrom,
 				ValidFrom:   circle.ValidFrom,
 				ValidUntil:  circle.ValidUntil,
@@ -194,6 +196,7 @@ func (s *Server) CirclesByName() gin.HandlerFunc {
 				Description: circle.Description,
 				ImageSrc:    circle.ImageSrc,
 				Active:      circle.Active,
+				Stage:       circle.Stage,
 			}
 			paginatedCirclesResponse = append(paginatedCirclesResponse, c)
 		}
@@ -276,6 +279,7 @@ func (s *Server) CirclesOfInterest() gin.HandlerFunc {
 				VotersCount:     &circle.VotersCount,
 				CandidatesCount: &circle.CandidatesCount,
 				Active:          circle.Active,
+				Stage:           circle.Stage,
 			}
 			paginatedCirclesResponse = append(paginatedCirclesResponse, c)
 		}
@@ -329,6 +333,7 @@ func (s *Server) CreateCircle() gin.HandlerFunc {
 			ImageSrc:    circle.ImageSrc,
 			Private:     circle.Private,
 			Active:      circle.Active,
+			Stage:       circle.Stage,
 			CreatedFrom: circle.CreatedFrom,
 			ValidFrom:   circle.ValidFrom,
 			ValidUntil:  circle.ValidUntil,
@@ -385,6 +390,7 @@ func (s *Server) UpdateCircle() gin.HandlerFunc {
 			ImageSrc:    circle.ImageSrc,
 			Private:     circle.Private,
 			Active:      circle.Active,
+			Stage:       circle.Stage,
 			CreatedFrom: circle.CreatedFrom,
 			ValidFrom:   circle.ValidFrom,
 			ValidUntil:  circle.ValidUntil,

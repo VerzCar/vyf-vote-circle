@@ -21,18 +21,25 @@ CREATE TYPE subscriptionPackage AS ENUM (
     'L'
     );
 
+CREATE TYPE circleStage AS ENUM (
+    'COLD',
+    'HOT',
+    'CLOSED'
+    );
+
 create table circles
 (
     id           bigserial
         constraint circles_pkey
             primary key,
-    name         varchar(40)           not null,
-    description  varchar(1200)         not null,
-    image_src    text                  not null,
-    private      boolean default false not null,
-    active       boolean default true  not null,
-    created_from varchar(50)           not null,
-    valid_from   timestamp with time zone,
+    name         varchar(40)                             not null,
+    description  varchar(1200)                           not null,
+    image_src    text                                    not null,
+    private      boolean     default false               not null,
+    active       boolean     default true                not null,
+    stage        circleStage default 'COLD'::circleStage not null,
+    created_from varchar(50)                             not null,
+    valid_from   timestamp with time zone                not null,
     valid_until  timestamp with time zone,
     created_at   timestamp with time zone,
     updated_at   timestamp with time zone
