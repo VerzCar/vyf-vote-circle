@@ -149,22 +149,19 @@ func (circle *Circle) BeforeCreate(tx *gorm.DB) error {
 	return updateCircleStage(tx, circle)
 }
 
-func (circle *Circle) BeforeUpdate(tx *gorm.DB) error {
-	return updateCircleStage(tx, circle)
-}
-
 func updateCircleStage(
 	tx *gorm.DB,
 	circle *Circle,
 ) error {
 	currentTime := time.Now().Truncate(24 * time.Hour)
 	validFromTruncatedTime := circle.ValidFrom.Truncate(24 * time.Hour)
-	validUntilTime := *circle.ValidUntil
-	validUntilTruncatedTime := validUntilTime.Truncate(24 * time.Hour)
 
 	// check if current time is between range of circle
 	// if so, set it to hot stage
 	if circle.ValidUntil != nil {
+		validUntilTime := *circle.ValidUntil
+		validUntilTruncatedTime := validUntilTime.Truncate(24 * time.Hour)
+
 		if utils.IsTimeBetween(currentTime, validFromTruncatedTime, validUntilTruncatedTime) {
 			err := tx.Model(circle).Update("stage", CircleStageHot).Error
 
