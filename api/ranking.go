@@ -75,7 +75,7 @@ func (c *rankingService) Rankings(
 		return nil, err
 	}
 
-	if !circle.Active {
+	if !circle.IsEditable() {
 		rankings, err := c.storage.RankingsByCircleId(circleId)
 
 		if err != nil && !database.RecordNotFound(err) {

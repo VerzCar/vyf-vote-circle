@@ -124,10 +124,21 @@ func (e CircleStage) String() string {
 	return string(e)
 }
 
+// validation functions +++++++++++++++++++++++++++
+
+// Determines if the circle is still active and not in stage closed.
+func (circle *Circle) IsEditable() bool {
+	if circle.Active && circle.Stage != CircleStageClosed {
+		return true
+	}
+
+	return false
+}
+
 // db hooks with checks ++++++++++++++++++++++++++++
 
 func (circle *Circle) AfterFind(tx *gorm.DB) error {
-	if !circle.Active || circle.Stage == CircleStageClosed {
+	if !circle.IsEditable() {
 		return nil
 	}
 

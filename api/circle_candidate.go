@@ -160,13 +160,13 @@ func (c *circleCandidateService) CircleCandidateCommitment(
 		return nil, err
 	}
 
-	if !circle.Active {
+	if !circle.IsEditable() {
 		c.log.Infof(
-			"tried to commit as candidate for an inactive circle with circle id %d and subject %s",
+			"tried to commit as candidate for an ineditable circle with circle id %d and subject %s",
 			circleId,
 			authClaims.Subject,
 		)
-		return nil, fmt.Errorf("circle inactive")
+		return nil, fmt.Errorf("circle is not editable")
 	}
 
 	candidate, err := c.storage.CircleCandidateByCircleId(circleId, authClaims.Subject)
@@ -211,13 +211,13 @@ func (c *circleCandidateService) CircleCandidateJoinCircle(
 		return nil, err
 	}
 
-	if !circle.Active {
+	if !circle.IsEditable() {
 		c.log.Infof(
-			"tried to join as candidate for an inactive circle with circle id %d and subject %s",
+			"tried to join as candidate for an ineditable circle with circle id %d and subject %s",
 			circleId,
 			authClaims.Subject,
 		)
-		return nil, fmt.Errorf("circle inactive")
+		return nil, fmt.Errorf("circle is not editable")
 	}
 
 	candidatesCount, err := c.storage.CircleCandidateCountByCircleId(circleId)
@@ -281,13 +281,13 @@ func (c *circleCandidateService) CircleCandidateLeaveCircle(
 		return err
 	}
 
-	if !circle.Active {
+	if !circle.IsEditable() {
 		c.log.Infof(
-			"tried to leave as candidate for an inactive circle with circle id %d and subject %s",
+			"tried to leave as candidate for an ineditable circle with circle id %d and subject %s",
 			circleId,
 			authClaims.Subject,
 		)
-		return fmt.Errorf("circle inactive")
+		return fmt.Errorf("circle is not editable")
 	}
 
 	candidate, err := c.storage.CircleCandidateByCircleId(circleId, authClaims.Subject)
@@ -353,13 +353,13 @@ func (c *circleCandidateService) CircleCandidateAddToCircle(
 		return nil, err
 	}
 
-	if !circle.Active {
+	if !circle.IsEditable() {
 		c.log.Infof(
-			"tried to add candidate for an inactive circle with circle id %d and subject %s",
+			"tried to add candidate for an ineditable circle with circle id %d and subject %s",
 			circleId,
 			authClaims.Subject,
 		)
-		return nil, fmt.Errorf("circle inactive")
+		return nil, fmt.Errorf("circle is not editable")
 	}
 
 	IsCandidateInCircle, err := c.storage.IsCandidateInCircle(circleCandidateInput.Candidate, circleId)
@@ -434,13 +434,13 @@ func (c *circleCandidateService) CircleCandidateRemoveFromCircle(
 		return nil, err
 	}
 
-	if !circle.Active {
+	if !circle.IsEditable() {
 		c.log.Infof(
-			"tried to add candidate for an inactive circle with circle id %d and subject %s",
+			"tried to add candidate for an ineditable circle with circle id %d and subject %s",
 			circleId,
 			authClaims.Subject,
 		)
-		return nil, fmt.Errorf("circle inactive")
+		return nil, fmt.Errorf("circle is not editable")
 	}
 
 	candidate, err := c.storage.CircleCandidateByCircleId(circleId, circleCandidateInput.Candidate)

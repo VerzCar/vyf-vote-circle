@@ -8,6 +8,7 @@ import (
 	"github.com/VerzCar/vyf-vote-circle/app/config"
 	"github.com/VerzCar/vyf-vote-circle/app/database"
 	routerContext "github.com/VerzCar/vyf-vote-circle/app/router/ctx"
+	"github.com/VerzCar/vyf-vote-circle/utils"
 	"strings"
 	"time"
 )
@@ -266,10 +267,10 @@ func (c *circleService) UpdateCircle(
 		return nil, err
 	}
 
-	// if circle is not active anymore, it can't be updated
-	if !circle.Active {
-		c.log.Infof("user try to update inactive circle: user %s, circle ID %d", userId, circle.ID)
-		err = fmt.Errorf("circle is not active")
+	// if circle is not editable anymore, it can't be updated
+	if !circle.IsEditable() {
+		c.log.Infof("user try to update inactive or closed circle: user %s, circle ID %d", userId, circle.ID)
+		err = fmt.Errorf("circle is not editable")
 		return nil, err
 	}
 
@@ -656,7 +657,7 @@ func (c *circleService) createCircleVoterList(
 		voterIdList = append(voterIdList, voter.Voter)
 	}
 
-	voterIdList = removeDuplicateStr(voterIdList)
+	voterIdList = utils.RemoveDuplicateStr(voterIdList)
 
 	var circleVoters []*model.CircleVoter
 	// add the given voters to the circle voters
@@ -682,7 +683,7 @@ func (c *circleService) createCircleCandidateList(
 		candidateIdList = append(candidateIdList, candidate.Candidate)
 	}
 
-	candidateIdList = removeDuplicateStr(candidateIdList)
+	candidateIdList = utils.RemoveDuplicateStr(candidateIdList)
 
 	var circleCandidates []*model.CircleCandidate
 	// add the given voters to the circle voters
@@ -694,16 +695,4 @@ func (c *circleService) createCircleCandidateList(
 	}
 
 	return circleCandidates
-}
-
-func removeDuplicateStr(strSlice []string) []string {
-	allKeys := make(map[string]bool)
-	var list []string
-	for _, item := range strSlice {
-		if _, value := allKeys[item]; !value {
-			allKeys[item] = true
-			list = append(list, item)
-		}
-	}
-	return list
 }

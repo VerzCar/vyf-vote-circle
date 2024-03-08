@@ -146,13 +146,13 @@ func (c *circleVoterService) CircleVoterJoinCircle(
 		return nil, err
 	}
 
-	if !circle.Active {
+	if !circle.IsEditable() {
 		c.log.Infof(
-			"tried to join as voter for an inactive circle with circle id %d and subject %s",
+			"tried to join as voter for an ineditable circle with circle id %d and subject %s",
 			circleId,
 			authClaims.Subject,
 		)
-		return nil, fmt.Errorf("circle inactive")
+		return nil, fmt.Errorf("circle is not editable")
 	}
 
 	votersCount, err := c.storage.CircleVoterCountByCircleId(circleId)
@@ -215,13 +215,13 @@ func (c *circleVoterService) CircleVoterLeaveCircle(
 		return err
 	}
 
-	if !circle.Active {
+	if !circle.IsEditable() {
 		c.log.Infof(
-			"tried to leave as voter for an inactive circle with circle id %d and subject %s",
+			"tried to leave as voter for an ineditable circle with circle id %d and subject %s",
 			circleId,
 			authClaims.Subject,
 		)
-		return fmt.Errorf("circle inactive")
+		return fmt.Errorf("circle is not editable")
 	}
 
 	voter, err := c.storage.CircleVoterByCircleId(circleId, authClaims.Subject)
@@ -286,13 +286,13 @@ func (c *circleVoterService) CircleVoterAddToCircle(
 		return nil, err
 	}
 
-	if !circle.Active {
+	if !circle.IsEditable() {
 		c.log.Infof(
-			"tried to add voter for an inactive circle with circle id %d and subject %s",
+			"tried to add voter for an ineditable circle with circle id %d and subject %s",
 			circleId,
 			authClaims.Subject,
 		)
-		return nil, fmt.Errorf("circle inactive")
+		return nil, fmt.Errorf("circle is not editable")
 	}
 
 	isVoterInCircle, err := c.storage.IsVoterInCircle(circleVoterInput.Voter, circleId)
@@ -367,13 +367,13 @@ func (c *circleVoterService) CircleVoterRemoveFromCircle(
 		return nil, err
 	}
 
-	if !circle.Active {
+	if !circle.IsEditable() {
 		c.log.Infof(
-			"tried to add voter for an inactive circle with circle id %d and subject %s",
+			"tried to add voter for an ineditable circle with circle id %d and subject %s",
 			circleId,
 			authClaims.Subject,
 		)
-		return nil, fmt.Errorf("circle inactive")
+		return nil, fmt.Errorf("circle is not editable")
 	}
 
 	voter, err := c.storage.CircleVoterByCircleId(circleId, authClaims.Subject)

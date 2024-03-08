@@ -151,13 +151,22 @@ func (c *voteService) CreateVote(
 		return false, err
 	}
 
-	if !circle.Active {
+	if !circle.IsEditable() {
 		c.log.Infof(
-			"tried to vote for an inactive circle with circle id %d and subject %s",
+			"tried to vote for an ineditable circle with circle id %d and subject %s",
 			circleId,
 			authClaims.Subject,
 		)
-		return false, fmt.Errorf("circle inactive")
+		return false, fmt.Errorf("circle is not editable")
+	}
+
+	if circle.Stage == model.CircleStageCold {
+		c.log.Infof(
+			"tried to vote for an cold circle with circle id %d and subject %s",
+			circleId,
+			authClaims.Subject,
+		)
+		return false, fmt.Errorf("circle is cold")
 	}
 
 	voter, err := c.storage.CircleVoterByCircleId(circleId, voterId)
