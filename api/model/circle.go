@@ -145,7 +145,7 @@ func (circle *Circle) AfterFind(tx *gorm.DB) error {
 	return updateCircleStage(tx, circle)
 }
 
-func (circle *Circle) BeforeCreate(tx *gorm.DB) error {
+func (circle *Circle) AfterCreate(tx *gorm.DB) error {
 	return updateCircleStage(tx, circle)
 }
 
