@@ -100,6 +100,9 @@ type Storage interface {
 		circleId int64,
 		candidateId int64,
 	) ([]*model.Vote, error)
+	ExistVoteByCircleId(
+		circleId int64,
+	) (bool, error)
 
 	CreateNewUserOption(option *model.UserOption) (*model.UserOption, error)
 	DeleteUserOption(optionId int64) error

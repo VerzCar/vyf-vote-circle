@@ -337,3 +337,26 @@ func (s *storage) VotesByCandidateId(
 
 	return votes, nil
 }
+
+func (s *storage) ExistVoteByCircleId(
+	circleId int64,
+) (bool, error) {
+	var exists bool
+
+	err := s.db.
+		Model(&model.Vote{}).
+		Raw("SELECT EXISTS(SELECT 1 FROM votes WHERE id=?)", circleId).
+		Scan(&exists).
+		Error
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		s.log.Errorf("error reading votes for circle id %d: %s", circleId, err)
+		return false, err
+	case database.RecordNotFound(err):
+		s.log.Infof("votes for circle id %d not found: %s", circleId, err)
+		return false, err
+	}
+
+	return exists, nil
+}

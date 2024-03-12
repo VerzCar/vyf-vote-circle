@@ -70,6 +70,9 @@ type CircleRepository interface {
 	CircleCandidatesOpenCommitments(
 		userIdentityId string,
 	) ([]*model.CircleCandidate, error)
+	ExistVoteByCircleId(
+		circleId int64,
+	) (bool, error)
 }
 
 type CircleUserOptionService interface {
@@ -293,6 +296,15 @@ func (c *circleService) UpdateCircle(
 	// check if new valid from time is given and is in the future from now on
 	// otherwise check if current valid from time has expired
 	if circleUpdateRequest.ValidFrom != nil {
+
+		if circle.Stage == model.CircleStageHot {
+			hasVotes, err := c.storage.ExistVoteByCircleId(circle.ID)
+
+			if hasVotes || err != nil {
+				return nil, fmt.Errorf("circle is in hot stage and cannot be updated in time range")
+			}
+		}
+
 		validFromTime := *circleUpdateRequest.ValidFrom
 		if currentTime.After(validFromTime.Truncate(24 * time.Hour)) {
 			err = fmt.Errorf("valid from time must be in the future from now")
