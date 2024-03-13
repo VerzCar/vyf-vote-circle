@@ -194,7 +194,7 @@ func updateCircleStage(
 
 	// check if current time is after valid from of circle
 	// if so, set it to hot stage
-	if currentTime.After(validFromTruncatedTime) {
+	if currentTime.Equal(validFromTruncatedTime) || currentTime.After(validFromTruncatedTime) {
 		err := tx.Model(circle).Update("stage", CircleStageHot).Error
 
 		if err != nil {

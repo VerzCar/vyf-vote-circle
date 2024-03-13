@@ -291,7 +291,6 @@ func (c *circleService) UpdateCircle(
 		}
 	}
 
-	// TODO: add check for create from time if already voted
 	currentTime := time.Now().Truncate(24 * time.Hour)
 	// check if new valid from time is given and is in the future from now on
 	// otherwise check if current valid from time has expired
