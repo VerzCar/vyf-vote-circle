@@ -302,7 +302,7 @@ func (c *circleCandidateService) CircleCandidateLeaveCircle(
 		return fmt.Errorf("cannot leave as candidate from circle")
 	}
 
-	if votes != nil {
+	if votes != nil && len(votes) > 0 {
 		return fmt.Errorf("candidate contain votes")
 	}
 
@@ -465,7 +465,7 @@ func (c *circleCandidateService) CircleCandidateRemoveFromCircle(
 		return nil, fmt.Errorf("cannot remove as candidate from circle")
 	}
 
-	if votes != nil {
+	if votes != nil && len(votes) > 0 {
 		return nil, fmt.Errorf("candidate contain votes")
 	}
 
