@@ -163,6 +163,10 @@ func updateCircleStage(
 		validUntilTruncatedTime := validUntilTime.Truncate(24 * time.Hour)
 
 		if utils.IsTimeBetween(currentTime, validFromTruncatedTime, validUntilTruncatedTime) {
+			if circle.Stage == CircleStageHot {
+				return nil
+			}
+
 			err := tx.Model(circle).Update("stage", CircleStageHot).Error
 
 			if err != nil {
@@ -183,6 +187,10 @@ func updateCircleStage(
 		}
 
 		if currentTime.Before(validFromTruncatedTime) {
+			if circle.Stage == CircleStageCold {
+				return nil
+			}
+
 			err := tx.Model(circle).Update("stage", CircleStageCold).Error
 
 			if err != nil {
@@ -195,6 +203,10 @@ func updateCircleStage(
 	// check if current time is after valid from of circle
 	// if so, set it to hot stage
 	if currentTime.Equal(validFromTruncatedTime) || currentTime.After(validFromTruncatedTime) {
+		if circle.Stage == CircleStageHot {
+			return nil
+		}
+
 		err := tx.Model(circle).Update("stage", CircleStageHot).Error
 
 		if err != nil {
@@ -204,6 +216,10 @@ func updateCircleStage(
 	}
 
 	if currentTime.Before(validFromTruncatedTime) {
+		if circle.Stage == CircleStageCold {
+			return nil
+		}
+
 		err := tx.Model(circle).Update("stage", CircleStageCold).Error
 
 		if err != nil {
@@ -211,5 +227,6 @@ func updateCircleStage(
 		}
 		return nil
 	}
+
 	return nil
 }
