@@ -27,7 +27,7 @@ func (s *Server) routes() {
 		authorized.POST("/circle-voters/:circleId/join", s.CircleVoterJoinCircle())
 		authorized.DELETE("/circle-voters/:circleId/leave", s.CircleVoterLeaveCircle())
 		authorized.POST("/circle-voters/:circleId/add", s.CircleVoterAddToCircle())
-		authorized.DELETE("/circle-voters/:circleId/remove", s.CircleVoterRemoveFromCircle())
+		authorized.POST("/circle-voters/:circleId/remove", s.CircleVoterRemoveFromCircle())
 
 		// circle candidates
 		authorized.GET("/circle-candidates/:circleId", s.CircleCandidates())
@@ -35,7 +35,7 @@ func (s *Server) routes() {
 		authorized.POST("/circle-candidates/:circleId/join", s.CircleCandidateJoinCircle())
 		authorized.DELETE("/circle-candidates/:circleId/leave", s.CircleCandidateLeaveCircle())
 		authorized.POST("/circle-candidates/:circleId/add", s.CircleCandidateAddToCircle())
-		authorized.DELETE("/circle-candidates/:circleId/remove", s.CircleCandidateRemoveFromCircle())
+		authorized.POST("/circle-candidates/:circleId/remove", s.CircleCandidateRemoveFromCircle())
 		authorized.GET("/circle-candidates/:circleId/voted-by", s.CircleCandidateVotedBy())
 
 		// votes
