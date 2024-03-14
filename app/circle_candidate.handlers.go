@@ -307,7 +307,7 @@ func (s *Server) CircleCandidateRemoveFromCircle() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		errResponse := model.Response{
 			Status: model.ResponseError,
-			Msg:    "cannot add candidate to circle",
+			Msg:    "cannot remove candidate from circle",
 			Data:   nil,
 		}
 
