@@ -376,7 +376,7 @@ func (c *circleVoterService) CircleVoterRemoveFromCircle(
 		return fmt.Errorf("circle is not editable")
 	}
 
-	voter, err := c.storage.CircleVoterByCircleId(circleId, authClaims.Subject)
+	voter, err := c.storage.CircleVoterByCircleId(circleId, circleVoterInput.Voter)
 
 	if err != nil {
 		return fmt.Errorf("cannot remove voter from circle")
