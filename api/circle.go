@@ -180,7 +180,7 @@ func (c *circleService) CirclesOpenCommitments(
 		{
 			return nil, err
 		}
-	case database.RecordNotFound(err):
+	case database.RecordNotFound(err) || len(circleCandidates) <= 0:
 		{
 			return nil, nil
 		}
