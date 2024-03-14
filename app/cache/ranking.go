@@ -155,11 +155,15 @@ func (c *redisCache) setRankingScore(
 		UserIdentityId: candidate.Candidate,
 	}
 
+	expirationDuration := time.Duration(72) * time.Hour
+
 	_, err := c.redis.Pipelined(
 		ctx, func(pipe redis.Pipeliner) error {
 			pipeSetRankingScore(ctx, pipe, key, rankingScore)
+			pipeExpire(ctx, pipe, key, expirationDuration)
 			candidateKey := circleUserCandidateKey(circleId, candidate.Candidate)
 			pipeSetUserCandidate(ctx, pipe, candidateKey, candidate, ranking)
+			pipeExpire(ctx, pipe, candidateKey, expirationDuration)
 			return nil
 		},
 	)
@@ -433,13 +437,13 @@ func pipeRemoveRankingScore(
 
 // Ranking score of the given key and member.
 // Returns 0 if the key or member does not exist
-func pipeRankingScore(
+func pipeExpire(
 	ctx context.Context,
 	pipe redis.Pipeliner,
 	key string,
-	member string,
-) *redis.FloatCmd {
-	return pipe.ZScore(ctx, key, member)
+	expiration time.Duration,
+) {
+	pipe.Expire(ctx, key, expiration)
 }
 
 func pipeSetUserCandidate(
