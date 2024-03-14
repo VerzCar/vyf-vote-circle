@@ -254,7 +254,7 @@ func (s *Server) CircleVoterRemoveFromCircle() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		errResponse := model.Response{
 			Status: model.ResponseError,
-			Msg:    "cannot add voter to circle",
+			Msg:    "cannot remove voter from circle",
 			Data:   nil,
 		}
 
@@ -284,7 +284,7 @@ func (s *Server) CircleVoterRemoveFromCircle() gin.HandlerFunc {
 			return
 		}
 
-		voter, err := s.circleVoterService.CircleVoterRemoveFromCircle(
+		err = s.circleVoterService.CircleVoterRemoveFromCircle(
 			ctx.Request.Context(),
 			circleReq.CircleID,
 			circleVoterReq,
@@ -296,19 +296,10 @@ func (s *Server) CircleVoterRemoveFromCircle() gin.HandlerFunc {
 			return
 		}
 
-		voterRes := &model.CircleVoterResponse{
-			ID:         voter.ID,
-			Voter:      voter.Voter,
-			Commitment: voter.Commitment,
-			VotedFor:   voter.VotedFor,
-			CreatedAt:  voter.CreatedAt,
-			UpdatedAt:  voter.UpdatedAt,
-		}
-
 		response := model.Response{
 			Status: model.ResponseSuccess,
 			Msg:    "",
-			Data:   voterRes,
+			Data:   "",
 		}
 
 		ctx.JSON(http.StatusOK, response)

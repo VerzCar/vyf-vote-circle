@@ -33,7 +33,7 @@ type CircleVoterService interface {
 		ctx context.Context,
 		circleId int64,
 		circleVoterInput *model.CircleVoterRequest,
-	) (*model.CircleVoter, error)
+	) error
 }
 
 type CircleVoterRepository interface {
@@ -342,18 +342,18 @@ func (c *circleVoterService) CircleVoterRemoveFromCircle(
 	ctx context.Context,
 	circleId int64,
 	circleVoterInput *model.CircleVoterRequest,
-) (*model.CircleVoter, error) {
+) error {
 	authClaims, err := routerContext.ContextToAuthClaims(ctx)
 
 	if err != nil {
 		c.log.Errorf("error getting auth claims: %s", err)
-		return nil, err
+		return err
 	}
 
 	circle, err := c.storage.CircleById(circleId)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// checks whether user is eligible to add candidate to this circle
@@ -364,7 +364,7 @@ func (c *circleVoterService) CircleVoterRemoveFromCircle(
 			circle.ID,
 		)
 		err = fmt.Errorf("user is not eligible to add voter to circle")
-		return nil, err
+		return err
 	}
 
 	if !circle.IsEditable() {
@@ -373,39 +373,38 @@ func (c *circleVoterService) CircleVoterRemoveFromCircle(
 			circleId,
 			authClaims.Subject,
 		)
-		return nil, fmt.Errorf("circle is not editable")
+		return fmt.Errorf("circle is not editable")
 	}
 
 	voter, err := c.storage.CircleVoterByCircleId(circleId, authClaims.Subject)
 
 	if err != nil {
-		return nil, fmt.Errorf("cannot remove voter from circle")
+		return fmt.Errorf("cannot remove voter from circle")
 	}
 
 	hasVoted, err := c.storage.HasVoterVotedForCircle(circleId, voter.ID)
 
 	if err != nil && !database.RecordNotFound(err) {
-		return nil, fmt.Errorf("cannot leave as voter from circle")
+		return fmt.Errorf("cannot leave as voter from circle")
 	}
 	if err == nil && hasVoted {
-		return nil, fmt.Errorf("voter has voted")
+		return fmt.Errorf("voter has voted")
 	}
 
-	circleVoter := &model.CircleVoter{
-		Voter:       circleVoterInput.Voter,
-		Circle:      circle,
-		CircleRefer: &circle.ID,
-	}
-
-	newVoter, err := c.storage.CreateNewCircleVoter(circleVoter)
+	err = c.storage.DeleteCircleVoter(voter.ID)
 
 	if err != nil {
-		c.log.Errorf("error adding voter to circle id %d: %s", circleId, err)
-		return nil, fmt.Errorf("cannot add user as voter to circle")
+		c.log.Errorf(
+			"error removing voter %s from circle id %d: %s",
+			authClaims.Subject,
+			circleId,
+			err,
+		)
+		return fmt.Errorf("removing voter from cirlce failed")
 	}
 
-	voterEvent := CreateVoterChangedEvent(model.EventOperationCreated, newVoter)
+	voterEvent := CreateVoterChangedEvent(model.EventOperationDeleted, voter)
 	_ = c.subscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
 
-	return newVoter, nil
+	return nil
 }

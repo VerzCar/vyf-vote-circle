@@ -337,7 +337,7 @@ func (s *Server) CircleCandidateRemoveFromCircle() gin.HandlerFunc {
 			return
 		}
 
-		candidate, err := s.circleCandidateService.CircleCandidateRemoveFromCircle(
+		err = s.circleCandidateService.CircleCandidateRemoveFromCircle(
 			ctx.Request.Context(),
 			circleReq.CircleID,
 			circleCandidateReq,
@@ -349,18 +349,10 @@ func (s *Server) CircleCandidateRemoveFromCircle() gin.HandlerFunc {
 			return
 		}
 
-		candidateRes := &model.CircleCandidateResponse{
-			ID:         candidate.ID,
-			Candidate:  candidate.Candidate,
-			Commitment: candidate.Commitment,
-			CreatedAt:  candidate.CreatedAt,
-			UpdatedAt:  candidate.UpdatedAt,
-		}
-
 		response := model.Response{
 			Status: model.ResponseSuccess,
 			Msg:    "",
-			Data:   candidateRes,
+			Data:   "",
 		}
 
 		ctx.JSON(http.StatusOK, response)
