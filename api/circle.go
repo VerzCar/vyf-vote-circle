@@ -3,10 +3,13 @@ package api
 import (
 	"context"
 	"fmt"
-	"gitlab.vecomentman.com/libs/logger"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api/model"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/config"
-	routerContext "gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/router/ctx"
+	logger "github.com/VerzCar/vyf-lib-logger"
+	"github.com/VerzCar/vyf-vote-circle/api/model"
+	"github.com/VerzCar/vyf-vote-circle/app/config"
+	"github.com/VerzCar/vyf-vote-circle/app/database"
+	routerContext "github.com/VerzCar/vyf-vote-circle/app/router/ctx"
+	"github.com/VerzCar/vyf-vote-circle/utils"
+	"strings"
 	"time"
 )
 
@@ -15,38 +18,87 @@ type CircleService interface {
 		ctx context.Context,
 		circleId int64,
 	) (*model.Circle, error)
+	Circles(
+		ctx context.Context,
+	) ([]*model.Circle, error)
+	CirclesOpenCommitments(
+		ctx context.Context,
+	) ([]*model.CirclePaginated, error)
+	CirclesFiltered(
+		ctx context.Context,
+		name *string,
+	) ([]*model.CirclePaginated, error)
+	CirclesOfInterest(
+		ctx context.Context,
+	) ([]*model.CirclePaginated, error)
 	UpdateCircle(
 		ctx context.Context,
-		circleId int64,
-		circleUpdateInput *model.CircleUpdateInput,
+		circleUpdateRequest *model.CircleUpdateRequest,
 	) (*model.Circle, error)
 	CreateCircle(
 		ctx context.Context,
-		circleCreateInput *model.CircleCreateInput,
+		circleCreateRequest *model.CircleCreateRequest,
 	) (*model.Circle, error)
+	DeleteCircle(
+		ctx context.Context,
+		circleId int64,
+	) error
+	EligibleToBeInCircle(
+		ctx context.Context,
+		circleId int64,
+	) (bool, error)
+	AddToGlobalCircle(
+		ctx context.Context,
+	) error
 }
 
 type CircleRepository interface {
 	CircleById(id int64) (*model.Circle, error)
+	CirclesByIds(circleIds []int64) ([]*model.CirclePaginated, error)
+	Circles(userIdentityId string) ([]*model.Circle, error)
+	CirclesFiltered(name string) ([]*model.CirclePaginated, error)
+	CirclesOfInterest(userIdentityId string) ([]*model.CirclePaginated, error)
 	UpdateCircle(circle *model.Circle) (*model.Circle, error)
 	CreateNewCircle(circle *model.Circle) (*model.Circle, error)
+	CreateNewCircleVoter(voter *model.CircleVoter) (*model.CircleVoter, error)
+	IsVoterInCircle(userIdentityId string, circleId int64) (bool, error)
+	IsCandidateInCircle(
+		userIdentityId string,
+		circleId int64,
+	) (bool, error)
+	CountCirclesOfUser(userIdentityId string) (int64, error)
+	CircleCandidatesOpenCommitments(
+		userIdentityId string,
+	) ([]*model.CircleCandidate, error)
+	ExistVoteByCircleId(
+		circleId int64,
+	) (bool, error)
+}
+
+type CircleUserOptionService interface {
+	UserOption(
+		ctx context.Context,
+	) (*model.UserOptionResponse, error)
 }
 
 type circleService struct {
-	storage CircleRepository
-	config  *config.Config
-	log     logger.Logger
+	storage           CircleRepository
+	userOptionService CircleUserOptionService
+	config            *config.Config
+	log               logger.Logger
 }
 
 func NewCircleService(
 	circleRepo CircleRepository,
+	userOptionService CircleUserOptionService,
 	config *config.Config,
 	log logger.Logger,
 ) CircleService {
 	return &circleService{
-		storage: circleRepo,
-		config:  config,
-		log:     log,
+		storage:           circleRepo,
+		userOptionService: userOptionService,
+		config:            config,
+		log:               log,
 	}
 }
 
@@ -67,30 +119,134 @@ func (c *circleService) Circle(
 		return nil, err
 	}
 
-	if !c.eligibleToBeInCircle(
-		authClaims.Subject,
-		circle,
-	) {
+	eligibleToBeInCircle, err := c.eligibleToBeInCircle(authClaims.Subject, circle)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !eligibleToBeInCircle {
 		c.log.Infof("user is not eligible to be in circle: user %s, circle ID %d", authClaims.Subject, circle.ID)
 		err = fmt.Errorf("user is not eligible to be in circle")
 		return nil, err
 	}
 
-	if circle.Active {
-		if c.hasValidationTimeExpired(circle) {
-			if err := c.inactivateCircle(circle); err != nil {
-				c.log.Warnf("circle has validateValidationTime error: circle ID %d, error %s", circle.ID, err)
-			}
+	return circle, nil
+}
+
+// Circles will determine all the circles the authenticated
+// user has and returns the circles as a list.
+// If the user hasn't any circles the return value will be empty.
+func (c *circleService) Circles(
+	ctx context.Context,
+) ([]*model.Circle, error) {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return nil, err
+	}
+
+	circles, err := c.storage.Circles(authClaims.Subject)
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		{
+			return nil, err
+		}
+	case database.RecordNotFound(err):
+		{
+			return nil, nil
 		}
 	}
 
-	return circle, nil
+	return circles, nil
+}
+
+func (c *circleService) CirclesOpenCommitments(
+	ctx context.Context,
+) ([]*model.CirclePaginated, error) {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return nil, err
+	}
+
+	circleCandidates, err := c.storage.CircleCandidatesOpenCommitments(authClaims.Subject)
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		{
+			return nil, err
+		}
+	case database.RecordNotFound(err) || len(circleCandidates) <= 0:
+		{
+			return nil, nil
+		}
+	}
+
+	var circleIds []int64
+
+	for _, candidate := range circleCandidates {
+		circleIds = append(circleIds, candidate.CircleID)
+	}
+
+	circles, err := c.storage.CirclesByIds(circleIds)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return circles, nil
+}
+
+// CirclesFiltered takes a name parameter and returns a list of circles that
+// match the given name, filtered from the authenticated user's circles. If there
+// are no matching circles, the return value will be empty.
+// Parameters:
+// - ctx: The context.Context object for the request.
+// - name: A pointer to a string representing the name to filter the circles by.
+// Returns:
+// - []*model.CirclePaginated: A list of circles that match the given name.
+// - error: An error if any occurred during the execution.
+func (c *circleService) CirclesFiltered(
+	ctx context.Context,
+	name *string,
+) ([]*model.CirclePaginated, error) {
+	circles, err := c.storage.CirclesFiltered(*name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return circles, nil
+}
+
+// CirclesOfInterest determines all the circles of interest for the authenticated user and returns them as a list.
+// If the user doesn't have any circles of interest, the return value will be empty.
+func (c *circleService) CirclesOfInterest(
+	ctx context.Context,
+) ([]*model.CirclePaginated, error) {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return nil, err
+	}
+
+	circles, err := c.storage.CirclesOfInterest(authClaims.Subject)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return circles, nil
 }
 
 func (c *circleService) UpdateCircle(
 	ctx context.Context,
-	circleId int64,
-	circleUpdateInput *model.CircleUpdateInput,
+	circleUpdateRequest *model.CircleUpdateRequest,
 ) (*model.Circle, error) {
 	authClaims, err := routerContext.ContextToAuthClaims(ctx)
 
@@ -99,7 +255,7 @@ func (c *circleService) UpdateCircle(
 		return nil, err
 	}
 
-	circle, err := c.storage.CircleById(circleId)
+	circle, err := c.storage.CircleById(circleUpdateRequest.ID)
 
 	if err != nil {
 		return nil, err
@@ -114,49 +270,82 @@ func (c *circleService) UpdateCircle(
 		return nil, err
 	}
 
-	// if circle is not active anymore, it can't be updated
-	if !circle.Active {
-		c.log.Infof("user try to update inactive circle: user %s, circle ID %d", userId, circle.ID)
-		err = fmt.Errorf("circle is not active")
+	// if circle is not editable anymore, it can't be updated
+	if !circle.IsEditable() {
+		c.log.Infof("user try to update inactive or closed circle: user %s, circle ID %d", userId, circle.ID)
+		err = fmt.Errorf("circle is not editable")
 		return nil, err
 	}
 
 	// if circle should be deleted, deactivated it and return deactivated circle
-	if circleUpdateInput.Delete != nil {
-		err := c.inactivateCircle(circle)
+	if circleUpdateRequest.Delete != nil {
+		if *circleUpdateRequest.Delete {
+			err := c.inactivateCircle(circle)
 
-		if err != nil {
-			c.log.Warnf("circle has validateValidationTime error: circle ID %d, error %s", circle.ID, err)
-			return nil, err
+			if err != nil {
+				c.log.Warnf("could not deactivate circle, error: circle ID %d, error %s", circle.ID, err)
+				return nil, err
+			}
+
+			return circle, nil
+		}
+	}
+
+	currentTime := time.Now().Truncate(24 * time.Hour)
+	// check if new valid from time is given and is in the future from now on
+	// otherwise check if current valid from time has expired
+	if circleUpdateRequest.ValidFrom != nil {
+
+		if circle.Stage == model.CircleStageHot {
+			hasVotes, err := c.storage.ExistVoteByCircleId(circle.ID)
+
+			if hasVotes || err != nil {
+				return nil, fmt.Errorf("circle is in hot stage and cannot be updated in time range")
+			}
 		}
 
-		return circle, nil
+		validFromTime := *circleUpdateRequest.ValidFrom
+		if currentTime.After(validFromTime.Truncate(24 * time.Hour)) {
+			err = fmt.Errorf("valid from time must be in the future from now")
+			return nil, err
+		}
+		circle.ValidFrom = *circleUpdateRequest.ValidFrom
 	}
 
 	// check if new valid until time is given and is in the future from now on
 	// otherwise check if current valid until time has expired
-	if circleUpdateInput.ValidUntil != nil {
-		currentTime := time.Now()
-		if currentTime.After(*circleUpdateInput.ValidUntil) {
+	if circleUpdateRequest.ValidUntil != nil {
+		validUntilTime := *circleUpdateRequest.ValidUntil
+		if currentTime.After(validUntilTime.Truncate(24 * time.Hour)) {
 			err = fmt.Errorf("valid until time must be in the future from now")
 			return nil, err
 		}
-		circle.ValidUntil = circleUpdateInput.ValidUntil
-	} else if c.hasValidationTimeExpired(circle) {
-		circle.Active = false
+		circle.ValidUntil = circleUpdateRequest.ValidUntil
+	} else {
+		circle.ValidUntil = nil
 	}
 
-	if circleUpdateInput.Name != nil {
-		circle.Name = *circleUpdateInput.Name
+	if circleUpdateRequest.Name != nil {
+		circle.Name = strings.TrimSpace(*circleUpdateRequest.Name)
 	}
 
-	if circleUpdateInput.Private != nil {
-		circle.Private = *circleUpdateInput.Private
+	if circleUpdateRequest.ImageSrc != nil {
+		circle.ImageSrc = *circleUpdateRequest.ImageSrc
 	}
 
-	if circleUpdateInput.Voters != nil {
+	if circleUpdateRequest.Description != nil {
+		circle.Description = strings.TrimSpace(*circleUpdateRequest.Description)
+	}
+
+	// can only update voters if the circle is private
+	if circleUpdateRequest.Voters != nil && circle.Private {
+		if len(circleUpdateRequest.Voters) <= 1 {
+			err = fmt.Errorf("not enough voters")
+			return nil, err
+		}
+
 		var circleVoters []*model.CircleVoter
-		for _, voter := range circleUpdateInput.Voters {
+		for _, voter := range circleUpdateRequest.Voters {
 			circleVoter := &model.CircleVoter{
 				Voter:       voter.Voter,
 				Circle:      circle,
@@ -165,6 +354,25 @@ func (c *circleService) UpdateCircle(
 			circleVoters = append(circleVoters, circleVoter)
 		}
 		circle.Voters = circleVoters
+	}
+
+	// can only update candidates if the circle is private
+	if circleUpdateRequest.Candidates != nil && circle.Private {
+		if len(circleUpdateRequest.Candidates) <= 1 {
+			err = fmt.Errorf("not enough candidates")
+			return nil, err
+		}
+
+		var circleCandidates []*model.CircleCandidate
+		for _, candidate := range circleUpdateRequest.Candidates {
+			circleCandidate := &model.CircleCandidate{
+				Candidate:   candidate.Candidate,
+				Circle:      circle,
+				CircleRefer: &circle.ID,
+			}
+			circleCandidates = append(circleCandidates, circleCandidate)
+		}
+		circle.Candidates = circleCandidates
 	}
 
 	circle, err = c.storage.UpdateCircle(circle)
@@ -178,7 +386,7 @@ func (c *circleService) UpdateCircle(
 
 func (c *circleService) CreateCircle(
 	ctx context.Context,
-	circleCreateInput *model.CircleCreateInput,
+	circleCreateRequest *model.CircleCreateRequest,
 ) (*model.Circle, error) {
 	authClaims, err := routerContext.ContextToAuthClaims(ctx)
 
@@ -187,32 +395,93 @@ func (c *circleService) CreateCircle(
 		return nil, err
 	}
 
-	newCircle := &model.Circle{
-		Name:        circleCreateInput.Name,
-		CreatedFrom: authClaims.Subject,
-	}
+	circlesCount, err := c.storage.CountCirclesOfUser(authClaims.Subject)
 
-	if circleCreateInput.Private != nil {
-		newCircle.Private = *circleCreateInput.Private
-	}
-
-	// check if new valid until time is given and is in the future from now on
-	if circleCreateInput.ValidUntil != nil {
-		currentTime := time.Now()
-		if currentTime.After(*circleCreateInput.ValidUntil) {
-			err = fmt.Errorf("valid until time must be in the future from now")
-			return nil, err
-		}
-		newCircle.ValidUntil = circleCreateInput.ValidUntil
-	}
-
-	if len(circleCreateInput.Voters) <= 0 {
-		err = fmt.Errorf("voters for circle are not given")
+	if err != nil {
 		return nil, err
 	}
 
-	var circleVoters = c.createCircleVoterList(authClaims.Subject, circleCreateInput.Voters)
-	newCircle.Voters = circleVoters
+	userOption, _ := c.userOptionService.UserOption(ctx)
+
+	if circlesCount > int64(userOption.MaxCircles) {
+		err = fmt.Errorf("user has more than %d allowed circles", userOption.MaxCircles)
+		return nil, err
+	}
+
+	newCircle := &model.Circle{
+		Name:        strings.TrimSpace(circleCreateRequest.Name),
+		CreatedFrom: authClaims.Subject,
+	}
+
+	if circleCreateRequest.Private != nil {
+		newCircle.Private = *circleCreateRequest.Private
+	}
+
+	if newCircle.Private && len(circleCreateRequest.Voters) <= 0 {
+		err = fmt.Errorf("circle must contain at least one voter if private")
+		return nil, err
+	}
+
+	if newCircle.Private && len(circleCreateRequest.Voters) > userOption.PrivateOption.MaxVoters {
+		err = fmt.Errorf("circle has more than %d allowed voters", userOption.PrivateOption.MaxVoters)
+		return nil, err
+	}
+
+	if newCircle.Private && len(circleCreateRequest.Candidates) <= 0 {
+		err = fmt.Errorf("circle must contain at least one candidate if private")
+		return nil, err
+	}
+
+	if newCircle.Private && len(circleCreateRequest.Candidates) > userOption.PrivateOption.MaxCandidates {
+		err = fmt.Errorf("circle has more than %d allowed candidates", userOption.PrivateOption.MaxCandidates)
+		return nil, err
+	}
+
+	if len(circleCreateRequest.Voters) > 0 {
+		if !newCircle.Private {
+			err = fmt.Errorf("circle must be private to add voters")
+			return nil, err
+		}
+
+		circleVoters := c.createCircleVoterList(circleCreateRequest.Voters)
+		newCircle.Voters = circleVoters
+	}
+
+	if len(circleCreateRequest.Candidates) > 0 {
+		if !newCircle.Private {
+			err = fmt.Errorf("circle must be private to add candidates")
+			return nil, err
+		}
+
+		circleCandidates := c.createCircleCandidateList(circleCreateRequest.Candidates)
+		newCircle.Candidates = circleCandidates
+	}
+
+	if circleCreateRequest.Description != nil {
+		newCircle.Description = strings.TrimSpace(*circleCreateRequest.Description)
+	}
+
+	currentTime := time.Now()
+
+	// check if new valid from time is given and is in the future from now on
+	if circleCreateRequest.ValidFrom != nil {
+		if currentTime.After(*circleCreateRequest.ValidFrom) {
+			err = fmt.Errorf("valid from time must be in the future from now")
+			return nil, err
+		}
+		newCircle.ValidFrom = *circleCreateRequest.ValidFrom
+	} else {
+		newCircle.ValidFrom = currentTime
+	}
+
+	// check if new valid until time is given and is in the future from now on
+	if circleCreateRequest.ValidUntil != nil {
+		if currentTime.After(*circleCreateRequest.ValidUntil) {
+			err = fmt.Errorf("valid until time must be in the future from now")
+			return nil, err
+		}
+		newCircle.ValidUntil = circleCreateRequest.ValidUntil
+	}
 
 	circle, err := c.storage.CreateNewCircle(newCircle)
 
@@ -223,46 +492,153 @@ func (c *circleService) CreateCircle(
 	return circle, nil
 }
 
-// eligibleToBeInCircle checks whether the user is allowed to be in the circle.
+// DeleteCircle deletes a circle identified by the given circleId.
+// It first validates the user's authentication claims to ensure they have the necessary permissions.
+// If the user is not eligible to delete the circle, it returns an error with an appropriate message.
+// If the circle is not active anymore, it returns an error indicating that the circle is not active.
+// If there are no errors, it updates the circle's active field to false, indicating that it is deleted.
+// It then updates the circle in the storage. If any error occurs during the update, it returns the error.
+// If the update is successful, it returns nil.
+func (c *circleService) DeleteCircle(
+	ctx context.Context,
+	circleId int64,
+) error {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return err
+	}
+
+	userId := authClaims.Subject
+
+	circle, err := c.storage.CircleById(circleId)
+
+	if err != nil {
+		return err
+	}
+
+	// checks whether user is eligible to delete this circle
+	if circle.CreatedFrom != userId {
+		c.log.Infof("user is not eligible to delete circle: user %s, circle ID %d", userId, circle.ID)
+		err = fmt.Errorf("user is not eligible to delete circle")
+		return err
+	}
+
+	// if circle is not active anymore, it can't be updated
+	if !circle.Active {
+		c.log.Infof("user try to delete inactive circle: user %s, circle ID %d", userId, circle.ID)
+		err = fmt.Errorf("circle is not active")
+		return err
+	}
+
+	circle.Active = false
+
+	_, err = c.storage.UpdateCircle(circle)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// EligibleToBeInCircle checks whether the user is allowed to be in the circle.
 // Either, if the user itself has created the circle or if it is one of the voters.
+func (c *circleService) EligibleToBeInCircle(
+	ctx context.Context,
+	circleId int64,
+) (bool, error) {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return false, err
+	}
+
+	userIdentityId := authClaims.Subject
+
+	circle, err := c.storage.CircleById(circleId)
+
+	if err != nil {
+		return false, err
+	}
+
+	return c.eligibleToBeInCircle(userIdentityId, circle)
+}
+
+// AddToGlobalCircle adds the user to the global circle.
+// It checks whether the user exists in the voters list and add it to
+// the global list if not. This has to be done if a new user
+// creates an account and therefore must be inserted in the global list
+// for the first time.
+func (c *circleService) AddToGlobalCircle(
+	ctx context.Context,
+) error {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return err
+	}
+
+	circle, err := c.storage.CircleById(1)
+
+	if err != nil {
+		return err
+	}
+
+	isVoterInCircle, err := c.storage.IsVoterInCircle(authClaims.Subject, circle.ID)
+
+	if err != nil {
+		return err
+	}
+
+	if isVoterInCircle {
+		return nil
+	}
+
+	circleVoter := &model.CircleVoter{
+		Voter:       authClaims.Subject,
+		Circle:      circle,
+		CircleRefer: &circle.ID,
+		Commitment:  model.CommitmentCommitted,
+	}
+	_, err = c.storage.CreateNewCircleVoter(circleVoter)
+
+	if err != nil {
+		c.log.Errorf("error adding voter to global circle: %s", err)
+		return err
+	}
+
+	return nil
+}
+
+// determines, when the circle is private, if the user is eligible to
+// interact with the circle
 func (c *circleService) eligibleToBeInCircle(
 	userIdentityId string,
 	circle *model.Circle,
-) bool {
+) (bool, error) {
+	if !circle.Private {
+		return true, nil
+	}
+
 	if userIdentityId == circle.CreatedFrom {
-		return true
+		return true, nil
 	}
 
-	for _, voter := range circle.Voters {
-		if voter.Voter == userIdentityId {
-			return true
-		}
+	ok, err := c.storage.IsVoterInCircle(userIdentityId, circle.ID)
+
+	if err != nil && !database.RecordNotFound(err) {
+		return false, err
 	}
 
-	return false
-}
-
-// hasValidationTimeExpired checks if the validationUntil time has expired.
-// If an validUntil time is set, it will be compared to the current time
-// and validated if it has expired.
-// Returns false if either no validationUntil time is set
-// or the validation time has not expired, otherwise true.
-func (c *circleService) hasValidationTimeExpired(
-	circle *model.Circle,
-) bool {
-
-	if circle.ValidUntil == nil {
-		return false
+	if ok {
+		return true, nil
 	}
 
-	currentTime := time.Now()
-	validUntilTime := *circle.ValidUntil
-
-	if currentTime.After(validUntilTime) {
-		return true
-	}
-
-	return false
+	return c.storage.IsCandidateInCircle(userIdentityId, circle.ID)
 }
 
 // inactivateCircle of the given circle and updates it in the database to an
@@ -280,21 +656,19 @@ func (c *circleService) inactivateCircle(
 	return nil
 }
 
-// createCircleVoterList based on the given createdFrom and the
+// based on the
 // circleVoterInputs. It removes all the duplicates from the
-// circleVoterInputs and add the createdFrom id to the list.
+// circleVoterInputs list.
 func (c *circleService) createCircleVoterList(
-	createdFrom string,
-	circleVoterInputs []*model.CircleVoterInput,
+	circleVoterInputs []*model.CircleVoterRequest,
 ) []*model.CircleVoter {
 	var voterIdList []string
 
-	voterIdList = append(voterIdList, createdFrom)
 	for _, voter := range circleVoterInputs {
 		voterIdList = append(voterIdList, voter.Voter)
 	}
 
-	voterIdList = removeDuplicateStr(voterIdList)
+	voterIdList = utils.RemoveDuplicateStr(voterIdList)
 
 	var circleVoters []*model.CircleVoter
 	// add the given voters to the circle voters
@@ -308,14 +682,28 @@ func (c *circleService) createCircleVoterList(
 	return circleVoters
 }
 
-func removeDuplicateStr(strSlice []string) []string {
-	allKeys := make(map[string]bool)
-	var list []string
-	for _, item := range strSlice {
-		if _, value := allKeys[item]; !value {
-			allKeys[item] = true
-			list = append(list, item)
-		}
+// based on the
+// circleCandidatesInputs. It removes all the duplicates from the
+// circleCandidatesInputs list.
+func (c *circleService) createCircleCandidateList(
+	circleCandidatesInputs []*model.CircleCandidateRequest,
+) []*model.CircleCandidate {
+	var candidateIdList []string
+
+	for _, candidate := range circleCandidatesInputs {
+		candidateIdList = append(candidateIdList, candidate.Candidate)
 	}
-	return list
+
+	candidateIdList = utils.RemoveDuplicateStr(candidateIdList)
+
+	var circleCandidates []*model.CircleCandidate
+	// add the given voters to the circle voters
+	for _, candidate := range candidateIdList {
+		circleCandidate := &model.CircleCandidate{
+			Candidate: candidate,
+		}
+		circleCandidates = append(circleCandidates, circleCandidate)
+	}
+
+	return circleCandidates
 }

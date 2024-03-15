@@ -2,16 +2,18 @@ package main
 
 import (
 	"fmt"
+	"github.com/VerzCar/vyf-lib-awsx"
+	logger "github.com/VerzCar/vyf-lib-logger"
+	"github.com/VerzCar/vyf-vote-circle/api"
+	"github.com/VerzCar/vyf-vote-circle/app"
+	"github.com/VerzCar/vyf-vote-circle/app/cache"
+	"github.com/VerzCar/vyf-vote-circle/app/config"
+	"github.com/VerzCar/vyf-vote-circle/app/database"
+	"github.com/VerzCar/vyf-vote-circle/app/pubsub"
+	"github.com/VerzCar/vyf-vote-circle/app/router"
+	"github.com/VerzCar/vyf-vote-circle/repository"
+	"github.com/VerzCar/vyf-vote-circle/utils"
 	"github.com/go-playground/validator/v10"
-	"gitlab.vecomentman.com/libs/awsx"
-	"gitlab.vecomentman.com/libs/logger"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/api"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/config"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/database"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/app/router"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/repository"
-	"gitlab.vecomentman.com/vote-your-face/service/vote_circle/utils"
 	"os"
 )
 
@@ -44,6 +46,9 @@ func run() error {
 		return err
 	}
 
+	redisCache := cache.Connect(log, envConfig)
+	redis := cache.NewRedisCache(redisCache, envConfig, log)
+
 	// initialize auth service
 	authService, err := awsx.NewAuthService(
 		awsx.AppClientId(envConfig.Aws.Auth.ClientId),
@@ -56,21 +61,68 @@ func run() error {
 		return err
 	}
 
+	// initialize aws services
+	s3Service, err := awsx.NewS3Service(
+		awsx.AccessKeyID(envConfig.Aws.S3.AccessKeyId),
+		awsx.AccessKeySecret(envConfig.Aws.S3.AccessKeySecret),
+		awsx.Region(envConfig.Aws.S3.Region),
+		awsx.BucketName(envConfig.Aws.S3.BucketName),
+		awsx.DefaultBaseURL(envConfig.Aws.S3.DefaultBaseURL),
+		awsx.UploadTimeout(envConfig.Aws.S3.UploadTimeout),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	// initialize pub sub service
+	pubSubService := pubsub.Connect(log, envConfig)
+
 	// initialize api services
-	circleService := api.NewCircleService(storage, envConfig, log)
+	userOptionService := api.NewUserOptionService(storage, envConfig, log)
+	circleService := api.NewCircleService(storage, userOptionService, envConfig, log)
+	circleUploadService := api.NewCircleUploadService(circleService, s3Service, envConfig, log)
+	rankingService := api.NewRankingService(storage, redis, envConfig, log)
+	rankingSubService := api.NewRankingSubscriptionService(pubSubService, log)
+	circleVoterSubService := api.NewCircleVoterSubscriptionService(pubSubService, log)
+	circleCandidateSubService := api.NewCircleCandidateSubscriptionService(pubSubService, log)
+	voteService := api.NewVoteService(
+		storage,
+		redis,
+		rankingSubService,
+		circleVoterSubService,
+		circleCandidateSubService,
+		envConfig,
+		log,
+	)
+	circleVoterService := api.NewCircleVoterService(storage, circleVoterSubService, userOptionService, envConfig, log)
+	circleCandidateService := api.NewCircleCandidateService(
+		storage,
+		circleCandidateSubService,
+		userOptionService,
+		envConfig,
+		log,
+	)
+	tokenService := api.NewTokenService(pubSubService, envConfig, log)
 
 	validate = validator.New()
 
-	resolver := app.NewResolver(
+	r := router.Setup(envConfig.Environment)
+	server := app.NewServer(
+		r,
 		authService,
 		circleService,
+		circleUploadService,
+		rankingService,
+		voteService,
+		circleVoterService,
+		circleCandidateService,
+		userOptionService,
+		tokenService,
 		validate,
 		envConfig,
 		log,
 	)
-
-	r := router.Setup(envConfig.Environment)
-	server := app.NewServer(r, resolver)
 
 	err = server.Run()
 

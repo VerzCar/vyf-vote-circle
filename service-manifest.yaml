@@ -20,7 +20,7 @@ spec:
         app: vote-circle-service
     spec:
       containers:
-        - name: service-user
+        - name: vote-circle-service
           image: registry.digitalocean.com/vyf/vote-your-face/service-vote_circle:latest
           ports:
             - containerPort: 8080

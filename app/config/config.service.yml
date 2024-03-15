@@ -1,3 +1,13 @@
+# web service
+port: 8080
+circle:
+  maxAmountPerUser: 3
+  maxVoters: 50
+  maxCandidates: 20
+  private:
+    maxVoters: 15
+    maxCandidates: 5
+
 # hosts
 hosts:
   vec: http://localhost:4200/
@@ -11,6 +21,13 @@ aws:
     userPoolId: poolId
     awsDefaultRegion: eu-central-1
     clientSecret: secret
+  s3:
+    accessKeyId: keyId
+    accessKeySecret: secret
+    region: eu-central-1
+    bucketName: bucket
+    uploadTimeout: 100
+    defaultBaseURL: url
 
 # Database
 db:
@@ -25,6 +42,20 @@ db:
     name: tname
     user: user
     password: pwd
+
+# Redis server
+redis:
+  host: public-redis-1
+  port: 6379
+  username: default
+  db: 1
+  timeout: 60
+  password: pwd
+
+# ably service
+ably:
+  apikey: key
+  clientId: vote-circle-service
 
 # Security
 security:

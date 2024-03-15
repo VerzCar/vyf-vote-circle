@@ -1,30 +1,31 @@
 stages:
-  #  - test
-  - build
-  - deploy
+   - test
+#  - build
+#  - deploy
 
-#test-source:
-#  image: golang:1.18
-#  stage: test
-#  variables:
-#    POSTGRES_HOST: "db"
-#    POSTGRES_PORT: "5432"
-#    POSTGRES_NAME: "testdb"
-#    POSTGRES_USER: "testdb"
-#    POSTGRES_PASSWORD: "testdb"
-#  services:
-#    - name: postgres:13
-#      alias: db
-#  script:
-#    - |
-#      git config --global \
-#      url."https://vecLibsToken:oac9pW1xsTMYbxK4DeYK@gitlab.vecomentman.com/".insteadOf "https://gitlab.vecomentman.com/" \
-#      && go list -m gitlab.vecomentman.com/libs/email
-#    - go mod download
-#    # copy secret file for dev into container
-#    - cp $SECRETS_USER_SVC_DEV $(pwd)/app/config/secret.service.yml
-#    - go test -cover -p 1 ./...
-#
+test-source:
+  image: golang:1.19
+  stage: test
+  variables:
+    POSTGRES_HOST: "db"
+    POSTGRES_PORT: "5432"
+    POSTGRES_NAME: "testdb"
+    POSTGRES_USER: "testdb"
+    POSTGRES_PASSWORD: "testdb"
+  services:
+    - name: postgres:13
+      alias: db
+  script:
+    - |
+      git config --global \
+      url."https://vecLibsToken:oac9pW1xsTMYbxK4DeYK@gitlab.vecomentman.com/".insteadOf "https://gitlab.vecomentman.com/" && \
+      go list -m gitlab.vecomentman.com/libs/logger && \
+      go list -m gitlab.vecomentman.com/libs/awsx
+    - go mod download
+    # copy secret file for dev into container
+    - cp $SECRETS_SVC_DEV $(pwd)/app/config/secret.service.yml
+    - go test -cover -p 1 ./...
+
 #sonarqube-check:
 #  image:
 #    name: sonarsource/sonar-scanner-cli:latest
@@ -43,41 +44,39 @@ stages:
 #      -Dsonar.qualitygate.wait=true
 #  allow_failure: false
 
-
-build-image-push:
-  stage: build
-  tags:
-    - shell
-  before_script:
-    - docker info
-    - mkdir -p $HOME/.docker
-    - echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
-  # Default branch leaves tag empty (= latest tag)
-  # All other branches are tagged with the escaped branch name (commit ref slug)
-  script:
-    - |
-      if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
-        tag=""
-        echo "Running on default branch '$CI_DEFAULT_BRANCH': tag = 'latest'"
-        cp $SECRETS_SVC_DEV $(pwd)/app/config/secret.service.yml
-      else
-        tag=":$CI_COMMIT_REF_SLUG"
-        echo "Running on branch '$CI_COMMIT_BRANCH': tag = $tag"
-        cp $SECRETS_SVC $(pwd)/app/config/secret.service.yml
-      fi
-    - docker build --pull -t "$DO_DOCKER_REGISTRY/$CI_PROJECT_NAMESPACE-$CI_PROJECT_NAME${tag}" -f service.dockerfile .
-    - docker push "$DO_DOCKER_REGISTRY/$CI_PROJECT_NAMESPACE-$CI_PROJECT_NAME${tag}"
-
-# deploy stage
-deploy:
-  stage: build
-  image:
-    name: bitnami/kubectl:latest
-    entrypoint: [ '' ]
-  script:
-    - kubectl config get-contexts
-    - kubectl config use-context vote-your-face/service/vote_circle:vyf-k8s-dev
-    - kubectl get pods
-    - kubectl apply -f service-manifest.yaml
-    - kubectl rollout status deployment/vote-circle-service
-
+#build-image-push:
+#  stage: build
+#  tags:
+#    - shell
+#  before_script:
+#    - docker info
+#    - mkdir -p $HOME/.docker
+#    - echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
+#  # Default branch leaves tag empty (= latest tag)
+#  # All other branches are tagged with the escaped branch name (commit ref slug)
+#  script:
+#    - |
+#      if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
+#        tag=""
+#        echo "Running on default branch '$CI_DEFAULT_BRANCH': tag = 'latest'"
+#        cp $SECRETS_SVC_DEV $(pwd)/app/config/secret.service.yml
+#      else
+#        tag=":$CI_COMMIT_REF_SLUG"
+#        echo "Running on branch '$CI_COMMIT_BRANCH': tag = $tag"
+#        cp $SECRETS_SVC $(pwd)/app/config/secret.service.yml
+#      fi
+#    - docker build --pull -t "$DO_DOCKER_REGISTRY/$CI_PROJECT_NAMESPACE-$CI_PROJECT_NAME${tag}" -f service.dockerfile .
+#    - docker push "$DO_DOCKER_REGISTRY/$CI_PROJECT_NAMESPACE-$CI_PROJECT_NAME${tag}"
+#
+## deploy stage
+#deploy:
+#  stage: build
+#  image:
+#    name: bitnami/kubectl:latest
+#    entrypoint: [ '' ]
+#  script:
+#    - kubectl config get-contexts
+#    - kubectl config use-context vote-your-face/service/vote_circle:vote-circle-k8s-dev
+#    - kubectl get pods
+#    - kubectl apply -f service-manifest.yaml
+#    - kubectl rollout status deployment/vote-circle-service

@@ -1,2 +1,6 @@
+BEGIN;
+
 DELETE
 FROM circles;
+
+COMMIT;
