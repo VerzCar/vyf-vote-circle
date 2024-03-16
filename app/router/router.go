@@ -25,7 +25,6 @@ func addMiddleware(r *gin.Engine) {
 	corsOptions := cors.Options{
 		AllowedOrigins: []string{
 			"https://vyf-web-app-c3f1d65ba31f.herokuapp.com",
-			"https://vyf-web-app-c3f1d65ba31f.herokuapp.com/",
 		},
 		AllowedMethods: []string{
 			http.MethodHead,
@@ -35,7 +34,21 @@ func addMiddleware(r *gin.Engine) {
 			http.MethodPatch,
 			http.MethodDelete,
 		},
-		AllowedHeaders:   []string{"Origin"},
+		AllowedHeaders: []string{
+			"Origin",
+			"Content-Length",
+			"Content-Type",
+			"Accept-Encoding",
+			"X-Requested-With",
+			"Content-Type",
+			"Accept",
+			"x-client-key",
+			"x-client-token",
+			"x-client-secret",
+			"X-CSRF-Token",
+			"Cache-Control",
+			"Authorization",
+		},
 		ExposedHeaders:   []string{"Content-Length"},
 		MaxAge:           10800, // 3 hours
 		AllowCredentials: true,

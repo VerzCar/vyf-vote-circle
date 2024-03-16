@@ -7,7 +7,7 @@ func (s *Server) routes() {
 	v1 := router.Group("/v1/api/vote-circle")
 
 	// Authorization group
-	authorized := v1.Group("/")
+	authorized := v1.Group("")
 	authorized.Use(s.authGuard(s.authService))
 	{
 		// circle
