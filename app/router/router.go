@@ -21,5 +21,16 @@ func Setup(environment string) *gin.Engine {
 
 // AddMiddleware adds the available middlewares to the router
 func addMiddleware(r *gin.Engine) {
-	r.Use(cors.Default())
+	corsOptions := cors.Options{
+		AllowedOrigins: []string{"https://vyf-web-app-c3f1d65ba31f.herokuapp.com"},
+		AllowOriginFunc: func(origin string) bool {
+			return origin == "https://vyf-web-app-c3f1d65ba31f.herokuapp.com"
+		},
+		AllowedMethods:   []string{"GET", "POST", "OPTION", "DELETE", "PUT", "PATCH"},
+		AllowedHeaders:   []string{"Origin"},
+		ExposedHeaders:   []string{"Content-Length"},
+		MaxAge:           10800, // 3 hours
+		AllowCredentials: true,
+	}
+	r.Use(cors.New(corsOptions))
 }
