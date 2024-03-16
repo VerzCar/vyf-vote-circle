@@ -193,6 +193,8 @@ func (c *Config) checkEnvironment() {
 
 		c.Port = os.Getenv("PORT")
 
+		c.Security.Cors.Origins = strings.Split(os.Getenv("SECURITY_CORS_ORIGINS"), ",")
+
 		c.Circle.MaxAmountPerUser, _ = strconv.ParseInt(os.Getenv("CIRCLE_MAX_AMOUNT_PER_USER"), 10, 64)
 		c.Circle.MaxVoters, _ = strconv.Atoi(os.Getenv("CIRCLE_MAX_VOTERS"))
 		c.Circle.MaxCandidates, _ = strconv.Atoi(os.Getenv("CIRCLE_MAX_CANDIDATES"))

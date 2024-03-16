@@ -107,7 +107,7 @@ func run() error {
 
 	validate = validator.New()
 
-	r := router.Setup(envConfig.Environment)
+	r := router.Setup(envConfig)
 	server := app.NewServer(
 		r,
 		authService,

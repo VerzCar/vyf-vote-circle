@@ -8,24 +8,22 @@ import (
 )
 
 // Setup the router
-func Setup(environment string) *gin.Engine {
-	if environment == config.EnvironmentProd {
+func Setup(envConfig *config.Config) *gin.Engine {
+	if envConfig.Environment == config.EnvironmentProd {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	gin.ForceConsoleColor()
 	router := gin.Default()
 
-	addMiddleware(router)
+	addMiddleware(router, envConfig)
 
 	return router
 }
 
 // AddMiddleware adds the available middlewares to the router
-func addMiddleware(r *gin.Engine) {
+func addMiddleware(r *gin.Engine, envConfig *config.Config) {
 	corsOptions := cors.Options{
-		AllowedOrigins: []string{
-			"https://vyf-web-app-c3f1d65ba31f.herokuapp.com",
-		},
+		AllowedOrigins: envConfig.Security.Cors.Origins,
 		AllowedMethods: []string{
 			http.MethodHead,
 			http.MethodGet,
