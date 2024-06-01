@@ -163,7 +163,7 @@ func (c *circleVoterService) CircleVoterJoinCircle(
 
 	userOption, _ := c.userOptionService.UserOption(ctx)
 
-	if votersCount > int64(userOption.MaxVoters) {
+	if votersCount >= int64(userOption.MaxVoters) {
 		err = fmt.Errorf("circle has more than %d allowed voters", userOption.MaxVoters)
 		return nil, err
 	}
@@ -314,7 +314,7 @@ func (c *circleVoterService) CircleVoterAddToCircle(
 
 	userOption, _ := c.userOptionService.UserOption(ctx)
 
-	if votersCount > int64(userOption.MaxVoters) {
+	if votersCount >= int64(userOption.MaxVoters) {
 		err = fmt.Errorf("circle has more than %d allowed voters", userOption.MaxVoters)
 		return nil, err
 	}
