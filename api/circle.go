@@ -33,6 +33,7 @@ type CircleService interface {
 	) ([]*model.CirclePaginated, error)
 	UpdateCircle(
 		ctx context.Context,
+		circleId int64,
 		circleUpdateRequest *model.CircleUpdateRequest,
 	) (*model.Circle, error)
 	CreateCircle(
@@ -246,6 +247,7 @@ func (c *circleService) CirclesOfInterest(
 
 func (c *circleService) UpdateCircle(
 	ctx context.Context,
+	circleId int64,
 	circleUpdateRequest *model.CircleUpdateRequest,
 ) (*model.Circle, error) {
 	authClaims, err := routerContext.ContextToAuthClaims(ctx)
@@ -255,7 +257,7 @@ func (c *circleService) UpdateCircle(
 		return nil, err
 	}
 
-	circle, err := c.storage.CircleById(circleUpdateRequest.ID)
+	circle, err := c.storage.CircleById(circleId)
 
 	if err != nil {
 		return nil, err
@@ -275,20 +277,6 @@ func (c *circleService) UpdateCircle(
 		c.log.Infof("user try to update inactive or closed circle: user %s, circle ID %d", userId, circle.ID)
 		err = fmt.Errorf("circle is not editable")
 		return nil, err
-	}
-
-	// if circle should be deleted, deactivated it and return deactivated circle
-	if circleUpdateRequest.Delete != nil {
-		if *circleUpdateRequest.Delete {
-			err := c.inactivateCircle(circle)
-
-			if err != nil {
-				c.log.Warnf("could not deactivate circle, error: circle ID %d, error %s", circle.ID, err)
-				return nil, err
-			}
-
-			return circle, nil
-		}
 	}
 
 	currentTime := time.Now().Truncate(24 * time.Hour)
@@ -335,44 +323,6 @@ func (c *circleService) UpdateCircle(
 
 	if circleUpdateRequest.Description != nil {
 		circle.Description = strings.TrimSpace(*circleUpdateRequest.Description)
-	}
-
-	// can only update voters if the circle is private
-	if circleUpdateRequest.Voters != nil && circle.Private {
-		if len(circleUpdateRequest.Voters) <= 1 {
-			err = fmt.Errorf("not enough voters")
-			return nil, err
-		}
-
-		var circleVoters []*model.CircleVoter
-		for _, voter := range circleUpdateRequest.Voters {
-			circleVoter := &model.CircleVoter{
-				Voter:       voter.Voter,
-				Circle:      circle,
-				CircleRefer: &circle.ID,
-			}
-			circleVoters = append(circleVoters, circleVoter)
-		}
-		circle.Voters = circleVoters
-	}
-
-	// can only update candidates if the circle is private
-	if circleUpdateRequest.Candidates != nil && circle.Private {
-		if len(circleUpdateRequest.Candidates) <= 1 {
-			err = fmt.Errorf("not enough candidates")
-			return nil, err
-		}
-
-		var circleCandidates []*model.CircleCandidate
-		for _, candidate := range circleUpdateRequest.Candidates {
-			circleCandidate := &model.CircleCandidate{
-				Candidate:   candidate.Candidate,
-				Circle:      circle,
-				CircleRefer: &circle.ID,
-			}
-			circleCandidates = append(circleCandidates, circleCandidate)
-		}
-		circle.Candidates = circleCandidates
 	}
 
 	circle, err = c.storage.UpdateCircle(circle)
@@ -532,12 +482,11 @@ func (c *circleService) DeleteCircle(
 		return err
 	}
 
-	circle.Active = false
-
-	_, err = c.storage.UpdateCircle(circle)
+	err = c.inactivateCircle(circle)
 
 	if err != nil {
-		return err
+		c.log.Warnf("could not deactivate circle, error: circle ID %d, error %s", circle.ID, err)
+		return fmt.Errorf("could not delete circle")
 	}
 
 	return nil

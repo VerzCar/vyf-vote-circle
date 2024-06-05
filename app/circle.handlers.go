@@ -359,9 +359,19 @@ func (s *Server) UpdateCircle() gin.HandlerFunc {
 			Data:   nil,
 		}
 
+		circleReq := &model.CircleUriRequest{}
+
+		err := ctx.ShouldBindUri(circleReq)
+
+		if err != nil {
+			s.log.Error(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
 		circleUpdateReq := &model.CircleUpdateRequest{}
 
-		err := ctx.ShouldBindJSON(circleUpdateReq)
+		err = ctx.ShouldBindJSON(circleUpdateReq)
 
 		if err != nil {
 			s.log.Error(err)
@@ -375,7 +385,7 @@ func (s *Server) UpdateCircle() gin.HandlerFunc {
 			return
 		}
 
-		circle, err := s.circleService.UpdateCircle(ctx.Request.Context(), circleUpdateReq)
+		circle, err := s.circleService.UpdateCircle(ctx.Request.Context(), circleReq.CircleID, circleUpdateReq)
 
 		if err != nil {
 			s.log.Errorf("service error: %v", err)

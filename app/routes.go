@@ -17,7 +17,7 @@ func (s *Server) routes() {
 		authorized.GET("/circles/of-interest", s.CirclesOfInterest())
 		authorized.GET("/circles/:name", s.CirclesByName())
 		authorized.POST("/circle", s.CreateCircle())
-		authorized.PUT("/circle", s.UpdateCircle())
+		authorized.PUT("/circle/:circleId", s.UpdateCircle())
 		authorized.DELETE("/circle/:circleId", s.DeleteCircle())
 		authorized.PUT("/circle/to-global", s.AddToGlobalCircle())
 		authorized.GET("/circles/open-commitments", s.CirclesOpenCommitments())
