@@ -3,7 +3,6 @@ module github.com/VerzCar/vyf-vote-circle
 go 1.22
 
 require (
-	github.com/docker/docker v24.0.9+incompatible // indirect
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-playground/validator/v10 v10.22.0
 	github.com/golang-migrate/migrate/v4 v4.17.1
@@ -43,7 +42,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
-	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
@@ -57,7 +55,7 @@ require (
 )
 
 require (
-	github.com/VerzCar/vyf-lib-awsx v1.3.7
+	github.com/VerzCar/vyf-lib-awsx v1.3.8
 	github.com/VerzCar/vyf-lib-logger v1.1.0
 	github.com/ably/ably-go v1.2.17
 	github.com/go-redis/redis/v8 v8.11.5
@@ -81,8 +79,6 @@ require (
 	github.com/bytedance/sonic v1.11.9 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
-	github.com/chenzhuoyu/iasm v0.9.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
@@ -107,6 +103,5 @@ require (
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/tools v0.22.0 // indirect
 	nhooyr.io/websocket v1.8.10 // indirect
 )
