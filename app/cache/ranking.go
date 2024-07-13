@@ -87,7 +87,7 @@ func (c *redisCache) RankingList(
 	fromIndex := int64(0)
 
 	if fromRanking != nil {
-		fromIndex = fromRanking.IndexedOrder
+		fromIndex = fromRanking.IndexedOrder + 1
 	}
 
 	rankingScores, err := c.rankingScores(ctx, key, fromIndex)
