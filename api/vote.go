@@ -73,7 +73,7 @@ type VoteCache interface {
 	RankingList(
 		ctx context.Context,
 		circleId int64,
-		fromIndex int64,
+		fromRanking *model.RankingResponse,
 	) ([]*model.RankingResponse, error)
 }
 
@@ -333,9 +333,7 @@ func (c *voteService) updateChangedRankings(
 	circleId int64,
 	updatedRanking *model.RankingResponse,
 ) error {
-	fromIndex := updatedRanking.IndexedOrder + 1
-
-	rankings, err := c.cache.RankingList(ctx, circleId, fromIndex)
+	rankings, err := c.cache.RankingList(ctx, circleId, updatedRanking)
 
 	if err != nil {
 		return err

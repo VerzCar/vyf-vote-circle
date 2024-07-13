@@ -27,7 +27,7 @@ type RankingCache interface {
 	RankingList(
 		ctx context.Context,
 		circleId int64,
-		fromIndex int64,
+		fromRanking *model.RankingResponse,
 	) ([]*model.RankingResponse, error)
 	ExistsRankingListForCircle(
 		ctx context.Context,
@@ -109,7 +109,7 @@ func (c *rankingService) Rankings(
 		}
 	}
 
-	rankings, err := c.cache.RankingList(ctx, circleId, 0)
+	rankings, err := c.cache.RankingList(ctx, circleId, nil)
 
 	if err != nil {
 		return nil, err

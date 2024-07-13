@@ -80,9 +80,15 @@ func (c *redisCache) RemoveRanking(
 func (c *redisCache) RankingList(
 	ctx context.Context,
 	circleId int64,
-	fromIndex int64,
+	fromRanking *model.RankingResponse,
 ) ([]*model.RankingResponse, error) {
 	key := circleRankingKey(circleId)
+
+	fromIndex := int64(0)
+
+	if fromRanking != nil {
+		fromIndex = fromRanking.IndexedOrder
+	}
 
 	rankingScores, err := c.rankingScores(ctx, key, fromIndex)
 
@@ -95,7 +101,7 @@ func (c *redisCache) RankingList(
 		return nil, err
 	}
 
-	rankingList, err := c.rankingList(ctx, circleId, rankingScores, fromIndex)
+	rankingList, err := c.rankingList(ctx, circleId, rankingScores, fromRanking)
 
 	if err != nil {
 		return nil, err
@@ -185,7 +191,7 @@ func (c *redisCache) rankingList(
 	ctx context.Context,
 	circleId int64,
 	rankingScores []*model.RankingScore,
-	fromIndex int64,
+	fromRanking *model.RankingResponse,
 ) ([]*model.RankingResponse, error) {
 	key := circleRankingKey(circleId)
 
@@ -210,6 +216,13 @@ func (c *redisCache) rankingList(
 
 	rankingList := make([]*model.RankingResponse, 0)
 	placementNumber := int64(0)
+	fromIndex := int64(0)
+
+	if fromRanking != nil {
+		placementNumber = fromRanking.Number
+		fromIndex = fromRanking.IndexedOrder
+	}
+
 	var voteCount int64
 
 	for placementIndex, rankingScore := range rankingScores {
