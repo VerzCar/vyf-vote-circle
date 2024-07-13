@@ -217,13 +217,13 @@ func (c *redisCache) rankingList(
 	rankingList := make([]*model.RankingResponse, 0)
 	placementNumber := int64(0)
 	fromIndex := int64(0)
+	voteCount := int64(0)
 
 	if fromRanking != nil {
 		placementNumber = fromRanking.Number
 		fromIndex = fromRanking.IndexedOrder + 1
+		voteCount = fromRanking.Votes
 	}
-
-	var voteCount int64
 
 	for placementIndex, rankingScore := range rankingScores {
 		var rankingUserCandidate model.RankingUserCandidate
