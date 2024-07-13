@@ -313,6 +313,12 @@ func (c *voteService) RevokeVote(
 		voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
 		_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
 
+		err = c.updateChangedRankings(ctx, circleId, cachedRanking)
+
+		if err != nil {
+			return false, err
+		}
+
 		return true, nil
 	}
 
