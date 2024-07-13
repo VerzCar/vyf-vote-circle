@@ -220,7 +220,7 @@ func (c *redisCache) rankingList(
 
 	if fromRanking != nil {
 		placementNumber = fromRanking.Number
-		fromIndex = fromRanking.IndexedOrder
+		fromIndex = fromRanking.IndexedOrder + 1
 	}
 
 	var voteCount int64
