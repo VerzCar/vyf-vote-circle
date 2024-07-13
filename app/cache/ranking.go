@@ -80,7 +80,7 @@ func (c *redisCache) RemoveRanking(
 func (c *redisCache) RankingList(
 	ctx context.Context,
 	circleId int64,
-	fromIndex int,
+	fromIndex int64,
 ) ([]*model.RankingResponse, error) {
 	key := circleRankingKey(circleId)
 
@@ -185,7 +185,7 @@ func (c *redisCache) rankingList(
 	ctx context.Context,
 	circleId int64,
 	rankingScores []*model.RankingScore,
-	fromIndex int,
+	fromIndex int64,
 ) ([]*model.RankingResponse, error) {
 	key := circleRankingKey(circleId)
 
@@ -239,7 +239,7 @@ func (c *redisCache) rankingList(
 				circleId,
 				rankingUserCandidate.CandidateID,
 				rankingScore,
-				int64(placementIndex+fromIndex),
+				int64(placementIndex)+fromIndex,
 				placementNumber,
 				rankingUserCandidate.CreatedAt,
 				rankingUserCandidate.UpdatedAt,
@@ -324,9 +324,9 @@ func (c *redisCache) rankingIndexWithLastestVoteCountMember(
 func (c *redisCache) rankingScores(
 	ctx context.Context,
 	key string,
-	fromIndex int,
+	fromIndex int64,
 ) ([]*model.RankingScore, error) {
-	result := c.redis.ZRevRangeWithScores(ctx, key, int64(fromIndex), -1)
+	result := c.redis.ZRevRangeWithScores(ctx, key, fromIndex, -1)
 
 	switch {
 	case errors.Is(result.Err(), redis.Nil):

@@ -70,6 +70,11 @@ type VoteCache interface {
 		circleId int64,
 		candidate *model.CircleCandidate,
 	) error
+	RankingList(
+		ctx context.Context,
+		circleId int64,
+		fromIndex int64,
+	) ([]*model.RankingResponse, error)
 }
 
 type VoteRankingSubscription interface {
@@ -225,6 +230,12 @@ func (c *voteService) CreateVote(
 	voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
 	_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
 
+	err = c.updateChangedRankings(ctx, circleId, cachedRanking)
+
+	if err != nil {
+		return false, err
+	}
+
 	return true, nil
 }
 
@@ -315,4 +326,29 @@ func (c *voteService) RevokeVote(
 	_ = c.circleCandidateSubscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
 
 	return true, nil
+}
+
+func (c *voteService) updateChangedRankings(
+	ctx context.Context,
+	circleId int64,
+	updatedRanking *model.RankingResponse,
+) error {
+	fromIndex := updatedRanking.IndexedOrder + 1
+
+	rankings, err := c.cache.RankingList(ctx, circleId, fromIndex)
+
+	if err != nil {
+		return err
+	}
+
+	//TODO: do not only send events also update rankings table, or do it async
+	// in the background from time to time, as votes are already persisted.
+
+	// TODO: publish in batches or all at once
+	for _, ranking := range rankings {
+		event := CreateRankingChangedEvent(model.EventOperationUpdated, ranking)
+		_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
+	}
+
+	return nil
 }

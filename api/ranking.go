@@ -27,7 +27,7 @@ type RankingCache interface {
 	RankingList(
 		ctx context.Context,
 		circleId int64,
-		fromIndex int,
+		fromIndex int64,
 	) ([]*model.RankingResponse, error)
 	ExistsRankingListForCircle(
 		ctx context.Context,
