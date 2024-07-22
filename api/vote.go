@@ -230,6 +230,7 @@ func (c *voteService) CreateVote(
 	voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
 	_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
 
+	// TODO: update only if the number and index has not changed from the cachedRanking
 	err = c.updateChangedRankings(ctx, circleId, cachedRanking)
 
 	if err != nil {
@@ -313,7 +314,9 @@ func (c *voteService) RevokeVote(
 		voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
 		_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
 
-		err = c.updateChangedRankings(ctx, circleId, cachedRanking)
+		// TODO: update only if the number and index has not changed from the cachedRanking
+		// and not from 0 index rather determine the first changed occurrence (performance issue?)
+		err = c.updateChangedRankings(ctx, circleId, nil)
 
 		if err != nil {
 			return false, err
@@ -330,6 +333,14 @@ func (c *voteService) RevokeVote(
 
 	candidateEvent := CreateCandidateChangedEvent(model.EventOperationRepositioned, vote.Candidate)
 	_ = c.circleCandidateSubscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
+
+	// TODO: update only if the number and index has not changed from the cachedRanking
+	// and not from 0 index rather determine the first changed occurrence (performance issue?)
+	err = c.updateChangedRankings(ctx, circleId, nil)
+
+	if err != nil {
+		return false, err
+	}
 
 	return true, nil
 }
