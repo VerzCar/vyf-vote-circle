@@ -149,14 +149,14 @@ func updateCircleStage(
 	tx *gorm.DB,
 	circle *Circle,
 ) error {
-	currentTime := time.Now().Truncate(24 * time.Hour)
-	validFromTruncatedTime := circle.ValidFrom.Truncate(24 * time.Hour)
+	currentTime := time.Now().UTC().Truncate(60 * time.Second)
+	validFromTruncatedTime := circle.ValidFrom.UTC().Truncate(60 * time.Second)
 
 	// check if current time is between range of circle
 	// if so, set it to hot stage
 	if circle.ValidUntil != nil {
 		validUntilTime := *circle.ValidUntil
-		validUntilTruncatedTime := validUntilTime.Truncate(24 * time.Hour)
+		validUntilTruncatedTime := validUntilTime.UTC().Truncate(60 * time.Second)
 
 		if utils.IsTimeBetween(currentTime, validFromTruncatedTime, validUntilTruncatedTime) {
 			if circle.Stage == CircleStageHot {

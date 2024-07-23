@@ -278,7 +278,9 @@ func (c *voteService) RevokeVote(
 		return false, fmt.Errorf("circle inactive")
 	}
 
-	if circle.ValidUntil != nil && time.Now().After(*circle.ValidUntil) {
+	currentTime := currentTruncatedTime()
+
+	if circle.ValidUntil != nil && currentTime.After(circle.ValidUntil.UTC().Truncate(60*time.Second)) {
 		c.log.Infof(
 			"tried to revoke vote for an circle that is not valid anymore with circle id %d and subject %s",
 			circleId,
