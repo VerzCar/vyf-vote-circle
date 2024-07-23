@@ -12,7 +12,7 @@ type RankingSubscriptionService interface {
 	RankingChangedEvent(
 		ctx context.Context,
 		circleId int64,
-		event *model.RankingChangedEvent,
+		events []*model.RankingChangedEvent,
 	) error
 }
 
@@ -37,14 +37,23 @@ func NewRankingSubscriptionService(
 func (s *rankingSubscriptionService) RankingChangedEvent(
 	ctx context.Context,
 	circleId int64,
-	event *model.RankingChangedEvent,
+	events []*model.RankingChangedEvent,
 ) error {
 	channelName := fmt.Sprintf("circle-%d:rankings", circleId)
 	msgName := "ranking-changed"
 
-	channel := s.pubSubService.Channels.Get(channelName)
+	messages := make([]*ably.Message, 0)
 
-	err := channel.Publish(ctx, msgName, event)
+	for _, event := range events {
+		message := &ably.Message{
+			Name: msgName,
+			Data: event,
+		}
+		messages = append(messages, message)
+	}
+
+	channel := s.pubSubService.Channels.Get(channelName)
+	err := channel.PublishMultiple(ctx, messages)
 
 	if err != nil {
 		s.log.Errorf(

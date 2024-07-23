@@ -81,7 +81,7 @@ type VoteRankingSubscription interface {
 	RankingChangedEvent(
 		ctx context.Context,
 		circleId int64,
-		event *model.RankingChangedEvent,
+		events []*model.RankingChangedEvent,
 	) error
 }
 
@@ -219,23 +219,35 @@ func (c *voteService) CreateVote(
 		return false, err
 	}
 
+	events := make([]*model.RankingChangedEvent, 0)
+
 	if voteCount > 1 {
 		event := CreateRankingChangedEvent(model.EventOperationUpdated, cachedRanking)
-		_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
+		events = append(events, event)
 	} else {
 		event := CreateRankingChangedEvent(model.EventOperationCreated, cachedRanking)
-		_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
+		events = append(events, event)
 	}
 
-	voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
-	_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
-
 	// TODO: update only if the number and index has not changed from the cachedRanking
-	err = c.updateChangedRankings(ctx, circleId, cachedRanking)
+	changedRankings, err := c.changedRankings(ctx, circleId, cachedRanking)
 
 	if err != nil {
 		return false, err
 	}
+
+	for _, changedRanking := range changedRankings {
+		event := CreateRankingChangedEvent(model.EventOperationUpdated, changedRanking)
+		events = append(events, event)
+	}
+
+	_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, events)
+
+	voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
+	_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
+
+	//TODO: do not only send events also update rankings table, or do it async
+	// in the background from time to time, as votes are already persisted.
 
 	return true, nil
 }
@@ -308,25 +320,49 @@ func (c *voteService) RevokeVote(
 	}
 
 	if voteCount > 0 {
-		event := CreateRankingChangedEvent(model.EventOperationUpdated, cachedRanking)
-		_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
+		events := make([]*model.RankingChangedEvent, 0)
 
-		voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
-		_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
+		event := CreateRankingChangedEvent(model.EventOperationUpdated, cachedRanking)
+		events = append(events, event)
 
 		// TODO: update only if the number and index has not changed from the cachedRanking
-		// and not from 0 index rather determine the first changed occurrence (performance issue?)
-		err = c.updateChangedRankings(ctx, circleId, nil)
+		changedRankings, err := c.changedRankings(ctx, circleId, cachedRanking)
 
 		if err != nil {
 			return false, err
 		}
 
+		for _, changedRanking := range changedRankings {
+			event := CreateRankingChangedEvent(model.EventOperationUpdated, changedRanking)
+			events = append(events, event)
+		}
+
+		_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, events)
+
+		voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
+		_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
+
 		return true, nil
 	}
 
+	events := make([]*model.RankingChangedEvent, 0)
+
 	event := CreateRankingChangedEvent(model.EventOperationDeleted, cachedRanking)
-	_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
+	events = append(events, event)
+
+	// TODO: update only if the number and index has not changed from the cachedRanking
+	changedRankings, err := c.changedRankings(ctx, circleId, nil)
+
+	if err != nil {
+		return false, err
+	}
+
+	for _, changedRanking := range changedRankings {
+		event := CreateRankingChangedEvent(model.EventOperationUpdated, changedRanking)
+		events = append(events, event)
+	}
+
+	_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, events)
 
 	voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
 	_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
@@ -334,36 +370,13 @@ func (c *voteService) RevokeVote(
 	candidateEvent := CreateCandidateChangedEvent(model.EventOperationRepositioned, vote.Candidate)
 	_ = c.circleCandidateSubscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
 
-	// TODO: update only if the number and index has not changed from the cachedRanking
-	// and not from 0 index rather determine the first changed occurrence (performance issue?)
-	err = c.updateChangedRankings(ctx, circleId, nil)
-
-	if err != nil {
-		return false, err
-	}
-
 	return true, nil
 }
 
-func (c *voteService) updateChangedRankings(
+func (c *voteService) changedRankings(
 	ctx context.Context,
 	circleId int64,
 	updatedRanking *model.RankingResponse,
-) error {
-	rankings, err := c.cache.RankingList(ctx, circleId, updatedRanking)
-
-	if err != nil {
-		return err
-	}
-
-	//TODO: do not only send events also update rankings table, or do it async
-	// in the background from time to time, as votes are already persisted.
-
-	// TODO: publish in batches or all at once
-	for _, ranking := range rankings {
-		event := CreateRankingChangedEvent(model.EventOperationUpdated, ranking)
-		_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
-	}
-
-	return nil
+) ([]*model.RankingResponse, error) {
+	return c.cache.RankingList(ctx, circleId, updatedRanking)
 }
