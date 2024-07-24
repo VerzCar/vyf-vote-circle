@@ -328,7 +328,7 @@ func (c *voteService) RevokeVote(
 		events = append(events, event)
 
 		// TODO: update only if the number and index has not changed from the cachedRanking
-		changedRankings, err := c.changedRankings(ctx, circleId, cachedRanking)
+		changedRankings, err := c.changedRankings(ctx, circleId, nil)
 
 		if err != nil {
 			return false, err
