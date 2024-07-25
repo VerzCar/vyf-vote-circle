@@ -101,9 +101,11 @@ func (c *rankingService) Rankings(
 		}
 
 		if database.RecordNotFound(err) {
+			_, _ = c.storage.CreateNewRankingLastViewed(circleId, authClaims.Subject)
 			return make([]*model.RankingResponse, 0), nil
 		}
 
+		_, _ = c.storage.CreateNewRankingLastViewed(circleId, authClaims.Subject)
 		return c.mapRankingToRankingResponse(rankings), nil
 	}
 
@@ -122,6 +124,7 @@ func (c *rankingService) Rankings(
 		}
 
 		if isEmpty {
+			_, _ = c.storage.CreateNewRankingLastViewed(circleId, authClaims.Subject)
 			return make([]*model.RankingResponse, 0), nil
 		}
 	}

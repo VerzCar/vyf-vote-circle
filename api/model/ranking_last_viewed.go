@@ -31,15 +31,18 @@ func (*RankingLastViewed) TableName() string {
 
 func (ranking *RankingLastViewed) BeforeCreate(tx *gorm.DB) error {
 	maxCountOfEntries := 15
-	var foundRanking *RankingLastViewed
+	var exists bool
 
-	err := tx.Model(ranking).First(&foundRanking).Error
+	err := tx.Model(&RankingLastViewed{}).
+		Raw("SELECT EXISTS(SELECT 1 FROM rankings_last_viewed WHERE identity_id=?)", ranking.IdentityID).
+		Scan(&exists).
+		Error
 
 	if err != nil && !database.RecordNotFound(err) {
 		return err
 	}
 
-	if foundRanking != nil {
+	if exists {
 		return DbErrEntryAlreadyExist
 	}
 
