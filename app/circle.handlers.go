@@ -238,6 +238,7 @@ func (s *Server) CirclesOpenCommitments() gin.HandlerFunc {
 				VotersCount:     &circle.VotersCount,
 				CandidatesCount: &circle.CandidatesCount,
 				Active:          circle.Active,
+				Stage:           circle.Stage,
 			}
 			paginatedCirclesResponse = append(paginatedCirclesResponse, c)
 		}
