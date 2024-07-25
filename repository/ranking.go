@@ -1,9 +1,11 @@
 package repository
 
 import (
+	"errors"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/VerzCar/vyf-vote-circle/app/database"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // CreateNewRanking based on given model.Ranking model
@@ -69,6 +71,45 @@ func (s *storage) RankingByCircleId(circleId int64, identityId string) (*model.R
 	}
 
 	return ranking, nil
+}
+
+// CreateNewRanking based on given model.Ranking model
+func (s *storage) CreateNewRankingLastViewed(
+	circleId int64,
+	identityId string,
+) (*model.RankingLastViewed, error) {
+	lastViewed := &model.RankingLastViewed{
+		IdentityID: identityId,
+		CircleID:   circleId,
+	}
+
+	if err := s.db.Create(lastViewed).Error; err != nil {
+		if !errors.Is(err, model.DbErrEntryAlreadyExist) {
+			s.log.Errorf("error creating last viewed ranking entry: %s", err)
+		}
+		return nil, err
+	}
+
+	return lastViewed, nil
+}
+
+func (s *storage) RankingsLastViewedByUserIdentityId(identityId string) ([]*model.RankingLastViewed, error) {
+	var rankings []*model.RankingLastViewed
+	err := s.db.Preload(clause.Associations).
+		Where(&model.RankingLastViewed{IdentityID: identityId}).
+		Order("created_at desc").
+		Find(&rankings).Error
+
+	switch {
+	case err != nil && !database.RecordNotFound(err):
+		s.log.Errorf("error reading last viewed rankings by user id %s: %s", identityId, err)
+		return nil, err
+	case database.RecordNotFound(err):
+		s.log.Infof("last viewed rankings with user id %s not found: %s", identityId, err)
+		return nil, err
+	}
+
+	return rankings, nil
 }
 
 func (s *storage) txUpsertRanking(

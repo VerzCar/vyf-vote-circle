@@ -2,10 +2,12 @@ package api
 
 import (
 	"context"
+	"fmt"
 	logger "github.com/VerzCar/vyf-lib-logger"
 	"github.com/VerzCar/vyf-vote-circle/api/model"
 	"github.com/VerzCar/vyf-vote-circle/app/config"
 	"github.com/VerzCar/vyf-vote-circle/app/database"
+	routerContext "github.com/VerzCar/vyf-vote-circle/app/router/ctx"
 )
 
 type RankingService interface {
@@ -13,6 +15,9 @@ type RankingService interface {
 		ctx context.Context,
 		circleId int64,
 	) ([]*model.RankingResponse, error)
+	LastViewedRankings(
+		ctx context.Context,
+	) ([]*model.RankingLastViewedResponse, error)
 }
 
 type RankingRepository interface {
@@ -21,6 +26,11 @@ type RankingRepository interface {
 	Votes(circleId int64) ([]*model.Vote, error)
 	CountsVotesOfCandidateByCircleId(circleId int64, candidateId int64) (int64, error)
 	RankingByCircleId(circleId int64, identityId string) (*model.Ranking, error)
+	CreateNewRankingLastViewed(
+		circleId int64,
+		identityId string,
+	) (*model.RankingLastViewed, error)
+	RankingsLastViewedByUserIdentityId(identityId string) ([]*model.RankingLastViewed, error)
 }
 
 type RankingCache interface {
@@ -70,6 +80,13 @@ func (c *rankingService) Rankings(
 	ctx context.Context,
 	circleId int64,
 ) ([]*model.RankingResponse, error) {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return nil, err
+	}
+
 	circle, err := c.storage.CircleById(circleId)
 
 	if err != nil {
@@ -115,7 +132,53 @@ func (c *rankingService) Rankings(
 		return nil, err
 	}
 
+	_, _ = c.storage.CreateNewRankingLastViewed(circleId, authClaims.Subject)
+
 	return rankings, nil
+}
+
+func (c *rankingService) LastViewedRankings(
+	ctx context.Context,
+) ([]*model.RankingLastViewedResponse, error) {
+	authClaims, err := routerContext.ContextToAuthClaims(ctx)
+
+	if err != nil {
+		c.log.Errorf("error getting auth claims: %s", err)
+		return nil, err
+	}
+
+	lastViewedRankings, err := c.storage.RankingsLastViewedByUserIdentityId(authClaims.Subject)
+
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println()
+	fmt.Println(lastViewedRankings)
+	fmt.Println()
+
+	lastViewedRankingsResponse := make([]*model.RankingLastViewedResponse, 0)
+
+	for _, ranking := range lastViewedRankings {
+		circlePaginated := &model.CirclePaginatedResponse{
+			Name:        ranking.Circle.Name,
+			Description: ranking.Circle.Description,
+			ImageSrc:    ranking.Circle.ImageSrc,
+			Stage:       ranking.Circle.Stage,
+			ID:          ranking.Circle.ID,
+			Active:      ranking.Circle.Active,
+		}
+
+		res := &model.RankingLastViewedResponse{
+			CreatedAt: ranking.CreatedAt,
+			UpdatedAt: ranking.UpdatedAt,
+			Circle:    circlePaginated,
+			ID:        ranking.ID,
+		}
+
+		lastViewedRankingsResponse = append(lastViewedRankingsResponse, res)
+	}
+
+	return lastViewedRankingsResponse, nil
 }
 
 // buildCacheRankingList for the given circle.

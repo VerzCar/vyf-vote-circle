@@ -44,6 +44,7 @@ func (s *Server) routes() {
 
 		// rankings
 		authorized.GET("/rankings/:circleId", s.Rankings())
+		authorized.GET("/rankings/last-viewed", s.RankingsLastViewed())
 
 		// user option
 		authorized.GET("/user-option", s.UserOption())

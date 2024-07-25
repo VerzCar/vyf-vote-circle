@@ -47,3 +47,29 @@ func (s *Server) Rankings() gin.HandlerFunc {
 		ctx.JSON(http.StatusOK, response)
 	}
 }
+
+func (s *Server) RankingsLastViewed() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		errResponse := model.Response{
+			Status: model.ResponseError,
+			Msg:    "cannot find last viewed rankings",
+			Data:   nil,
+		}
+
+		rankings, err := s.rankingService.LastViewedRankings(ctx.Request.Context())
+
+		if err != nil {
+			s.log.Errorf("service error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, errResponse)
+			return
+		}
+
+		response := model.Response{
+			Status: model.ResponseSuccess,
+			Msg:    "",
+			Data:   rankings,
+		}
+
+		ctx.JSON(http.StatusOK, response)
+	}
+}
