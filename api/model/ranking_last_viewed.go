@@ -34,7 +34,11 @@ func (ranking *RankingLastViewed) BeforeCreate(tx *gorm.DB) error {
 	var exists bool
 
 	err := tx.Model(&RankingLastViewed{}).
-		Raw("SELECT EXISTS(SELECT 1 FROM rankings_last_viewed WHERE identity_id=?)", ranking.IdentityID).
+		Raw(
+			"SELECT EXISTS(SELECT 1 FROM rankings_last_viewed WHERE identity_id=? AND circle_id=?)",
+			ranking.IdentityID,
+			ranking.CircleID,
+		).
 		Scan(&exists).
 		Error
 
