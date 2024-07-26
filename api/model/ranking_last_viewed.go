@@ -61,6 +61,10 @@ func (ranking *RankingLastViewed) BeforeCreate(tx *gorm.DB) error {
 		return err
 	}
 
+	if database.RecordNotFound(err) {
+		return nil
+	}
+
 	if len(rankings) >= maxCountOfEntries {
 		err = tx.Model(ranking).
 			Delete(&rankings[0]).Error
