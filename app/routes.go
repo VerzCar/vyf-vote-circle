@@ -10,41 +10,49 @@ func (s *Server) routes() {
 	authorized := v1.Group("")
 	authorized.Use(s.authGuard(s.authService))
 	{
-		// circle
-		authorized.GET("/circle/:circleId", s.Circle())
-		authorized.GET("/circle/:circleId/eligible", s.EligibleToBeInCircle())
-		authorized.GET("/circles", s.Circles())
-		authorized.GET("/circles/of-interest", s.CirclesOfInterest())
-		authorized.GET("/circles/:name", s.CirclesByName())
-		authorized.POST("/circle", s.CreateCircle())
-		authorized.PUT("/circle/:circleId", s.UpdateCircle())
-		authorized.DELETE("/circle/:circleId", s.DeleteCircle())
-		authorized.PUT("/circle/to-global", s.AddToGlobalCircle())
-		authorized.GET("/circles/open-commitments", s.CirclesOpenCommitments())
+		// circle group
+		circle := authorized.Group("/circle")
+		circle.GET("/:circleId", s.Circle())
+		circle.GET("/:circleId/eligible", s.EligibleToBeInCircle())
+		circle.POST("", s.CreateCircle())
+		circle.PUT("/:circleId", s.UpdateCircle())
+		circle.DELETE("/:circleId", s.DeleteCircle())
+		circle.PUT("/to-global", s.AddToGlobalCircle())
 
-		// circle voters
-		authorized.GET("/circle-voters/:circleId", s.CircleVoters())
-		authorized.POST("/circle-voters/:circleId/join", s.CircleVoterJoinCircle())
-		authorized.DELETE("/circle-voters/:circleId/leave", s.CircleVoterLeaveCircle())
-		authorized.POST("/circle-voters/:circleId/add", s.CircleVoterAddToCircle())
-		authorized.POST("/circle-voters/:circleId/remove", s.CircleVoterRemoveFromCircle())
+		// circles group
+		circles := authorized.Group("/circles")
+		circles.GET("/of-interest", s.CirclesOfInterest())
+		circles.GET("/:name", s.CirclesByName())
+		circles.GET("", s.Circles())
+		circles.GET("/open-commitments", s.CirclesOpenCommitments())
 
-		// circle candidates
-		authorized.GET("/circle-candidates/:circleId", s.CircleCandidates())
-		authorized.POST("/circle-candidates/:circleId/commitment", s.CircleCandidateCommitment())
-		authorized.POST("/circle-candidates/:circleId/join", s.CircleCandidateJoinCircle())
-		authorized.DELETE("/circle-candidates/:circleId/leave", s.CircleCandidateLeaveCircle())
-		authorized.POST("/circle-candidates/:circleId/add", s.CircleCandidateAddToCircle())
-		authorized.POST("/circle-candidates/:circleId/remove", s.CircleCandidateRemoveFromCircle())
-		authorized.GET("/circle-candidates/:circleId/voted-by", s.CircleCandidateVotedBy())
+		// circle voters group
+		circleVoters := authorized.Group("/circle-voters")
+		circleVoters.GET("/:circleId", s.CircleVoters())
+		circleVoters.POST("/:circleId/join", s.CircleVoterJoinCircle())
+		circleVoters.DELETE("/:circleId/leave", s.CircleVoterLeaveCircle())
+		circleVoters.POST("/:circleId/add", s.CircleVoterAddToCircle())
+		circleVoters.POST("/:circleId/remove", s.CircleVoterRemoveFromCircle())
 
-		// votes
-		authorized.POST("/vote/:circleId", s.CreateVote())
-		authorized.POST("/vote/revoke/:circleId", s.RevokeVote())
+		// circle candidates group
+		circleCandidates := authorized.Group("/circle-candidates")
+		circleCandidates.GET("/:circleId", s.CircleCandidates())
+		circleCandidates.POST("/:circleId/commitment", s.CircleCandidateCommitment())
+		circleCandidates.POST("/:circleId/join", s.CircleCandidateJoinCircle())
+		circleCandidates.DELETE("/:circleId/leave", s.CircleCandidateLeaveCircle())
+		circleCandidates.POST("/:circleId/add", s.CircleCandidateAddToCircle())
+		circleCandidates.POST("/:circleId/remove", s.CircleCandidateRemoveFromCircle())
+		circleCandidates.GET("/:circleId/voted-by", s.CircleCandidateVotedBy())
 
-		// rankings
-		authorized.GET("/rankings/:circleId", s.Rankings())
-		authorized.GET("/rankings/last-viewed", s.RankingsLastViewed())
+		// vote group
+		vote := authorized.Group("/vote")
+		vote.POST("/:circleId", s.CreateVote())
+		vote.POST("/revoke/:circleId", s.RevokeVote())
+
+		// rankings group
+		rankings := authorized.Group("/rankings")
+		rankings.GET("/:circleId", s.Rankings())
+		rankings.GET("/last-viewed", s.RankingsLastViewed())
 
 		// user option
 		authorized.GET("/user-option", s.UserOption())
@@ -55,5 +63,6 @@ func (s *Server) routes() {
 		// Upload group
 		upload := authorized.Group("/upload")
 		upload.PUT("/circle-img/:circleId", s.UploadCircleImage())
+		upload.DELETE("/circle-img/:circleId", s.DeleteCircleImage())
 	}
 }
