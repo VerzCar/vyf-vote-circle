@@ -239,11 +239,11 @@ func (s *Server) CircleCandidateLeaveCircle() gin.HandlerFunc {
 	}
 }
 
-func (s *Server) CircleCandidateAddToCircle() gin.HandlerFunc {
+func (s *Server) CircleCandidatesAddToCircle() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		errResponse := model.Response{
 			Status: model.ResponseError,
-			Msg:    "cannot add candidate to circle",
+			Msg:    "cannot add candidates to circle",
 			Data:   nil,
 		}
 
@@ -257,9 +257,9 @@ func (s *Server) CircleCandidateAddToCircle() gin.HandlerFunc {
 			return
 		}
 
-		circleCandidateReq := &model.CircleCandidateRequest{}
+		circleCandidateBulkReq := &model.CircleCandidateBulkRequest{}
 
-		err = ctx.ShouldBindJSON(circleCandidateReq)
+		err = ctx.ShouldBindJSON(circleCandidateBulkReq)
 
 		if err != nil {
 			s.log.Error(err)
@@ -267,16 +267,10 @@ func (s *Server) CircleCandidateAddToCircle() gin.HandlerFunc {
 			return
 		}
 
-		if err := s.validate.Struct(circleCandidateReq); err != nil {
-			s.log.Warn(err)
-			ctx.JSON(http.StatusBadRequest, errResponse)
-			return
-		}
-
-		candidate, err := s.circleCandidateService.CircleCandidateAddToCircle(
+		candidates, err := s.circleCandidateService.CircleCandidatesAddToCircle(
 			ctx.Request.Context(),
 			circleReq.CircleID,
-			circleCandidateReq,
+			circleCandidateBulkReq,
 		)
 
 		if err != nil {
@@ -285,18 +279,23 @@ func (s *Server) CircleCandidateAddToCircle() gin.HandlerFunc {
 			return
 		}
 
-		candidateRes := &model.CircleCandidateResponse{
-			ID:         candidate.ID,
-			Candidate:  candidate.Candidate,
-			Commitment: candidate.Commitment,
-			CreatedAt:  candidate.CreatedAt,
-			UpdatedAt:  candidate.UpdatedAt,
+		candidatesRes := make([]*model.CircleCandidateResponse, 0)
+
+		for _, candidate := range candidates {
+			candidateRes := &model.CircleCandidateResponse{
+				ID:         candidate.ID,
+				Candidate:  candidate.Candidate,
+				Commitment: candidate.Commitment,
+				CreatedAt:  candidate.CreatedAt,
+				UpdatedAt:  candidate.UpdatedAt,
+			}
+			candidatesRes = append(candidatesRes, candidateRes)
 		}
 
 		response := model.Response{
 			Status: model.ResponseSuccess,
 			Msg:    "",
-			Data:   candidateRes,
+			Data:   candidatesRes,
 		}
 
 		ctx.JSON(http.StatusOK, response)

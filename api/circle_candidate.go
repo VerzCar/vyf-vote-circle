@@ -29,11 +29,11 @@ type CircleCandidateService interface {
 		ctx context.Context,
 		circleId int64,
 	) error
-	CircleCandidateAddToCircle(
+	CircleCandidatesAddToCircle(
 		ctx context.Context,
 		circleId int64,
-		circleCandidateInput *model.CircleCandidateRequest,
-	) (*model.CircleCandidate, error)
+		circleCandidatesInput *model.CircleCandidateBulkRequest,
+	) ([]*model.CircleCandidate, error)
 	CircleCandidateRemoveFromCircle(
 		ctx context.Context,
 		circleId int64,
@@ -324,11 +324,11 @@ func (c *circleCandidateService) CircleCandidateLeaveCircle(
 	return nil
 }
 
-func (c *circleCandidateService) CircleCandidateAddToCircle(
+func (c *circleCandidateService) CircleCandidatesAddToCircle(
 	ctx context.Context,
 	circleId int64,
-	circleCandidateInput *model.CircleCandidateRequest,
-) (*model.CircleCandidate, error) {
+	circleCandidatesInput *model.CircleCandidateBulkRequest,
+) ([]*model.CircleCandidate, error) {
 	authClaims, err := routerContext.ContextToAuthClaims(ctx)
 
 	if err != nil {
@@ -362,47 +362,23 @@ func (c *circleCandidateService) CircleCandidateAddToCircle(
 		return nil, fmt.Errorf("circle is not editable")
 	}
 
-	IsCandidateInCircle, err := c.storage.IsCandidateInCircle(circleCandidateInput.Candidate, circleId)
+	updatedCandidates := make([]*model.CircleCandidate, 0)
 
-	if err != nil {
-		return nil, err
+	// TODO: put this in transaction as this leads to errors during creations if one fails
+	for _, candidateIdentId := range circleCandidatesInput.Candidates {
+		newCandidate, err := c.addCandidateToCircle(ctx, circle, candidateIdentId)
+
+		if err != nil {
+			return nil, err
+		}
+
+		updatedCandidates = append(updatedCandidates, newCandidate)
+
+		candidateEvent := CreateCandidateChangedEvent(model.EventOperationCreated, newCandidate)
+		_ = c.subscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
 	}
 
-	if IsCandidateInCircle {
-		err = fmt.Errorf("user is already as candidate in the circle")
-		return nil, err
-	}
-
-	candidatesCount, err := c.storage.CircleCandidateCountByCircleId(circleId)
-
-	if err != nil {
-		return nil, fmt.Errorf("count of candidate failure")
-	}
-
-	userOption, _ := c.userOptionService.UserOption(ctx)
-
-	if candidatesCount >= int64(userOption.MaxCandidates) {
-		err = fmt.Errorf("circle has more than %d allowed candidates", userOption.MaxCandidates)
-		return nil, err
-	}
-
-	circleCandidate := &model.CircleCandidate{
-		Candidate:   circleCandidateInput.Candidate,
-		Circle:      circle,
-		CircleRefer: &circle.ID,
-	}
-
-	newCandidate, err := c.storage.CreateNewCircleCandidate(circleCandidate)
-
-	if err != nil {
-		c.log.Errorf("error adding candidate to circle id %d: %s", circleId, err)
-		return nil, err
-	}
-
-	candidateEvent := CreateCandidateChangedEvent(model.EventOperationCreated, newCandidate)
-	_ = c.subscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
-
-	return newCandidate, nil
+	return updatedCandidates, nil
 }
 
 func (c *circleCandidateService) CircleCandidateRemoveFromCircle(
@@ -572,4 +548,49 @@ func (c *circleCandidateService) eligibleToBeInCircle(
 	}
 
 	return c.storage.IsCandidateInCircle(userIdentityId, circle.ID)
+}
+
+func (c *circleCandidateService) addCandidateToCircle(
+	ctx context.Context,
+	circle *model.Circle,
+	candidateIdentId string,
+) (*model.CircleCandidate, error) {
+	IsCandidateInCircle, err := c.storage.IsCandidateInCircle(candidateIdentId, circle.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if IsCandidateInCircle {
+		err = fmt.Errorf("user is already as candidate in the circle")
+		return nil, err
+	}
+
+	candidatesCount, err := c.storage.CircleCandidateCountByCircleId(circle.ID)
+
+	if err != nil {
+		return nil, fmt.Errorf("count of candidate failure")
+	}
+
+	userOption, _ := c.userOptionService.UserOption(ctx)
+
+	if candidatesCount >= int64(userOption.MaxCandidates) {
+		err = fmt.Errorf("circle has more than %d allowed candidates", userOption.MaxCandidates)
+		return nil, err
+	}
+
+	circleCandidate := &model.CircleCandidate{
+		Candidate:   candidateIdentId,
+		Circle:      circle,
+		CircleRefer: &circle.ID,
+	}
+
+	newCandidate, err := c.storage.CreateNewCircleCandidate(circleCandidate)
+
+	if err != nil {
+		c.log.Errorf("error adding candidate to circle id %d: %s", circle.ID, err)
+		return nil, err
+	}
+
+	return newCandidate, nil
 }

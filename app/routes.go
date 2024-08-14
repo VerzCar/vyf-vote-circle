@@ -40,7 +40,7 @@ func (s *Server) routes() {
 		circleCandidates.POST("/:circleId/commitment", s.CircleCandidateCommitment())
 		circleCandidates.POST("/:circleId/join", s.CircleCandidateJoinCircle())
 		circleCandidates.DELETE("/:circleId/leave", s.CircleCandidateLeaveCircle())
-		circleCandidates.POST("/:circleId/add", s.CircleCandidateAddToCircle())
+		circleCandidates.POST("/:circleId/add", s.CircleCandidatesAddToCircle())
 		circleCandidates.POST("/:circleId/remove", s.CircleCandidateRemoveFromCircle())
 		circleCandidates.GET("/:circleId/voted-by", s.CircleCandidateVotedBy())
 
