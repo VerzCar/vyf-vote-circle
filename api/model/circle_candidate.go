@@ -33,10 +33,6 @@ type CircleCandidateRequest struct {
 	Candidate string `json:"candidate" form:"candidate" validate:"gt=0,lte=50"`
 }
 
-type CircleCandidateBulkRequest struct {
-	Candidates []string `json:"candidates"`
-}
-
 type CircleCandidateCommitmentRequest struct {
 	Commitment Commitment `json:"commitment" validate:"gt=0,lte=20"`
 }

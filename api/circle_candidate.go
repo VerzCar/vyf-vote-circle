@@ -32,7 +32,7 @@ type CircleCandidateService interface {
 	CircleCandidatesAddToCircle(
 		ctx context.Context,
 		circleId int64,
-		circleCandidatesInput *model.CircleCandidateBulkRequest,
+		circleCandidatesInput []*model.CircleCandidateRequest,
 	) ([]*model.CircleCandidate, error)
 	CircleCandidateRemoveFromCircle(
 		ctx context.Context,
@@ -327,7 +327,7 @@ func (c *circleCandidateService) CircleCandidateLeaveCircle(
 func (c *circleCandidateService) CircleCandidatesAddToCircle(
 	ctx context.Context,
 	circleId int64,
-	circleCandidatesInput *model.CircleCandidateBulkRequest,
+	circleCandidatesInput []*model.CircleCandidateRequest,
 ) ([]*model.CircleCandidate, error) {
 	authClaims, err := routerContext.ContextToAuthClaims(ctx)
 
@@ -365,8 +365,8 @@ func (c *circleCandidateService) CircleCandidatesAddToCircle(
 	updatedCandidates := make([]*model.CircleCandidate, 0)
 
 	// TODO: put this in transaction as this leads to errors during creations if one fails
-	for _, candidateIdentId := range circleCandidatesInput.Candidates {
-		newCandidate, err := c.addCandidateToCircle(ctx, circle, candidateIdentId)
+	for _, candidate := range circleCandidatesInput {
+		newCandidate, err := c.addCandidateToCircle(ctx, circle, candidate.Candidate)
 
 		if err != nil {
 			return nil, err

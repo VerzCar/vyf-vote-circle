@@ -257,9 +257,9 @@ func (s *Server) CircleCandidatesAddToCircle() gin.HandlerFunc {
 			return
 		}
 
-		circleCandidateBulkReq := &model.CircleCandidateBulkRequest{}
+		circleCandidatesReq := make([]*model.CircleCandidateRequest, 0)
 
-		err = ctx.ShouldBindJSON(circleCandidateBulkReq)
+		err = ctx.ShouldBindJSON(circleCandidatesReq)
 
 		if err != nil {
 			s.log.Error(err)
@@ -270,7 +270,7 @@ func (s *Server) CircleCandidatesAddToCircle() gin.HandlerFunc {
 		candidates, err := s.circleCandidateService.CircleCandidatesAddToCircle(
 			ctx.Request.Context(),
 			circleReq.CircleID,
-			circleCandidateBulkReq,
+			circleCandidatesReq,
 		)
 
 		if err != nil {
