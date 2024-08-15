@@ -259,7 +259,7 @@ func (s *Server) CircleCandidatesAddToCircle() gin.HandlerFunc {
 
 		var circleCandidatesReq []*model.CircleCandidateRequest
 
-		err = ctx.ShouldBindJSON(circleCandidatesReq)
+		err = ctx.ShouldBindJSON(&circleCandidatesReq)
 
 		if err != nil {
 			s.log.Error(err)
