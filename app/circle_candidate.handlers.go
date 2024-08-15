@@ -257,7 +257,7 @@ func (s *Server) CircleCandidatesAddToCircle() gin.HandlerFunc {
 			return
 		}
 
-		circleCandidatesReq := make([]*model.CircleCandidateRequest, 0)
+		var circleCandidatesReq []*model.CircleCandidateRequest
 
 		err = ctx.ShouldBindJSON(circleCandidatesReq)
 
