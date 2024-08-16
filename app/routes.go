@@ -31,7 +31,7 @@ func (s *Server) routes() {
 		circleVoters.GET("/:circleId", s.CircleVoters())
 		circleVoters.POST("/:circleId/join", s.CircleVoterJoinCircle())
 		circleVoters.DELETE("/:circleId/leave", s.CircleVoterLeaveCircle())
-		circleVoters.POST("/:circleId/add", s.CircleVoterAddToCircle())
+		circleVoters.POST("/:circleId/add", s.CircleVotersAddToCircle())
 		circleVoters.POST("/:circleId/remove", s.CircleVoterRemoveFromCircle())
 
 		// circle candidates group

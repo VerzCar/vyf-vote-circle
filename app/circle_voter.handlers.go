@@ -185,11 +185,11 @@ func (s *Server) CircleVoterLeaveCircle() gin.HandlerFunc {
 	}
 }
 
-func (s *Server) CircleVoterAddToCircle() gin.HandlerFunc {
+func (s *Server) CircleVotersAddToCircle() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		errResponse := model.Response{
 			Status: model.ResponseError,
-			Msg:    "cannot add voter to circle",
+			Msg:    "cannot add voters to circle",
 			Data:   nil,
 		}
 
@@ -203,9 +203,9 @@ func (s *Server) CircleVoterAddToCircle() gin.HandlerFunc {
 			return
 		}
 
-		circleVoterReq := &model.CircleVoterRequest{}
+		var circleVotersReq []*model.CircleVoterRequest
 
-		err = ctx.ShouldBindJSON(circleVoterReq)
+		err = ctx.ShouldBindJSON(&circleVotersReq)
 
 		if err != nil {
 			s.log.Error(err)
@@ -213,16 +213,10 @@ func (s *Server) CircleVoterAddToCircle() gin.HandlerFunc {
 			return
 		}
 
-		if err := s.validate.Struct(circleVoterReq); err != nil {
-			s.log.Warn(err)
-			ctx.JSON(http.StatusBadRequest, errResponse)
-			return
-		}
-
-		voter, err := s.circleVoterService.CircleVoterAddToCircle(
+		voters, err := s.circleVoterService.CircleVotersAddToCircle(
 			ctx.Request.Context(),
 			circleReq.CircleID,
-			circleVoterReq,
+			circleVotersReq,
 		)
 
 		if err != nil {
@@ -231,19 +225,24 @@ func (s *Server) CircleVoterAddToCircle() gin.HandlerFunc {
 			return
 		}
 
-		voterRes := &model.CircleVoterResponse{
-			ID:         voter.ID,
-			Voter:      voter.Voter,
-			Commitment: voter.Commitment,
-			VotedFor:   voter.VotedFor,
-			CreatedAt:  voter.CreatedAt,
-			UpdatedAt:  voter.UpdatedAt,
+		votersRes := make([]*model.CircleVoterResponse, 0)
+
+		for _, voter := range voters {
+			voterRes := &model.CircleVoterResponse{
+				ID:         voter.ID,
+				Voter:      voter.Voter,
+				Commitment: voter.Commitment,
+				VotedFor:   voter.VotedFor,
+				CreatedAt:  voter.CreatedAt,
+				UpdatedAt:  voter.UpdatedAt,
+			}
+			votersRes = append(votersRes, voterRes)
 		}
 
 		response := model.Response{
 			Status: model.ResponseSuccess,
 			Msg:    "",
-			Data:   voterRes,
+			Data:   votersRes,
 		}
 
 		ctx.JSON(http.StatusOK, response)
