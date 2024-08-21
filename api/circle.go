@@ -375,7 +375,11 @@ func (c *circleService) CreateCircle(
 	}
 
 	if newCircle.Private && len(circleCreateRequest.Voters) >= userOption.PrivateOption.MaxVoters {
-		err = fmt.Errorf("circle has more than %d allowed voters", userOption.PrivateOption.MaxVoters)
+		err = fmt.Errorf(
+			"circle has %d more than %d allowed voters",
+			len(circleCreateRequest.Voters),
+			userOption.PrivateOption.MaxVoters,
+		)
 		return nil, err
 	}
 
@@ -385,7 +389,11 @@ func (c *circleService) CreateCircle(
 	}
 
 	if newCircle.Private && len(circleCreateRequest.Candidates) >= userOption.PrivateOption.MaxCandidates {
-		err = fmt.Errorf("circle has more than %d allowed candidates", userOption.PrivateOption.MaxCandidates)
+		err = fmt.Errorf(
+			"circle has %d more than %d allowed candidates",
+			len(circleCreateRequest.Candidates),
+			userOption.PrivateOption.MaxCandidates,
+		)
 		return nil, err
 	}
 
