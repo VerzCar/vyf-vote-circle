@@ -113,6 +113,7 @@ func (s *storage) CirclesOfInterest(userIdentityId string) ([]*model.CirclePagin
                  left join circle_candidates candidates on circles.id = candidates.circle_id
 			  WHERE circles.active = ?
 				AND circles.created_from <> ?
+			    AND circles.stage <> 'CLOSED'
 				AND (circles.private = ?
 				  OR circles.private = ? AND voters.voter = ?
 				  OR circles.private = ? AND candidates.candidate = ?)
