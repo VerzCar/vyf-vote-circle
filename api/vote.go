@@ -70,13 +70,18 @@ type VoteCache interface {
 		circleId int64,
 		candidate *model.CircleCandidate,
 	) error
+	RankingList(
+		ctx context.Context,
+		circleId int64,
+		fromRanking *model.RankingResponse,
+	) ([]*model.RankingResponse, error)
 }
 
 type VoteRankingSubscription interface {
 	RankingChangedEvent(
 		ctx context.Context,
 		circleId int64,
-		event *model.RankingChangedEvent,
+		events []*model.RankingChangedEvent,
 	) error
 }
 
@@ -214,16 +219,35 @@ func (c *voteService) CreateVote(
 		return false, err
 	}
 
+	events := make([]*model.RankingChangedEvent, 0)
+
 	if voteCount > 1 {
 		event := CreateRankingChangedEvent(model.EventOperationUpdated, cachedRanking)
-		_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
+		events = append(events, event)
 	} else {
 		event := CreateRankingChangedEvent(model.EventOperationCreated, cachedRanking)
-		_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
+		events = append(events, event)
 	}
+
+	// TODO: update only if the number and index has not changed from the cachedRanking
+	changedRankings, err := c.changedRankings(ctx, circleId, cachedRanking)
+
+	if err != nil {
+		return false, err
+	}
+
+	for _, changedRanking := range changedRankings {
+		event := CreateRankingChangedEvent(model.EventOperationUpdated, changedRanking)
+		events = append(events, event)
+	}
+
+	_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, events)
 
 	voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
 	_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
+
+	//TODO: do not only send events also update rankings table, or do it async
+	// in the background from time to time, as votes are already persisted.
 
 	return true, nil
 }
@@ -254,7 +278,9 @@ func (c *voteService) RevokeVote(
 		return false, fmt.Errorf("circle inactive")
 	}
 
-	if circle.ValidUntil != nil && time.Now().After(*circle.ValidUntil) {
+	currentTime := currentTruncatedTime()
+
+	if circle.ValidUntil != nil && currentTime.After(circle.ValidUntil.UTC().Truncate(60*time.Second)) {
 		c.log.Infof(
 			"tried to revoke vote for an circle that is not valid anymore with circle id %d and subject %s",
 			circleId,
@@ -296,8 +322,24 @@ func (c *voteService) RevokeVote(
 	}
 
 	if voteCount > 0 {
+		events := make([]*model.RankingChangedEvent, 0)
+
 		event := CreateRankingChangedEvent(model.EventOperationUpdated, cachedRanking)
-		_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
+		events = append(events, event)
+
+		// TODO: update only if the number and index has not changed from the cachedRanking
+		changedRankings, err := c.changedRankings(ctx, circleId, nil)
+
+		if err != nil {
+			return false, err
+		}
+
+		for _, changedRanking := range changedRankings {
+			event := CreateRankingChangedEvent(model.EventOperationUpdated, changedRanking)
+			events = append(events, event)
+		}
+
+		_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, events)
 
 		voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
 		_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
@@ -305,8 +347,24 @@ func (c *voteService) RevokeVote(
 		return true, nil
 	}
 
+	events := make([]*model.RankingChangedEvent, 0)
+
 	event := CreateRankingChangedEvent(model.EventOperationDeleted, cachedRanking)
-	_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, event)
+	events = append(events, event)
+
+	// TODO: update only if the number and index has not changed from the cachedRanking
+	changedRankings, err := c.changedRankings(ctx, circleId, nil)
+
+	if err != nil {
+		return false, err
+	}
+
+	for _, changedRanking := range changedRankings {
+		event := CreateRankingChangedEvent(model.EventOperationUpdated, changedRanking)
+		events = append(events, event)
+	}
+
+	_ = c.rankingSubscription.RankingChangedEvent(ctx, circleId, events)
 
 	voterEvent := CreateVoterChangedEvent(model.EventOperationUpdated, voter)
 	_ = c.circleVoterSubscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
@@ -315,4 +373,12 @@ func (c *voteService) RevokeVote(
 	_ = c.circleCandidateSubscription.CircleCandidateChangedEvent(ctx, circleId, candidateEvent)
 
 	return true, nil
+}
+
+func (c *voteService) changedRankings(
+	ctx context.Context,
+	circleId int64,
+	updatedRanking *model.RankingResponse,
+) ([]*model.RankingResponse, error) {
+	return c.cache.RankingList(ctx, circleId, updatedRanking)
 }

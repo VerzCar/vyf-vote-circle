@@ -41,6 +41,7 @@ type RedisCache interface {
 	RankingList(
 		ctx context.Context,
 		circleId int64,
+		fromRanking *model.RankingResponse,
 	) ([]*model.RankingResponse, error)
 	ExistsRankingListForCircle(
 		ctx context.Context,

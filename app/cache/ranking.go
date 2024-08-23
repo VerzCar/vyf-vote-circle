@@ -80,10 +80,17 @@ func (c *redisCache) RemoveRanking(
 func (c *redisCache) RankingList(
 	ctx context.Context,
 	circleId int64,
+	fromRanking *model.RankingResponse,
 ) ([]*model.RankingResponse, error) {
 	key := circleRankingKey(circleId)
 
-	rankingScores, err := c.rankingScores(ctx, key)
+	fromIndex := int64(0)
+
+	if fromRanking != nil {
+		fromIndex = fromRanking.IndexedOrder + 1
+	}
+
+	rankingScores, err := c.rankingScores(ctx, key, fromIndex)
 
 	if err != nil {
 		c.log.Errorf(
@@ -94,7 +101,7 @@ func (c *redisCache) RankingList(
 		return nil, err
 	}
 
-	rankingList, err := c.rankingList(ctx, circleId, rankingScores)
+	rankingList, err := c.rankingList(ctx, circleId, rankingScores, fromRanking)
 
 	if err != nil {
 		return nil, err
@@ -184,6 +191,7 @@ func (c *redisCache) rankingList(
 	ctx context.Context,
 	circleId int64,
 	rankingScores []*model.RankingScore,
+	fromRanking *model.RankingResponse,
 ) ([]*model.RankingResponse, error) {
 	key := circleRankingKey(circleId)
 
@@ -208,7 +216,14 @@ func (c *redisCache) rankingList(
 
 	rankingList := make([]*model.RankingResponse, 0)
 	placementNumber := int64(0)
-	var voteCount int64
+	fromIndex := int64(0)
+	voteCount := int64(0)
+
+	if fromRanking != nil {
+		placementNumber = fromRanking.Number
+		fromIndex = fromRanking.IndexedOrder + 1
+		voteCount = fromRanking.Votes
+	}
 
 	for placementIndex, rankingScore := range rankingScores {
 		var rankingUserCandidate model.RankingUserCandidate
@@ -237,7 +252,7 @@ func (c *redisCache) rankingList(
 				circleId,
 				rankingUserCandidate.CandidateID,
 				rankingScore,
-				int64(placementIndex),
+				int64(placementIndex)+fromIndex,
 				placementNumber,
 				rankingUserCandidate.CreatedAt,
 				rankingUserCandidate.UpdatedAt,
@@ -322,8 +337,9 @@ func (c *redisCache) rankingIndexWithLastestVoteCountMember(
 func (c *redisCache) rankingScores(
 	ctx context.Context,
 	key string,
+	fromIndex int64,
 ) ([]*model.RankingScore, error) {
-	result := c.redis.ZRevRangeWithScores(ctx, key, 0, -1)
+	result := c.redis.ZRevRangeWithScores(ctx, key, fromIndex, -1)
 
 	switch {
 	case errors.Is(result.Err(), redis.Nil):

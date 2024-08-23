@@ -70,6 +70,11 @@ type Storage interface {
 	DeleteRanking(rankingId int64) error
 	RankingsByCircleId(circleId int64) ([]*model.Ranking, error)
 	RankingByCircleId(circleId int64, identityId string) (*model.Ranking, error)
+	CreateNewRankingLastViewed(
+		circleId int64,
+		identityId string,
+	) (*model.RankingLastViewed, error)
+	RankingsLastViewedByUserIdentityId(identityId string) ([]*model.RankingLastViewed, error)
 
 	CreateNewVote(
 		ctx context.Context,

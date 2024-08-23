@@ -33,6 +33,7 @@ type CircleService interface {
 	) ([]*model.CirclePaginated, error)
 	UpdateCircle(
 		ctx context.Context,
+		circleId int64,
 		circleUpdateRequest *model.CircleUpdateRequest,
 	) (*model.Circle, error)
 	CreateCircle(
@@ -246,6 +247,7 @@ func (c *circleService) CirclesOfInterest(
 
 func (c *circleService) UpdateCircle(
 	ctx context.Context,
+	circleId int64,
 	circleUpdateRequest *model.CircleUpdateRequest,
 ) (*model.Circle, error) {
 	authClaims, err := routerContext.ContextToAuthClaims(ctx)
@@ -255,7 +257,7 @@ func (c *circleService) UpdateCircle(
 		return nil, err
 	}
 
-	circle, err := c.storage.CircleById(circleUpdateRequest.ID)
+	circle, err := c.storage.CircleById(circleId)
 
 	if err != nil {
 		return nil, err
@@ -277,21 +279,7 @@ func (c *circleService) UpdateCircle(
 		return nil, err
 	}
 
-	// if circle should be deleted, deactivated it and return deactivated circle
-	if circleUpdateRequest.Delete != nil {
-		if *circleUpdateRequest.Delete {
-			err := c.inactivateCircle(circle)
-
-			if err != nil {
-				c.log.Warnf("could not deactivate circle, error: circle ID %d, error %s", circle.ID, err)
-				return nil, err
-			}
-
-			return circle, nil
-		}
-	}
-
-	currentTime := time.Now().Truncate(24 * time.Hour)
+	currentTime := currentTruncatedTime()
 	// check if new valid from time is given and is in the future from now on
 	// otherwise check if current valid from time has expired
 	if circleUpdateRequest.ValidFrom != nil {
@@ -304,23 +292,25 @@ func (c *circleService) UpdateCircle(
 			}
 		}
 
-		validFromTime := *circleUpdateRequest.ValidFrom
-		if currentTime.After(validFromTime.Truncate(24 * time.Hour)) {
-			err = fmt.Errorf("valid from time must be in the future from now")
+		validFrom, err := extractValidFrom(currentTime, *circleUpdateRequest.ValidFrom)
+
+		if err != nil {
 			return nil, err
 		}
-		circle.ValidFrom = *circleUpdateRequest.ValidFrom
+
+		circle.ValidFrom = *validFrom
 	}
 
 	// check if new valid until time is given and is in the future from now on
 	// otherwise check if current valid until time has expired
 	if circleUpdateRequest.ValidUntil != nil {
-		validUntilTime := *circleUpdateRequest.ValidUntil
-		if currentTime.After(validUntilTime.Truncate(24 * time.Hour)) {
-			err = fmt.Errorf("valid until time must be in the future from now")
+		validUntil, err := extractValidUntil(currentTime, circle.ValidFrom, *circleUpdateRequest.ValidUntil)
+
+		if err != nil {
 			return nil, err
 		}
-		circle.ValidUntil = circleUpdateRequest.ValidUntil
+
+		circle.ValidUntil = validUntil
 	} else {
 		circle.ValidUntil = nil
 	}
@@ -335,44 +325,6 @@ func (c *circleService) UpdateCircle(
 
 	if circleUpdateRequest.Description != nil {
 		circle.Description = strings.TrimSpace(*circleUpdateRequest.Description)
-	}
-
-	// can only update voters if the circle is private
-	if circleUpdateRequest.Voters != nil && circle.Private {
-		if len(circleUpdateRequest.Voters) <= 1 {
-			err = fmt.Errorf("not enough voters")
-			return nil, err
-		}
-
-		var circleVoters []*model.CircleVoter
-		for _, voter := range circleUpdateRequest.Voters {
-			circleVoter := &model.CircleVoter{
-				Voter:       voter.Voter,
-				Circle:      circle,
-				CircleRefer: &circle.ID,
-			}
-			circleVoters = append(circleVoters, circleVoter)
-		}
-		circle.Voters = circleVoters
-	}
-
-	// can only update candidates if the circle is private
-	if circleUpdateRequest.Candidates != nil && circle.Private {
-		if len(circleUpdateRequest.Candidates) <= 1 {
-			err = fmt.Errorf("not enough candidates")
-			return nil, err
-		}
-
-		var circleCandidates []*model.CircleCandidate
-		for _, candidate := range circleUpdateRequest.Candidates {
-			circleCandidate := &model.CircleCandidate{
-				Candidate:   candidate.Candidate,
-				Circle:      circle,
-				CircleRefer: &circle.ID,
-			}
-			circleCandidates = append(circleCandidates, circleCandidate)
-		}
-		circle.Candidates = circleCandidates
 	}
 
 	circle, err = c.storage.UpdateCircle(circle)
@@ -403,7 +355,7 @@ func (c *circleService) CreateCircle(
 
 	userOption, _ := c.userOptionService.UserOption(ctx)
 
-	if circlesCount > int64(userOption.MaxCircles) {
+	if circlesCount >= int64(userOption.MaxCircles) {
 		err = fmt.Errorf("user has more than %d allowed circles", userOption.MaxCircles)
 		return nil, err
 	}
@@ -422,8 +374,12 @@ func (c *circleService) CreateCircle(
 		return nil, err
 	}
 
-	if newCircle.Private && len(circleCreateRequest.Voters) > userOption.PrivateOption.MaxVoters {
-		err = fmt.Errorf("circle has more than %d allowed voters", userOption.PrivateOption.MaxVoters)
+	if newCircle.Private && len(circleCreateRequest.Voters) >= userOption.PrivateOption.MaxVoters {
+		err = fmt.Errorf(
+			"circle has %d more than %d allowed voters",
+			len(circleCreateRequest.Voters),
+			userOption.PrivateOption.MaxVoters,
+		)
 		return nil, err
 	}
 
@@ -432,8 +388,12 @@ func (c *circleService) CreateCircle(
 		return nil, err
 	}
 
-	if newCircle.Private && len(circleCreateRequest.Candidates) > userOption.PrivateOption.MaxCandidates {
-		err = fmt.Errorf("circle has more than %d allowed candidates", userOption.PrivateOption.MaxCandidates)
+	if newCircle.Private && len(circleCreateRequest.Candidates) >= userOption.PrivateOption.MaxCandidates {
+		err = fmt.Errorf(
+			"circle has %d more than %d allowed candidates",
+			len(circleCreateRequest.Candidates),
+			userOption.PrivateOption.MaxCandidates,
+		)
 		return nil, err
 	}
 
@@ -461,26 +421,30 @@ func (c *circleService) CreateCircle(
 		newCircle.Description = strings.TrimSpace(*circleCreateRequest.Description)
 	}
 
-	currentTime := time.Now()
+	currentTime := currentTruncatedTime()
 
 	// check if new valid from time is given and is in the future from now on
 	if circleCreateRequest.ValidFrom != nil {
-		if currentTime.After(*circleCreateRequest.ValidFrom) {
-			err = fmt.Errorf("valid from time must be in the future from now")
+		validFrom, err := extractValidFrom(currentTime, *circleCreateRequest.ValidFrom)
+
+		if err != nil {
 			return nil, err
 		}
-		newCircle.ValidFrom = *circleCreateRequest.ValidFrom
+
+		newCircle.ValidFrom = *validFrom
 	} else {
 		newCircle.ValidFrom = currentTime
 	}
 
 	// check if new valid until time is given and is in the future from now on
 	if circleCreateRequest.ValidUntil != nil {
-		if currentTime.After(*circleCreateRequest.ValidUntil) {
-			err = fmt.Errorf("valid until time must be in the future from now")
+		validUntil, err := extractValidUntil(currentTime, newCircle.ValidFrom, *circleCreateRequest.ValidUntil)
+
+		if err != nil {
 			return nil, err
 		}
-		newCircle.ValidUntil = circleCreateRequest.ValidUntil
+
+		newCircle.ValidUntil = validUntil
 	}
 
 	circle, err := c.storage.CreateNewCircle(newCircle)
@@ -532,12 +496,11 @@ func (c *circleService) DeleteCircle(
 		return err
 	}
 
-	circle.Active = false
-
-	_, err = c.storage.UpdateCircle(circle)
+	err = c.inactivateCircle(circle)
 
 	if err != nil {
-		return err
+		c.log.Warnf("could not deactivate circle, error: circle ID %d, error %s", circle.ID, err)
+		return fmt.Errorf("could not delete circle")
 	}
 
 	return nil
@@ -706,4 +669,54 @@ func (c *circleService) createCircleCandidateList(
 	}
 
 	return circleCandidates
+}
+
+func currentTruncatedTime() time.Time {
+	return time.Now().UTC().Truncate(60 * time.Second)
+}
+
+// Function to check if a time is in the future from now
+func isTimeInFuture(currentTime, futureTime time.Time) error {
+	if currentTime.After(futureTime) {
+		return fmt.Errorf("time must be in the future from now")
+	}
+	return nil
+}
+
+// Function to check if validUntil is after validFrom
+func isValidUntilAfterValidFrom(validFrom, validUntil time.Time) error {
+	if validUntil.Before(validFrom) {
+		return fmt.Errorf("valid until time must not be before valid from time")
+	}
+	return nil
+}
+
+// Function to handle validFrom time validation
+func extractValidFrom(
+	currentTime time.Time,
+	validFrom time.Time,
+) (*time.Time, error) {
+	validFromTime := validFrom.UTC().Truncate(60 * time.Second)
+	if err := isTimeInFuture(currentTime, validFromTime); err != nil {
+		return nil, err
+	}
+	return &validFromTime, nil
+}
+
+// Function to handle validUntil time validation
+func extractValidUntil(
+	currentTime time.Time,
+	validFrom time.Time,
+	validUntil time.Time,
+) (*time.Time, error) {
+	validUntilTime := validUntil.UTC().Truncate(60 * time.Second)
+	if err := isTimeInFuture(currentTime, validUntilTime); err != nil {
+		return nil, err
+	}
+
+	if err := isValidUntilAfterValidFrom(validFrom, validUntilTime); err != nil {
+		return nil, err
+	}
+
+	return &validUntilTime, nil
 }

@@ -25,6 +25,10 @@ type CircleUploadService interface {
 		multiPartFile *multipart.FileHeader,
 		circleId int64,
 	) (string, error)
+	DeleteImage(
+		ctx context.Context,
+		circleId int64,
+	) (string, error)
 }
 
 type circleUploadService struct {
@@ -80,6 +84,23 @@ func (c *circleUploadService) UploadImage(
 	}
 
 	return imageEndpoint, nil
+}
+
+func (c *circleUploadService) DeleteImage(
+	ctx context.Context,
+	circleId int64,
+) (string, error) {
+	imageSrc := ""
+	updateCircleReq := &model.CircleUpdateRequest{
+		ImageSrc: &imageSrc,
+	}
+	_, err := c.circleService.UpdateCircle(ctx, circleId, updateCircleReq)
+
+	if err != nil {
+		return "", err
+	}
+
+	return imageSrc, nil
 }
 
 func (c *circleUploadService) openAndValidateFile(multiPartFile *multipart.FileHeader) (
@@ -141,10 +162,9 @@ func (c *circleUploadService) uploadFile(
 
 	imageEndpoint := fmt.Sprintf("%s/%s", c.extStorageService.ObjectEndpoint(), filePath)
 	updateCircleReq := &model.CircleUpdateRequest{
-		ID:       circleId,
 		ImageSrc: &imageEndpoint,
 	}
-	_, err = c.circleService.UpdateCircle(ctx, updateCircleReq)
+	_, err = c.circleService.UpdateCircle(ctx, circleId, updateCircleReq)
 	if err != nil {
 		return "", err
 	}

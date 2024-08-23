@@ -43,14 +43,14 @@ func (t *tokenService) GenerateAblyToken(
 	}
 
 	params := &ably.TokenParams{
-		ClientID: authClaims.Subject,
+		ClientID: authClaims.PrivateClaims.ClientId,
 	}
 
 	tokenRequest, err := t.pubSubService.Auth.CreateTokenRequest(params)
 
 	if err != nil {
 		t.log.Errorf(
-			"could not create toke request: cause: %s",
+			"could not create token request: cause: %s",
 			err,
 		)
 		return nil, err

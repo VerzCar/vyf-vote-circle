@@ -49,15 +49,11 @@ type CircleResponse struct {
 }
 
 type CircleUpdateRequest struct {
-	Name        *string                   `json:"name,omitempty" validate:"omitempty,gt=0,lte=40"`
-	Description *string                   `json:"description,omitempty" validate:"omitempty,lte=1200"`
-	ImageSrc    *string                   `json:"imageSrc,omitempty" validate:"omitempty,url"`
-	Delete      *bool                     `json:"delete,omitempty" validate:"omitempty"`
-	ValidUntil  *time.Time                `json:"validUntil,omitempty" validate:"omitempty"`
-	ValidFrom   *time.Time                `json:"ValidFrom,omitempty" validate:"omitempty"`
-	Voters      []*CircleVoterRequest     `json:"voters,omitempty"`
-	Candidates  []*CircleCandidateRequest `json:"candidates,omitempty"`
-	ID          int64                     `json:"id" validate:"gt=0"`
+	Name        *string    `json:"name,omitempty" validate:"omitempty,gt=0,lte=40"`
+	Description *string    `json:"description,omitempty" validate:"omitempty,lte=1200"`
+	ImageSrc    *string    `json:"imageSrc,omitempty" validate:"omitempty,url"`
+	ValidUntil  *time.Time `json:"validUntil,omitempty" validate:"omitempty"`
+	ValidFrom   *time.Time `json:"ValidFrom,omitempty" validate:"omitempty"`
 }
 
 type CircleCreateRequest struct {
@@ -153,14 +149,14 @@ func updateCircleStage(
 	tx *gorm.DB,
 	circle *Circle,
 ) error {
-	currentTime := time.Now().Truncate(24 * time.Hour)
-	validFromTruncatedTime := circle.ValidFrom.Truncate(24 * time.Hour)
+	currentTime := time.Now().UTC().Truncate(60 * time.Second)
+	validFromTruncatedTime := circle.ValidFrom.UTC().Truncate(60 * time.Second)
 
 	// check if current time is between range of circle
 	// if so, set it to hot stage
 	if circle.ValidUntil != nil {
 		validUntilTime := *circle.ValidUntil
-		validUntilTruncatedTime := validUntilTime.Truncate(24 * time.Hour)
+		validUntilTruncatedTime := validUntilTime.UTC().Truncate(60 * time.Second)
 
 		if utils.IsTimeBetween(currentTime, validFromTruncatedTime, validUntilTruncatedTime) {
 			if circle.Stage == CircleStageHot {

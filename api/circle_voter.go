@@ -24,11 +24,11 @@ type CircleVoterService interface {
 		ctx context.Context,
 		circleId int64,
 	) error
-	CircleVoterAddToCircle(
+	CircleVotersAddToCircle(
 		ctx context.Context,
 		circleId int64,
-		circleVoterInput *model.CircleVoterRequest,
-	) (*model.CircleVoter, error)
+		circleVotersInput []*model.CircleVoterRequest,
+	) ([]*model.CircleVoter, error)
 	CircleVoterRemoveFromCircle(
 		ctx context.Context,
 		circleId int64,
@@ -163,7 +163,7 @@ func (c *circleVoterService) CircleVoterJoinCircle(
 
 	userOption, _ := c.userOptionService.UserOption(ctx)
 
-	if votersCount > int64(userOption.MaxVoters) {
+	if votersCount >= int64(userOption.MaxVoters) {
 		err = fmt.Errorf("circle has more than %d allowed voters", userOption.MaxVoters)
 		return nil, err
 	}
@@ -257,11 +257,11 @@ func (c *circleVoterService) CircleVoterLeaveCircle(
 	return nil
 }
 
-func (c *circleVoterService) CircleVoterAddToCircle(
+func (c *circleVoterService) CircleVotersAddToCircle(
 	ctx context.Context,
 	circleId int64,
-	circleVoterInput *model.CircleVoterRequest,
-) (*model.CircleVoter, error) {
+	circleVotersInput []*model.CircleVoterRequest,
+) ([]*model.CircleVoter, error) {
 	authClaims, err := routerContext.ContextToAuthClaims(ctx)
 
 	if err != nil {
@@ -295,47 +295,22 @@ func (c *circleVoterService) CircleVoterAddToCircle(
 		return nil, fmt.Errorf("circle is not editable")
 	}
 
-	isVoterInCircle, err := c.storage.IsVoterInCircle(circleVoterInput.Voter, circleId)
+	updatedVoters := make([]*model.CircleVoter, 0)
 
-	if err != nil {
-		return nil, err
+	for _, voter := range circleVotersInput {
+		newVoter, err := c.addVoterToCircle(ctx, circle, voter.Voter)
+
+		if err != nil {
+			return nil, err
+		}
+
+		updatedVoters = append(updatedVoters, newVoter)
+
+		voterEvent := CreateVoterChangedEvent(model.EventOperationCreated, newVoter)
+		_ = c.subscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
 	}
 
-	if isVoterInCircle {
-		err = fmt.Errorf("user is already as voter in the circle")
-		return nil, err
-	}
-
-	votersCount, err := c.storage.CircleVoterCountByCircleId(circleId)
-
-	if err != nil {
-		return nil, err
-	}
-
-	userOption, _ := c.userOptionService.UserOption(ctx)
-
-	if votersCount > int64(userOption.MaxVoters) {
-		err = fmt.Errorf("circle has more than %d allowed voters", userOption.MaxVoters)
-		return nil, err
-	}
-
-	circleVoter := &model.CircleVoter{
-		Voter:       circleVoterInput.Voter,
-		Circle:      circle,
-		CircleRefer: &circle.ID,
-	}
-
-	newVoter, err := c.storage.CreateNewCircleVoter(circleVoter)
-
-	if err != nil {
-		c.log.Errorf("error adding voter to circle id %d: %s", circleId, err)
-		return nil, fmt.Errorf("cannot add user as voter to circle")
-	}
-
-	voterEvent := CreateVoterChangedEvent(model.EventOperationCreated, newVoter)
-	_ = c.subscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
-
-	return newVoter, nil
+	return updatedVoters, nil
 }
 
 func (c *circleVoterService) CircleVoterRemoveFromCircle(
@@ -407,4 +382,49 @@ func (c *circleVoterService) CircleVoterRemoveFromCircle(
 	_ = c.subscription.CircleVoterChangedEvent(ctx, circleId, voterEvent)
 
 	return nil
+}
+
+func (c *circleVoterService) addVoterToCircle(
+	ctx context.Context,
+	circle *model.Circle,
+	voterIdentId string,
+) (*model.CircleVoter, error) {
+	IsCandidateInCircle, err := c.storage.IsVoterInCircle(voterIdentId, circle.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if IsCandidateInCircle {
+		err = fmt.Errorf("user is already as voter in the circle")
+		return nil, err
+	}
+
+	candidatesCount, err := c.storage.CircleVoterCountByCircleId(circle.ID)
+
+	if err != nil {
+		return nil, fmt.Errorf("count of voter failure")
+	}
+
+	userOption, _ := c.userOptionService.UserOption(ctx)
+
+	if candidatesCount >= int64(userOption.MaxCandidates) {
+		err = fmt.Errorf("circle has more than %d allowed voters", userOption.MaxVoters)
+		return nil, err
+	}
+
+	circleVoter := &model.CircleVoter{
+		Voter:       voterIdentId,
+		Circle:      circle,
+		CircleRefer: &circle.ID,
+	}
+
+	newVoter, err := c.storage.CreateNewCircleVoter(circleVoter)
+
+	if err != nil {
+		c.log.Errorf("error adding voter to circle id %d: %s", circle.ID, err)
+		return nil, err
+	}
+
+	return newVoter, nil
 }

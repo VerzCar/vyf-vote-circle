@@ -238,6 +238,7 @@ func (s *Server) CirclesOpenCommitments() gin.HandlerFunc {
 				VotersCount:     &circle.VotersCount,
 				CandidatesCount: &circle.CandidatesCount,
 				Active:          circle.Active,
+				Stage:           circle.Stage,
 			}
 			paginatedCirclesResponse = append(paginatedCirclesResponse, c)
 		}
@@ -359,9 +360,19 @@ func (s *Server) UpdateCircle() gin.HandlerFunc {
 			Data:   nil,
 		}
 
+		circleReq := &model.CircleUriRequest{}
+
+		err := ctx.ShouldBindUri(circleReq)
+
+		if err != nil {
+			s.log.Error(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
 		circleUpdateReq := &model.CircleUpdateRequest{}
 
-		err := ctx.ShouldBindJSON(circleUpdateReq)
+		err = ctx.ShouldBindJSON(circleUpdateReq)
 
 		if err != nil {
 			s.log.Error(err)
@@ -375,7 +386,7 @@ func (s *Server) UpdateCircle() gin.HandlerFunc {
 			return
 		}
 
-		circle, err := s.circleService.UpdateCircle(ctx.Request.Context(), circleUpdateReq)
+		circle, err := s.circleService.UpdateCircle(ctx.Request.Context(), circleReq.CircleID, circleUpdateReq)
 
 		if err != nil {
 			s.log.Errorf("service error: %v", err)
@@ -497,6 +508,42 @@ func (s *Server) UploadCircleImage() gin.HandlerFunc {
 		}
 
 		imageSrc, err := s.circleUploadService.UploadImage(ctx.Request.Context(), multiPartFile, circleReq.CircleID)
+
+		if err != nil {
+			s.log.Errorf("service error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, errResponse)
+			return
+		}
+
+		response := model.Response{
+			Status: model.ResponseSuccess,
+			Msg:    "",
+			Data:   imageSrc,
+		}
+
+		ctx.JSON(http.StatusOK, response)
+	}
+}
+
+func (s *Server) DeleteCircleImage() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		errResponse := model.Response{
+			Status: model.ResponseError,
+			Msg:    "cannot delete file",
+			Data:   nil,
+		}
+
+		circleReq := &model.CircleUriRequest{}
+
+		err := ctx.ShouldBindUri(circleReq)
+
+		if err != nil {
+			s.log.Error(err)
+			ctx.JSON(http.StatusBadRequest, errResponse)
+			return
+		}
+
+		imageSrc, err := s.circleUploadService.DeleteImage(ctx.Request.Context(), circleReq.CircleID)
 
 		if err != nil {
 			s.log.Errorf("service error: %v", err)
