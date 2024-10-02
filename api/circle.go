@@ -671,8 +671,12 @@ func (c *circleService) createCircleCandidateList(
 	return circleCandidates
 }
 
+// Gets the current time truncated without seconds and 10 minutes
+// past the current time.
 func currentTruncatedTime() time.Time {
-	return time.Now().UTC().Truncate(60 * time.Second)
+	currentTime := time.Now().UTC()
+	then := currentTime.Add(-10 * time.Minute)
+	return then.Truncate(60 * time.Second)
 }
 
 // Function to check if a time is in the future from now
